@@ -7,7 +7,7 @@ import { TeamProfile } from '../models/team-profile.model';
 const MOCK_PROFILES: TeamProfile[] = [
   {
     id: 'consolidation',
-    name: 'Financial Controller',
+    name: 'Finance Manager',
     desc: 'Trial balance consolidation, affiliate submission review, and financial statement preparation.',
     initials: 'FC&AG',
     color: '#84BD00',

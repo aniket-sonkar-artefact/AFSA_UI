@@ -19,7 +19,7 @@ const MOCK_USERS: Record<UserRole, User> = {
     name: 'Aniket Sonkar',
     email: 'mohammed.k@afsa-platform.com',
     role: 'consolidation',
-    roleLabel: 'Financial Controller',
+    roleLabel: 'Finance Manager',
     initials: 'MK',
   },
   reporting: {
