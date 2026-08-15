@@ -1,0 +1,209 @@
+<div class="submission-review">
+  <!-- Affiliate selector -->
+  <div class="selector-card">
+    <div>
+      <div class="selector-label">Affiliate</div>
+      <div class="affiliate-toggle">
+        @for (aff of affiliates; track aff) {
+          <button
+            class="affiliate-btn"
+            [class.active]="affiliate() === aff"
+            (click)="selectAffiliate(aff)"
+          >
+            Affiliate {{ aff }}
+          </button>
+        }
+      </div>
+    </div>
+    <div class="v-divider"></div>
+    <div>
+      <div class="mini-label">Period</div>
+      <div class="mini-value">Q1 2026</div>
+    </div>
+    <div>
+      <div class="mini-label">Reviewer</div>
+      <div class="mini-value">Aniket Sonkar</div>
+    </div>
+  </div>
+
+  <!-- Tabs -->
+  <div class="tab-row">
+    @for (t of tabs; track t) {
+      <button class="tab-btn" [class.active]="tab() === t" (click)="selectTab(t)">
+        {{ tabLabel[t] }}
+      </button>
+    }
+  </div>
+
+  <div class="tab-header">Affiliate {{ affiliate() }} &middot; {{ tabLabel[tab()] }} &middot; Q1 2026</div>
+
+  <!-- COMPLETENESS -->
+  @if (tab() === 'completeness') {
+    <div class="tab-content">
+      <div class="stat-row">
+        @for (s of checklistStatCards(); track s.label) {
+          <div class="stat-card">
+            <div class="stat-value" [style.color]="s.color">{{ s.value }}</div>
+            <div class="stat-label">{{ s.label }}</div>
+          </div>
+        }
+      </div>
+
+      @for (group of checklist(); track group.group) {
+        <div class="table-card">
+          <div class="table-card-head">
+            <div class="table-card-title">{{ group.group }}</div>
+          </div>
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Submission Item</th>
+                <th>Submitted File</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (item of group.items; track item.label) {
+                <tr>
+                  <td class="cell-primary">{{ item.label }}</td>
+                  <td class="cell-mono" [class.faint]="item.file === '\u2014'">{{ item.file }}</td>
+                  <td>
+                    <span class="status-chip" [style.color]="statusStyle(item.status).color" [style.background]="statusStyle(item.status).bg">
+                      {{ item.status }}
+                    </span>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      }
+    </div>
+  }
+
+  <!-- IRREGULARITIES -->
+  @if (tab() === 'irregularities') {
+    <div class="tab-content">
+      @if (findings().length === 0) {
+        <div class="empty-card">No irregularities identified for Affiliate {{ affiliate() }}.</div>
+      } @else {
+        <div class="table-card">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Account Code</th>
+                <th>Account</th>
+                <th>Current Period</th>
+                <th>Prior Period</th>
+                <th>Change</th>
+                <th>Flag</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (row of findings(); track row.accountCode; let i = $index) {
+                <tr>
+                  <td class="cell-code">{{ row.accountCode }}</td>
+                  <td class="cell-primary">{{ row.account }}</td>
+                  <td class="cell-mono" [ngStyle]="flagCellStyle(row.flagColumn === 'current', row.severity)">{{ row.currentPeriod }}</td>
+                  <td class="cell-mono cell-secondary">{{ row.priorPeriod }}</td>
+                  <td class="cell-mono" [ngStyle]="flagCellStyle(row.flagColumn === 'change', row.severity)">{{ row.change }}</td>
+                  <td class="cell-flag">{{ row.flag }}</td>
+                  <td>
+                    <select
+                      class="status-select"
+                      [style.background]="findingStatusStyle(row.status).bg"
+                      [style.color]="findingStatusStyle(row.status).color"
+                      [style.border-color]="findingStatusStyle(row.status).bg"
+                      [ngModel]="row.status"
+                      (ngModelChange)="onFindingStatusChange(i, $event)"
+                    >
+                      <option value="Open">Open</option>
+                      <option value="Investigate">Investigate</option>
+                      <option value="Closed">Closed</option>
+                    </select>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      }
+    </div>
+  }
+
+  <!-- COA MAPPING -->
+  @if (tab() === 'coa') {
+    <div class="tab-content">
+      @if (coaHasBlockers()) {
+        <div class="warning-banner">
+          Mapping review cannot be completed: confirm all Low Confidence and Unmapped accounts before proceeding.
+        </div>
+      }
+      <div class="table-card">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Affiliate Account</th>
+              <th>Description</th>
+              <th>Current Group Mapping</th>
+              <th>Mapping Status</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (row of coaRows(); track row.code; let i = $index) {
+              <tr>
+                <td class="cell-code">{{ row.code }}</td>
+                <td class="cell-primary">{{ row.description }}</td>
+                <td>
+                  @if (row.confirmed) {
+                    <span class="mapping-confirmed">{{ row.selectedMapping }}</span>
+                  } @else if (row.originalStatus === 'High Confidence') {
+                    <span class="mapping-fixed">{{ row.selectedMapping }}</span>
+                  } @else {
+                    <select
+                      class="mapping-select"
+                      [class.unmapped]="row.originalStatus === 'Unmapped'"
+                      [class.low-conf]="row.originalStatus !== 'Unmapped'"
+                      [ngModel]="row.selectedMapping"
+                      (ngModelChange)="onCoaMappingChange(i, $event)"
+                    >
+                      <option value="" disabled>Select Group Account &#9662;</option>
+                      @for (a of groupAccounts; track a) {
+                        <option [value]="a">{{ a }}</option>
+                      }
+                    </select>
+                  }
+                </td>
+                <td>
+                  <span
+                    class="status-chip bordered"
+                    [style.color]="mappingStatusChip(row.confirmed ? 'Confirmed' : row.originalStatus).color"
+                    [style.background]="mappingStatusChip(row.confirmed ? 'Confirmed' : row.originalStatus).bg"
+                    [style.border-color]="mappingStatusChip(row.confirmed ? 'Confirmed' : row.originalStatus).border"
+                  >
+                    {{ row.confirmed ? 'Confirmed' : row.originalStatus }}
+                  </span>
+                </td>
+                <td>
+                  @if (row.confirmed) {
+                    <span class="confirmed-label">&#10003; Confirmed</span>
+                  } @else {
+                    <button
+                      class="confirm-btn"
+                      [disabled]="!canConfirm(row)"
+                      (click)="confirmCoaMapping(i)"
+                    >
+                      Confirm Mapping
+                    </button>
+                  }
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    </div>
+  }
+</div>

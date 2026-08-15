@@ -1,0 +1,72 @@
+<div class="variance">
+  <div class="header-card">
+    <div>
+      <h1 class="header-title">Management Reports &amp; Variance Analysis</h1>
+      <div class="header-meta">Group Consolidated &middot; Q1 2026 vs Q1 2025 &middot; SAR (000s)</div>
+    </div>
+    <div class="header-actions">
+      <button class="ghost-btn">Variance Analysis Report</button>
+      <button class="solid-btn">Download Management Report</button>
+    </div>
+  </div>
+
+  <div class="filters-card">
+    <div class="filter">
+      <div class="filter-label">ACTUAL PERIOD</div>
+      <select class="filter-select" [(ngModel)]="actualPeriod">
+        <option>Q1 2026</option>
+        <option>Q4 2025</option>
+      </select>
+    </div>
+    <div class="filter">
+      <div class="filter-label">COMPARISON PERIOD</div>
+      <select class="filter-select" [(ngModel)]="comparisonPeriod">
+        <option>Q1 2025</option>
+        <option>Q4 2024</option>
+      </select>
+    </div>
+    <div class="filter">
+      <div class="filter-label">ENTITY</div>
+      <select class="filter-select" [(ngModel)]="entity">
+        <option>Group Consolidated</option>
+        <option>Affiliate A</option>
+        <option>Affiliate B</option>
+      </select>
+    </div>
+    <div class="filter">
+      <div class="filter-label">CURRENCY</div>
+      <select class="filter-select" [(ngModel)]="currency">
+        <option>SAR (000s)</option>
+        <option>USD (000s)</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="table-card">
+    <div class="table-card-head">GROUP VARIANCE ANALYSIS &mdash; SAR (000S)</div>
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Line Item</th>
+          <th>Current Period Q1 2026</th>
+          <th>Comparison Period Q1 2025</th>
+          <th>Variance</th>
+          <th>Variance %</th>
+          <th>Analysis</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (row of rows(); track row.item) {
+          <tr [class.subtotal]="row.isSubtotal">
+            <td class="cell-primary">{{ row.item }}</td>
+            <td class="cell-mono">{{ formatNumber(row.current) }}</td>
+            <td class="cell-mono cell-secondary">{{ formatNumber(row.comparison) }}</td>
+            <td class="cell-mono" [style.color]="varianceColor(row.variance)">{{ formatNumber(row.variance) }}</td>
+            <td class="cell-mono" [style.color]="varianceColor(row.variance)">{{ row.varPct }}</td>
+            <td class="cell-analysis">{{ row.analysis }}</td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+</div>

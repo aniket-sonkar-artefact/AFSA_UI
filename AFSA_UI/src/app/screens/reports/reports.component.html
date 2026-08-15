@@ -1,0 +1,61 @@
+<div class="reports">
+  <div class="header-card">
+    <h1 class="header-title">Reports</h1>
+    <div class="header-meta">Generated outputs from the Advanced Financial Statement Agent.</div>
+
+    <div class="search-box">
+      <span class="search-icon">&#128269;</span>
+      <input
+        class="search-input"
+        type="text"
+        placeholder="Search reports..."
+        [ngModel]="search()"
+        (ngModelChange)="search.set($event)"
+      />
+    </div>
+
+    <div class="filter-row">
+      <button class="filter-chip" [class.active]="activeFilter() === 'All'" (click)="setFilter('All')">All</button>
+      @for (cap of capabilities; track cap) {
+        <button class="filter-chip" [class.active]="activeFilter() === cap" (click)="setFilter(cap)">{{ cap }}</button>
+      }
+    </div>
+  </div>
+
+  @for (group of groupedReports(); track group.capability) {
+    <div class="group-card" [style.border-left-color]="dotColor[group.capability]">
+      <div class="group-head">
+        <span class="group-dot" [style.background]="dotColor[group.capability]"></span>
+        <span class="group-title">{{ group.capability }}</span>
+        <span class="group-count">{{ group.reports.length }} report{{ group.reports.length === 1 ? '' : 's' }}</span>
+      </div>
+
+      <div class="report-list">
+        @for (r of group.reports; track r.id) {
+          <div class="report-row">
+            <span class="report-icon">&#128196;</span>
+            <div class="report-text">
+              <div class="report-title">{{ r.title }}</div>
+              <div class="report-meta">{{ r.meta }}</div>
+            </div>
+            @if (r.download && isGenerated(r.id)) {
+              <button class="solid-btn">Download</button>
+            } @else if (isGenerated(r.id)) {
+              <button class="solid-btn" disabled>&#10003; Generated</button>
+            } @else {
+              <button class="outline-btn" (click)="generate(r)">Generate Report</button>
+            }
+          </div>
+        }
+      </div>
+    </div>
+  }
+
+  @if (groupedReports().length === 0) {
+    <div class="empty-card">No reports match your search.</div>
+  }
+
+  @if (toast()) {
+    <div class="toast">&#10003; Report generated successfully</div>
+  }
+</div>

@@ -1,0 +1,194 @@
+:root {
+  --card: #FFFFFF;
+  --surface: #F8FAFC;
+  --bg-app: #EEF3F9;
+  --sidebar: #FFFFFF;
+  --header: #FFFFFF;
+  --border: #E2E8F0;
+  --border-light: #F1F5F9;
+  --text-primary: #0F172A;
+  --text-secondary: #475569;
+  --text-muted: #64748B;
+  --text-faint: #94A3B8;
+  --text-separator: #CBD5E1;
+  --accent-bg: #EEF3F9;
+  --flagged-warm: #FFFBF0;
+  --flagged-red: #FFF5F5;
+}
+
+[data-theme='dark'] {
+  --card: #1A2535;
+  --surface: #141F2E;
+  --bg-app: #0E1624;
+  --sidebar: #111827;
+  --header: #111827;
+  --border: #253548;
+  --border-light: #1D2D40;
+  --text-primary: #E2E8F0;
+  --text-secondary: #8FA3B8;
+  --text-muted: #607080;
+  --text-faint: #4A5A6A;
+  --text-separator: #2D3F55;
+  --accent-bg: #162A4A;
+  --flagged-warm: #1F1D10;
+  --flagged-red: #1F1015;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html, body {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  background: var(--bg-app);
+  color: var(--text-primary);
+}
+
+button, input, select, textarea {
+  font-family: inherit;
+}
+
+.glass {
+  background: rgba(255, 255, 255, 0.60);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.70);
+  box-shadow: 0 8px 32px rgba(0, 51, 160, 0.10);
+  border-radius: 18px;
+}
+
+.glass-sm {
+  background: rgba(255, 255, 255, 0.60);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.70);
+  box-shadow: 0 4px 16px rgba(0, 51, 160, 0.08);
+  border-radius: 12px;
+}
+
+.glass-sidebar {
+  background: rgba(255, 255, 255, 0.75);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border-right: 1px solid rgba(255, 255, 255, 0.70);
+}
+
+.glass-elevated {
+  background: rgba(255, 255, 255, 0.82);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid rgba(255, 255, 255, 0.90);
+  box-shadow: 0 16px 48px rgba(0, 51, 160, 0.16), 0 2px 8px rgba(0, 51, 160, 0.06);
+  border-radius: 18px;
+}
+
+.glass-topbar {
+  background: rgba(255, 255, 255, 0.75);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.70);
+}
+
+@keyframes orbDrift1 {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  33% { transform: translate(6%, 4%) scale(1.06); }
+  66% { transform: translate(-4%, 6%) scale(0.94); }
+}
+
+@keyframes orbDrift2 {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  33% { transform: translate(-6%, -4%) scale(0.96); }
+  66% { transform: translate(5%, -6%) scale(1.04); }
+}
+
+@keyframes orbDrift3 {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  50% { transform: translate(4%, -5%) scale(1.05); }
+}
+
+@keyframes floatUp {
+  0%, 100% { transform: translateY(0px); opacity: 0.85; }
+  50% { transform: translateY(-12px); opacity: 1; }
+}
+
+@keyframes floatUpAlt {
+  0%, 100% { transform: translateY(0px) rotate(-2deg); opacity: 0.75; }
+  50% { transform: translateY(-8px) rotate(1deg); opacity: 0.95; }
+}
+
+@keyframes pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(132, 189, 0, 0.25); }
+  50% { box-shadow: 0 0 0 8px rgba(132, 189, 0, 0); }
+}
+
+@keyframes screenEnter {
+  from { opacity: 0; transform: translateY(14px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes loginPanelEnter {
+  from { opacity: 0; transform: translateX(-22px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes loginFormEnter {
+  from { opacity: 0; transform: translateX(18px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes featureSlideIn {
+  from { opacity: 0; transform: translateX(-16px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes statPop {
+  from { opacity: 0; transform: scale(0.88); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+@keyframes orbPulse1 {
+  0%, 100% { transform: translate(0, 0) scale(1); opacity: 0.55; }
+  40%       { transform: translate(5%, 8%) scale(1.12); opacity: 0.75; }
+  70%       { transform: translate(-4%, 3%) scale(0.94); opacity: 0.5; }
+}
+
+@keyframes orbPulse2 {
+  0%, 100% { transform: translate(0, 0) scale(1); opacity: 0.45; }
+  35%       { transform: translate(-7%, -5%) scale(1.08); opacity: 0.65; }
+  65%       { transform: translate(6%, -8%) scale(0.96); opacity: 0.4; }
+}
+
+@keyframes orbPulse3 {
+  0%, 100% { transform: translate(0, 0) scale(1); opacity: 0.35; }
+  50%       { transform: translate(4%, -6%) scale(1.14); opacity: 0.55; }
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
+@keyframes shimmer {
+  0%   { background-position: -200% center; }
+  100% { background-position: 200% center; }
+}
+
+::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(0, 51, 160, 0.18);
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 51, 160, 0.35);
+}

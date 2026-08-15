@@ -1,0 +1,84 @@
+<div class="login-shell">
+  <!-- LEFT panel -->
+  <div class="left-panel">
+    <div class="orbs">
+      <div class="orb orb-1"></div>
+      <div class="orb orb-2"></div>
+      <div class="orb orb-3"></div>
+    </div>
+    <div class="dot-grid"></div>
+
+    <div class="left-content">
+      <div class="brand-row">
+        <app-logo-badge [size]="42" [borderRadius]="13"></app-logo-badge>
+        <div>
+          <div class="brand-title">ADVANCED FINANCIAL STATEMENT AGENT</div>
+          <div class="brand-subtitle">Financial Agent Platform</div>
+        </div>
+      </div>
+
+      <h1 class="headline">
+        Intelligent<br />
+        <span class="accent">Financial Review</span><br />
+        at Enterprise Scale
+      </h1>
+      <p class="tagline">
+        Specialist AI agents review affiliate submissions, assess IFRS compliance, validate financial integrity,
+        and generate formal outputs.
+      </p>
+
+      <div class="feature-list">
+        @for (f of features; track f.title; let i = $index) {
+          <div class="feature-item" [style.--accent]="f.accent" [style.animation-delay.s]="0.15 + i * 0.1">
+            <div class="feature-icon">{{ f.icon }}</div>
+            <div>
+              <div class="feature-title">{{ f.title }}</div>
+              <div class="feature-desc">{{ f.desc }}</div>
+            </div>
+          </div>
+        }
+      </div>
+    </div>
+  </div>
+
+  <!-- RIGHT — profile selection -->
+  <div class="right-panel">
+    <div class="right-inner">
+      <div class="form-wrap">
+        <div class="eyebrow">Q1 2026 Financial Review &mdash; Pilot</div>
+        <h2 class="form-title">Select your team</h2>
+        <p class="form-subtitle">Choose your finance group to access your workspace.</p>
+
+        <div class="profile-list">
+          @for (p of profiles(); track p.id) {
+            <button
+              class="profile-btn"
+              [class.selected]="selectedId() === p.id"
+              [style.--pcolor]="p.color"
+              (click)="select(p.id)"
+            >
+              <div class="profile-initials">{{ p.initials }}</div>
+              <div class="profile-text">
+                <div class="profile-name">{{ p.name }}</div>
+                <div class="profile-desc">{{ p.desc }}</div>
+              </div>
+              <div class="profile-radio">
+                @if (selectedId() === p.id) {
+                  <span>&#10003;</span>
+                }
+              </div>
+            </button>
+          }
+        </div>
+
+        <button class="continue-btn" [disabled]="!selectedId() || submitting()" (click)="continue()">
+          {{ submitting() ? 'Signing in\u2026' : 'Continue \u2192' }}
+        </button>
+
+        <div class="footer-note">
+          <div>Access-Controlled Workspace &middot; Financial Controls & Reporting</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

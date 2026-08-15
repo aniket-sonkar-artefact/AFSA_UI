@@ -1,0 +1,106 @@
+<div class="compliance">
+  <div class="header-card">
+    <h1 class="header-title">Compliance Monitoring &amp; Benchmarking</h1>
+    <div class="header-meta">{{ notes().length }} priority IFRS requirements &middot; Q1 2026</div>
+  </div>
+
+  <div class="grid">
+    <!-- Left: note list -->
+    <div class="notes-col">
+      <div class="col-label">IFRS NOTES</div>
+      <div class="notes-list">
+        @for (n of notes(); track n.id) {
+          <button class="note-item" [class.active]="selectedNoteId() === n.id" (click)="selectNote(n.id)">
+            <div class="note-title">{{ n.title }}</div>
+            <div class="note-standard">{{ standardShort(n.standard) }}</div>
+            @if (noteRunResult(n.id); as r) {
+              <div class="note-badge" [style.color]="r.confidence >= 85 ? '#00843D' : r.confidence >= 70 ? '#B45309' : '#DC2626'">
+                {{ r.confidence }}% compliant
+              </div>
+              <div class="note-progress-track">
+                <div
+                  class="note-progress-fill"
+                  [style.width.%]="r.confidence"
+                  [style.background]="r.confidence >= 85 ? '#00843D' : r.confidence >= 70 ? '#B45309' : '#DC2626'"
+                ></div>
+              </div>
+            }
+          </button>
+        }
+      </div>
+    </div>
+
+    <!-- Middle: note detail -->
+    @if (note(); as n) {
+      <div class="detail-col">
+        <div class="detail-card">
+          <div class="detail-title">{{ n.title }}</div>
+          <a class="standard-link">{{ n.standard }}</a>
+        </div>
+
+        <div class="table-card">
+          <div class="table-card-head">A. RELEVANT NOTE TABLE</div>
+          <table class="data-table">
+            <thead>
+              <tr>
+                @for (h of n.tableHeaders; track h) {
+                  <th>{{ h }}</th>
+                }
+              </tr>
+            </thead>
+            <tbody>
+              @for (row of n.tableRows; track $index) {
+                <tr>
+                  @for (cell of row; track $index) {
+                    <td>{{ cell }}</td>
+                  }
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+
+        <div class="table-card">
+          <div class="table-card-head">B. DISCLOSURE NARRATIVE (EDITABLE)</div>
+          <textarea
+            class="narrative-textarea"
+            rows="6"
+            [ngModel]="narrative()"
+            (ngModelChange)="onNarrativeChange($event)"
+          ></textarea>
+        </div>
+      </div>
+
+      <!-- Right: compliance check -->
+      <div class="check-col">
+        <div class="check-card">
+          <div class="check-label">COMPLIANCE CHECK</div>
+          <button class="run-check-btn" [disabled]="checkState() === 'checking'" (click)="runCheck()">
+            @if (checkState() === 'checking') {
+              Running check&hellip;
+            } @else {
+              Run Compliance Check
+            }
+          </button>
+
+          @if (checkState() === 'done' && result(); as r) {
+            <div class="result-box">
+              <div class="result-score" [style.color]="confidenceColor()">{{ r.confidence }}%</div>
+              <div class="result-score-label">Estimated compliance</div>
+              <p class="result-summary">{{ r.summary }}</p>
+              <button class="report-btn" (click)="showReportToast()">Generate Compliance Report</button>
+            </div>
+          }
+
+          @if (checkState() === 'idle' && !result()) {
+            <p class="check-hint">Run a compliance check to assess this disclosure against {{ standardShort(n.standard) }} requirements.</p>
+          }
+        </div>
+      </div>
+    }
+  </div>
+
+  @if (reportToast()) {
+    <div class="toast">&#10003; Report generated successfully</div>
+  }
+</div>

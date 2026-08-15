@@ -1,0 +1,84 @@
+<div class="shell">
+  <!-- Sidebar -->
+  <aside class="sidebar" [style.width.px]="sidebarWidth()">
+    <div class="sidebar-head" [class.collapsed]="collapsed()">
+      <div class="brand">
+        <app-logo-badge [size]="28" [borderRadius]="8"></app-logo-badge>
+        @if (!collapsed()) {
+          <span class="brand-name">AFSA PLATFORM</span>
+        }
+      </div>
+      @if (!collapsed()) {
+        <button class="collapse-btn" title="Collapse sidebar" (click)="toggleCollapsed()">&#8249;&#8249;</button>
+      }
+    </div>
+
+    @if (collapsed()) {
+      <button class="expand-btn" title="Expand sidebar" (click)="toggleCollapsed()">&#8250;&#8250;</button>
+    }
+
+    <nav class="nav">
+      @for (item of navItems; track item.path) {
+        <a
+          class="nav-item"
+          [class.collapsed]="collapsed()"
+          [class.disabled]="item.disabled"
+          [routerLink]="item.disabled ? null : item.path"
+          routerLinkActive="active"
+          [style.--accent]="item.accent"
+          [title]="collapsed() ? item.label : null"
+        >
+          <span class="nav-icon">
+            <app-icon [name]="item.icon"></app-icon>
+          </span>
+          @if (!collapsed()) {
+            <span class="nav-label">{{ item.label }}</span>
+          }
+        </a>
+      }
+    </nav>
+
+    <div class="sidebar-user" [class.collapsed]="collapsed()">
+      <div class="user-row">
+        <div class="avatar">{{ currentUser()?.initials || '' }}</div>
+        @if (!collapsed()) {
+          <div class="user-info">
+            <div class="user-name">{{ currentUser()?.name || 'Aniket Sonkar' }}</div>
+            <div class="user-role">{{ currentUser()?.roleLabel || 'Financial Controller' }}</div>
+          </div>
+        }
+      </div>
+      <button class="signout-btn" [class.collapsed]="collapsed()" title="Sign out" (click)="logout()">
+        <span class="signout-icon">&#9099;</span>
+        @if (!collapsed()) {
+          <span>Sign out</span>
+        }
+      </button>
+    </div>
+  </aside>
+
+  <!-- Main -->
+  <div class="main" [style.margin-left.px]="sidebarWidth()">
+    <header class="topbar">
+      <div class="context-strip">
+        <span class="context-primary">Consolidated Group</span>
+        <span class="sep">|</span>
+        <span class="context-secondary">Q1 2026</span>
+        <span class="sep">|</span>
+        <span class="status-badge">In Review</span>
+      </div>
+
+      <div class="topbar-right">
+        <button class="theme-toggle" [class.dark]="darkMode()" (click)="toggleDarkMode()">
+          <app-icon [name]="darkMode() ? 'moon' : 'sun'"></app-icon>
+          <span>{{ darkMode() ? 'Dark' : 'Light' }}</span>
+        </button>
+        <div class="avatar">{{ currentUser()?.initials || '' }}</div>
+      </div>
+    </header>
+
+    <main class="content">
+      <router-outlet></router-outlet>
+    </main>
+  </div>
+</div>

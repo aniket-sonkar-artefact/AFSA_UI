@@ -1,0 +1,72 @@
+<div class="overview">
+  <!-- Header card -->
+  <div class="header-card">
+    <div>
+      <h1 class="header-title">Q1 2026 Financial Statement Review</h1>
+      <div class="header-meta">
+        <span>Aniket Sonkar</span>
+        <span class="dot">&middot;</span>
+        <span>Financial Controls &amp; Reporting</span>
+        <span class="dot">&middot;</span>
+        <span>Last updated: Today, 09:42</span>
+      </div>
+    </div>
+    <span class="status-pill">In Progress</span>
+  </div>
+
+  <!-- KPI row -->
+  <div class="kpi-row">
+    @for (kpi of kpis(); track kpi.label) {
+      <div class="kpi-card">
+        <div class="kpi-value" [style.color]="kpi.color">{{ kpi.value }}</div>
+        <div class="kpi-label">{{ kpi.label }}</div>
+      </div>
+    }
+  </div>
+
+  <!-- Capability cards 2x2 -->
+  <div class="capability-grid">
+    @for (cap of capabilityCards; track cap.title) {
+      <div class="capability-card" [style.border-left-color]="cap.accentBorder">
+        <div class="capability-title">{{ cap.title }}</div>
+        <div class="capability-desc">{{ cap.desc }}</div>
+        <div>
+          <button class="open-btn" (click)="navigate(cap.route)">Open workspace &rarr;</button>
+        </div>
+      </div>
+    }
+  </div>
+
+  <!-- Requires Attention -->
+  <div>
+    <div class="section-head">
+      <h2 class="section-title">Requires Attention</h2>
+      @if (issues().length > 0) {
+        <span class="count-badge">{{ issues().length }}</span>
+      }
+    </div>
+
+    @if (issues().length === 0) {
+      <div class="empty-state">&#10003; No open issues &mdash; all items resolved.</div>
+    } @else {
+      <div class="issue-list">
+        @for (item of issues(); track item.label + item.sublabel) {
+          <div
+            class="issue-row"
+            [class.high]="item.priority === 'High'"
+            [class.medium]="item.priority !== 'High'"
+          >
+            <span class="priority-badge" [class.high]="item.priority === 'High'" [class.medium]="item.priority !== 'High'">
+              {{ item.priority }}
+            </span>
+            <div class="issue-text">
+              <div class="issue-label">{{ item.label }}</div>
+              <div class="issue-sublabel">{{ item.sublabel }}</div>
+            </div>
+            <button class="open-link-btn" (click)="navigate(item.route)">Open &rarr;</button>
+          </div>
+        }
+      </div>
+    }
+  </div>
+</div>
