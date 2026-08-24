@@ -14,6 +14,8 @@
   --accent-bg: #EEF3F9;
   --flagged-warm: #FFFBF0;
   --flagged-red: #FFF5F5;
+  --skeleton-base: #E7ECF3;
+  --skeleton-shine: #F5F8FC;
 }
 
 [data-theme='dark'] {
@@ -32,6 +34,8 @@
   --accent-bg: #162A4A;
   --flagged-warm: #1F1D10;
   --flagged-red: #1F1015;
+  --skeleton-base: #223349;
+  --skeleton-shine: #2C4160;
 }
 
 * {

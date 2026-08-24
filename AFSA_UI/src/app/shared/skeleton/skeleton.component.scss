@@ -1,0 +1,28 @@
+:host {
+  display: inline-block;
+  vertical-align: middle;
+}
+
+.sk {
+  display: block;
+  position: relative;
+  overflow: hidden;
+  background: var(--skeleton-base);
+}
+
+.sk::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent, var(--skeleton-shine), transparent);
+  animation: sk-shimmer 1.4s ease-in-out infinite;
+}
+
+@keyframes sk-shimmer {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}

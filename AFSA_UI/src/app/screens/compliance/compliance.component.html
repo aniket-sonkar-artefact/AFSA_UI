@@ -1,99 +1,210 @@
 <div class="compliance">
   <div class="header-card">
-    <h1 class="header-title">Compliance Monitoring &amp; Benchmarking</h1>
-    <div class="header-meta">{{ notes().length }} priority IFRS requirements &middot; Q1 2026</div>
+    @if (loadingNotes()) {
+      <app-skeleton width="260px" height="16px" radius="4px"></app-skeleton>
+      <div style="height:6px"></div>
+      <app-skeleton width="180px" height="11px" radius="4px"></app-skeleton>
+    } @else {
+      <h1 class="header-title">Compliance Monitoring &amp; Benchmarking</h1>
+      <div class="header-meta">{{ priorityRequirementsCount() }} priority IFRS requirements &middot; {{ formattedPeriod() }}</div>
+    }
   </div>
+
+  @if (notesError()) {
+    <div class="error-banner">{{ notesError() }}</div>
+  }
 
   <div class="grid">
     <!-- Left: note list -->
     <div class="notes-col">
       <div class="col-label">IFRS NOTES</div>
       <div class="notes-list">
-        @for (n of notes(); track n.id) {
-          <button class="note-item" [class.active]="selectedNoteId() === n.id" (click)="selectNote(n.id)">
-            <div class="note-title">{{ n.title }}</div>
-            <div class="note-standard">{{ standardShort(n.standard) }}</div>
-            @if (noteRunResult(n.id); as r) {
-              <div class="note-badge" [style.color]="r.confidence >= 85 ? '#00843D' : r.confidence >= 70 ? '#B45309' : '#DC2626'">
-                {{ r.confidence }}% compliant
-              </div>
-              <div class="note-progress-track">
-                <div
-                  class="note-progress-fill"
-                  [style.width.%]="r.confidence"
-                  [style.background]="r.confidence >= 85 ? '#00843D' : r.confidence >= 70 ? '#B45309' : '#DC2626'"
-                ></div>
-              </div>
-            }
-          </button>
+        @if (loadingNotes()) {
+          @for (i of [1,2,3]; track i) {
+            <div class="note-item">
+              <app-skeleton width="70%" height="13px" radius="4px"></app-skeleton>
+              <div style="height:6px"></div>
+              <app-skeleton width="40%" height="10px" radius="4px"></app-skeleton>
+            </div>
+          }
+        } @else {
+          @for (n of notes(); track n.noteId) {
+            <button class="note-item" [class.active]="selectedNoteId() === n.noteId" (click)="selectNote(n.noteId)">
+              <div class="note-title">{{ n.title }}</div>
+              <div class="note-standard">{{ n.noteCode }}</div>
+              @if (noteBadgeConfidence(n.noteId); as confidence) {
+                <div class="note-badge" [style.color]="confidence >= 85 ? '#00843D' : confidence >= 70 ? '#B45309' : '#DC2626'">
+                  {{ confidence }}% compliant
+                </div>
+                <div class="note-progress-track">
+                  <div
+                    class="note-progress-fill"
+                    [style.width.%]="confidence"
+                    [style.background]="confidence >= 85 ? '#00843D' : confidence >= 70 ? '#B45309' : '#DC2626'"
+                  ></div>
+                </div>
+              }
+            </button>
+          }
         }
       </div>
     </div>
 
     <!-- Middle: note detail -->
-    @if (note(); as n) {
-      <div class="detail-col">
+    <div class="detail-col">
+      @if (loadingDetail()) {
         <div class="detail-card">
-          <div class="detail-title">{{ n.title }}</div>
-          <a class="standard-link">{{ n.standard }}</a>
+          <app-skeleton width="45%" height="15px" radius="4px"></app-skeleton>
+          <div style="height:8px"></div>
+          <app-skeleton width="65%" height="11px" radius="4px"></app-skeleton>
+        </div>
+        <div class="table-card">
+          <div class="table-card-head"><app-skeleton width="140px" height="10px" radius="4px"></app-skeleton></div>
+          <div class="skeleton-table-body">
+            @for (i of [1,2,3,4]; track i) {
+              <div class="skeleton-row">
+                <app-skeleton width="90%" height="11px" radius="4px"></app-skeleton>
+                <app-skeleton width="70%" height="11px" radius="4px"></app-skeleton>
+                <app-skeleton width="60%" height="11px" radius="4px"></app-skeleton>
+                <app-skeleton width="75%" height="11px" radius="4px"></app-skeleton>
+              </div>
+            }
+          </div>
+        </div>
+        <div class="table-card">
+          <div class="table-card-head"><app-skeleton width="200px" height="10px" radius="4px"></app-skeleton></div>
+          <div style="padding:14px 16px">
+            <app-skeleton width="100%" height="80px" radius="6px"></app-skeleton>
+          </div>
+        </div>
+      } @else if (detailError()) {
+        <div class="error-banner">{{ detailError() }}</div>
+      } @else if (schema(); as s) {
+        <div class="detail-card">
+          <div class="detail-title">{{ selectedNote()?.title }}</div>
+          <a class="standard-link">{{ s.standard }}</a>
         </div>
 
+        @if (s.tables.length > 1) {
+          <div class="table-tab-row">
+            @for (t of s.tables; track t.id) {
+              <button class="table-tab-btn" [class.active]="activeTableId() === t.id" (click)="selectTable(t.id)">
+                {{ t.name }}
+              </button>
+            }
+          </div>
+        }
+
         <div class="table-card">
-          <div class="table-card-head">A. RELEVANT NOTE TABLE</div>
-          <table class="data-table">
-            <thead>
-              <tr>
-                @for (h of n.tableHeaders; track h) {
-                  <th>{{ h }}</th>
-                }
-              </tr>
-            </thead>
-            <tbody>
-              @for (row of n.tableRows; track $index) {
-                <tr>
-                  @for (cell of row; track $index) {
-                    <td>{{ cell }}</td>
-                  }
-                </tr>
+          <div class="table-card-head">{{ activeTableSchema()?.name || 'TABLE' }} ({{ s.currency }})</div>
+
+          @if (tableError()) {
+            <div class="error-banner inline">{{ tableError() }}</div>
+          } @else if (tableLoading()) {
+            <div class="skeleton-table-body">
+              @for (i of [1,2,3,4]; track i) {
+                <div class="skeleton-row">
+                  <app-skeleton width="90%" height="11px" radius="4px"></app-skeleton>
+                  <app-skeleton width="70%" height="11px" radius="4px"></app-skeleton>
+                  <app-skeleton width="60%" height="11px" radius="4px"></app-skeleton>
+                  <app-skeleton width="75%" height="11px" radius="4px"></app-skeleton>
+                </div>
               }
-            </tbody>
-          </table>
+            </div>
+          } @else if (tableData(); as td) {
+            <div class="table-scroll">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    @for (col of td.tableColumns; track col.key) {
+                      <th>{{ col.label }}</th>
+                    }
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (item of td.items; track $index) {
+                    <tr>
+                      @for (col of td.tableColumns; track col.key) {
+                        <td>{{ cellValue(item, col.key) }}</td>
+                      }
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+            <app-pagination
+              [currentPage]="td.pageNumber"
+              [totalPages]="td.totalPages"
+              (pageChange)="goToPage($event)"
+            ></app-pagination>
+          }
         </div>
 
         <div class="table-card">
-          <div class="table-card-head">B. DISCLOSURE NARRATIVE (EDITABLE)</div>
+          <div class="table-card-head">DISCLOSURE NARRATIVE (EDITABLE)</div>
           <textarea
             class="narrative-textarea"
             rows="6"
-            [ngModel]="narrative()"
+            [ngModel]="narrativeDraft()"
             (ngModelChange)="onNarrativeChange($event)"
           ></textarea>
         </div>
-      </div>
+      }
+    </div>
 
-      <!-- Right: compliance check -->
+    <!-- Right: compliance check -->
+    @if (!loadingDetail() && schema()) {
       <div class="check-col">
         <div class="check-card">
           <div class="check-label">COMPLIANCE CHECK</div>
-          <button class="run-check-btn" [disabled]="checkState() === 'checking'" (click)="runCheck()">
-            @if (checkState() === 'checking') {
-              Running check&hellip;
+          <button class="run-check-btn" [disabled]="checkRunning()" (click)="runCheck()">
+            @if (checkRunning()) {
+              <span class="ai-thinking">
+                <span class="ai-sparkle">✦</span>
+                <span>{{ aiStatus() }}</span>
+                <span class="thinking-dots">
+                  <span>.</span><span>.</span><span>.</span>
+                </span>
+              </span>
             } @else {
+              <span class="ai-icon">✦</span>
               Run Compliance Check
             }
           </button>
 
-          @if (checkState() === 'done' && result(); as r) {
+          @if (checkError()) {
+            <div class="error-banner inline">{{ checkError() }}</div>
+          }
+
+          @if (!checkRunning() && checkResult(); as r) {
             <div class="result-box">
-              <div class="result-score" [style.color]="confidenceColor()">{{ r.confidence }}%</div>
-              <div class="result-score-label">Estimated compliance</div>
+              <div class="result-header">
+                <span class="result-note">{{ r.noteTitle }} &mdash; {{ r.standardCode }}</span>
+                <span class="result-ratio">{{ r.requirementsMet }} / {{ r.requirementsTotal }} requirements met</span>
+              </div>
+
               <p class="result-summary">{{ r.summary }}</p>
+
+              @if (notMetResults().length > 0) {
+                <div class="not-met-label">Not met</div>
+                <div class="not-met-list">
+                  @for (req of notMetResults(); track req.reqId) {
+                    <div class="not-met-item">
+                      <div class="req-title">{{ req.reqId }} &middot; {{ req.requirement }}</div>
+                      @if (req.gap) {
+                        <div class="req-gap">{{ req.gap }}</div>
+                      }
+                    </div>
+                  }
+                </div>
+              }
+
               <button class="report-btn" (click)="showReportToast()">Generate Compliance Report</button>
             </div>
           }
 
-          @if (checkState() === 'idle' && !result()) {
-            <p class="check-hint">Run a compliance check to assess this disclosure against {{ standardShort(n.standard) }} requirements.</p>
+          @if (!checkRunning() && !checkResult()) {
+            <p class="check-hint">Run a compliance check to assess this disclosure against the note's requirements.</p>
           }
         </div>
       </div>

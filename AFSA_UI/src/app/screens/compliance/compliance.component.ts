@@ -1,70 +1,283 @@
 import { Component, OnInit, computed, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { finalize, forkJoin } from 'rxjs';
+import { catchError, of } from 'rxjs';
+import { SkeletonComponent } from '../../shared/skeleton/skeleton.component';
+import { PaginationComponent } from '../../shared/pagination/pagination.component';
 import { ComplianceService } from '../../core/services/compliance.service';
-import { CheckState, IfrsNote, NoteCheckResult } from '../../core/models/compliance.model';
+import {
+  ComplianceCheckResult,
+  ComplianceNoteSummary,
+  NoteSchema,
+  NoteTableData,
+} from '../../core/models/compliance.model';
+
+const PAGE_SIZE = 2;
 
 @Component({
   selector: 'app-compliance',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, SkeletonComponent, PaginationComponent],
   templateUrl: './compliance.component.html',
   styleUrl: './compliance.component.scss',
 })
 export class ComplianceComponent implements OnInit {
-  readonly notes = signal<IfrsNote[]>([]);
-  readonly selectedNoteId = signal(0);
-  readonly narratives = signal<Record<number, string>>({});
-  readonly checkStates = signal<Record<number, CheckState>>({});
-  readonly checkRuns = signal<Record<number, number>>({});
-  readonly noteResults = signal<Record<number, NoteCheckResult>>({});
-  readonly reportToast = signal(false);
+  // ---- notes list / header ----
+  readonly loadingNotes = signal(true);
+  readonly notesError = signal<string | null>(null);
+  readonly period = signal('');
+  readonly priorityRequirementsCount = signal(0);
+  readonly notes = signal<ComplianceNoteSummary[]>([]);
+  readonly selectedNoteId = signal<string | null>(null);
 
-  readonly note = computed(() => this.notes().find((n) => n.id === this.selectedNoteId()));
-  readonly narrative = computed(() => this.narratives()[this.selectedNoteId()] ?? this.note()?.defaultNarrative ?? '');
-  readonly checkState = computed<CheckState>(() => this.checkStates()[this.selectedNoteId()] ?? 'idle');
-  readonly result = computed(() => this.noteResults()[this.selectedNoteId()]);
+  readonly selectedNote = computed(() => this.notes().find((n) => n.noteId === this.selectedNoteId()) ?? null);
+
+  readonly formattedPeriod = computed(() => {
+    const m = this.period().match(/^(\d{4})Q(\d)$/);
+    return m ? `Q${m[2]} ${m[1]}` : this.period();
+  });
+
+  // ---- note detail (schema + narrative) ----
+  readonly loadingDetail = signal(false);
+  readonly detailError = signal<string | null>(null);
+  readonly schema = signal<NoteSchema | null>(null);
+  readonly narrativeDraft = signal('');
+
+  // ---- table data (per active table within the selected note) ----
+  readonly activeTableId = signal<string | null>(null);
+  readonly tableLoading = signal(false);
+  readonly tableError = signal<string | null>(null);
+  readonly tableData = signal<NoteTableData | null>(null);
+  private readonly pageByTable = new Map<string, number>();
+
+  readonly activeTableSchema = computed(() => {
+    const schema = this.schema();
+    const tableId = this.activeTableId();
+    if (!schema || !tableId) return null;
+    return schema.tables.find((t) => t.id === tableId) ?? null;
+  });
+
+  // ---- compliance check (kept per-note so switching notes doesn't lose a prior run) ----
+  readonly checkRunning = signal(false);
+  readonly checkError = signal<string | null>(null);
+  private readonly checkResultsByNote = signal<Record<string, ComplianceCheckResult>>({});
+
+  readonly checkResult = computed(() => {
+    const id = this.selectedNoteId();
+    return id ? this.checkResultsByNote()[id] ?? null : null;
+  });
+
+  readonly notMetResults = computed(() => this.checkResult()?.results.filter((r) => !r.isMet) ?? []);
+
+  aiStatus = signal('Analyzing disclosure');
+
+  private aiStatusMessages = [
+    'Analyzing disclosure',
+    'Reviewing IFRS requirements',
+    'Checking compliance criteria',
+    'Evaluating disclosure gaps',
+    'Cross-checking requirements',
+    'Finalizing compliance assessment'
+  ];
+
+  private aiStatusInterval?: ReturnType<typeof setInterval>;
 
   readonly confidenceColor = computed(() => {
-    const r = this.result();
+    const r = this.checkResult();
     if (!r) return '#0033A0';
-    return r.confidence >= 85 ? '#00843D' : r.confidence >= 70 ? '#F59E0B' : '#DC2626';
+    return r.complianceConfidence >= 85 ? '#00843D' : r.complianceConfidence >= 70 ? '#B45309' : '#DC2626';
   });
+
+  readonly reportToast = signal(false);
 
   constructor(private readonly complianceService: ComplianceService) {}
 
   ngOnInit(): void {
-    this.complianceService.getNotes().subscribe((notes) => this.notes.set(notes));
+    this.loadNotes();
   }
 
-  selectNote(id: number) {
-    this.selectedNoteId.set(id);
+  private loadNotes() {
+    this.loadingNotes.set(true);
+    this.notesError.set(null);
+
+    this.complianceService
+      .getNotes()
+      .pipe(
+        catchError((err) => {
+          this.notesError.set('Could not load IFRS notes. Please try again.');
+          console.error(err);
+          return of(null);
+        }),
+      )
+      .subscribe((res) => {
+        this.loadingNotes.set(false);
+        if (!res) return;
+
+        this.period.set(res.period);
+        this.priorityRequirementsCount.set(res.priorityRequirementsCount);
+        this.notes.set(res.notes);
+
+        const first = res.notes[0];
+        if (first) this.selectNote(first.noteId);
+      });
   }
 
-  noteRunResult(noteId: number) {
-    return this.noteResults()[noteId];
+  selectNote(noteId: string) {
+    if (this.selectedNoteId() === noteId && this.schema()) return;
+
+    this.selectedNoteId.set(noteId);
+    this.schema.set(null);
+    this.activeTableId.set(null);
+    this.tableData.set(null);
+    this.detailError.set(null);
+    this.loadingDetail.set(true);
+
+    this.complianceService
+      .getSchema(noteId)
+      .pipe(
+        catchError((err) => {
+          this.detailError.set('Could not load this note. Please try again.');
+          console.error(err);
+          return of(null);
+        }),
+      )
+      .subscribe((schema) => {
+        if (!schema) {
+          this.loadingDetail.set(false);
+          return;
+        }
+
+        this.schema.set(schema);
+        const firstTable = schema.tables[0];
+        this.activeTableId.set(firstTable?.id ?? null);
+
+        forkJoin({
+          table: firstTable
+            ? this.complianceService.getTableData(
+                noteId,
+                schema.tables.length > 1 ? firstTable.id : null,
+                1,
+                PAGE_SIZE,
+              )
+            : of(null),
+          narrative: this.complianceService.getNarrative(noteId),
+        })
+          .pipe(
+            catchError((err) => {
+              this.detailError.set('Could not load this note. Please try again.');
+              console.error(err);
+              return of(null);
+            }),
+          )
+          .subscribe((result) => {
+            this.loadingDetail.set(false);
+            if (!result) return;
+
+            if (result.table && firstTable) {
+              this.tableData.set(result.table);
+              this.pageByTable.set(firstTable.id, 1);
+            }
+            this.narrativeDraft.set(result.narrative.narrative);
+          });
+      });
   }
 
-  standardShort(standard: string) {
-    return standard.split(' \u2014 ')[0];
+  selectTable(tableId: string) {
+    if (this.activeTableId() === tableId) return;
+    this.activeTableId.set(tableId);
+    const page = this.pageByTable.get(tableId) ?? 1;
+    this.loadTablePage(tableId, page);
+  }
+
+  goToPage(page: number) {
+    const tableId = this.activeTableId();
+    if (!tableId) return;
+    this.loadTablePage(tableId, page);
+  }
+
+  private loadTablePage(tableId: string, page: number) {
+    const noteId = this.selectedNoteId();
+    const schema = this.schema();
+    if (!noteId || !schema) return;
+
+    this.tableLoading.set(true);
+    this.tableError.set(null);
+
+    this.complianceService
+      .getTableData(noteId, schema.tables.length > 1 ? tableId : null, page, PAGE_SIZE)
+      .pipe(
+        catchError((err) => {
+          this.tableError.set('Could not load this table. Please try again.');
+          console.error(err);
+          return of(null);
+        }),
+      )
+      .subscribe((data) => {
+        this.tableLoading.set(false);
+        if (!data) return;
+        this.tableData.set(data);
+        this.pageByTable.set(tableId, page);
+      });
   }
 
   onNarrativeChange(value: string) {
-    const id = this.selectedNoteId();
-    this.narratives.update((prev) => ({ ...prev, [id]: value }));
-    this.checkStates.update((prev) => ({ ...prev, [id]: 'idle' }));
+    this.narrativeDraft.set(value);
   }
 
   runCheck() {
-    const id = this.selectedNoteId();
-    const runCount = this.checkRuns()[id] ?? 0;
-    this.checkStates.update((prev) => ({ ...prev, [id]: 'checking' }));
+    const noteId = this.selectedNoteId();
+    if (!noteId || this.checkRunning()) return;
 
-    this.complianceService.runComplianceCheck(id, this.narrative(), runCount).subscribe((result) => {
-      this.checkStates.update((prev) => ({ ...prev, [id]: 'done' }));
-      this.checkRuns.update((prev) => ({ ...prev, [id]: runCount + 1 }));
-      this.noteResults.update((prev) => ({ ...prev, [id]: result }));
-    });
+    this.checkRunning.set(true);
+    this.checkError.set(null);
+    this.aiStatus.set(this.aiStatusMessages[0]);
+
+    let statusIndex = 0;
+
+    this.aiStatusInterval = setInterval(() => {
+      statusIndex++;
+
+      if (statusIndex < this.aiStatusMessages.length) {
+        this.aiStatus.set(this.aiStatusMessages[statusIndex]);
+      }
+    }, 2800);
+
+    this.complianceService
+      .runComplianceCheck(noteId, this.narrativeDraft())
+      .pipe(
+        catchError((err) => {
+          this.checkError.set('Compliance check failed. Please try again.');
+          console.error(err);
+          return of(null);
+        }),
+        finalize(() => {
+          if (this.aiStatusInterval) {
+            clearInterval(this.aiStatusInterval);
+            this.aiStatusInterval = undefined;
+          }
+
+          this.aiStatus.set('Finalizing compliance assessment');
+          this.checkRunning.set(false);
+        }),
+      )
+      .subscribe((result) => {
+        if (!result) return;
+
+        this.checkResultsByNote.update((prev) => ({
+          ...prev,
+          [noteId]: result,
+        }));
+      });
+  }
+
+  cellValue(item: Record<string, string | number | null>, key: string): string {
+    const v = item[key];
+    return v === null || v === undefined || v === '' ? '\u2014' : String(v);
+  }
+
+  noteBadgeConfidence(noteId: string): number | null {
+    return this.checkResultsByNote()[noteId]?.complianceConfidence ?? null;
   }
 
   showReportToast() {

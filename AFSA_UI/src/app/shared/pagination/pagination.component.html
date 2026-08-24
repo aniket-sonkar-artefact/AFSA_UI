@@ -1,0 +1,15 @@
+@if (totalPages > 1) {
+  <div class="pagination">
+    <button class="page-btn nav" [disabled]="currentPage === 1" (click)="go(currentPage - 1)">&#8249; Prev</button>
+
+    @for (p of pageList(); track $index) {
+      @if (p === '...') {
+        <span class="ellipsis">&hellip;</span>
+      } @else {
+        <button class="page-btn" [class.active]="p === currentPage" (click)="go(p)">{{ p }}</button>
+      }
+    }
+
+    <button class="page-btn nav" [disabled]="currentPage === totalPages" (click)="go(currentPage + 1)">Next &#8250;</button>
+  </div>
+}
