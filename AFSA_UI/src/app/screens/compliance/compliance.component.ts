@@ -1,10 +1,12 @@
 import { Component, OnInit, computed, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { Router } from '@angular/router';
 import { finalize, forkJoin } from 'rxjs';
 import { catchError, of } from 'rxjs';
 import { SkeletonComponent } from '../../shared/skeleton/skeleton.component';
 import { PaginationComponent } from '../../shared/pagination/pagination.component';
+import { IconComponent } from '../../shared/icon/icon';
 import { ComplianceService } from '../../core/services/compliance.service';
 import {
   ComplianceCheckResult,
@@ -13,12 +15,12 @@ import {
   NoteTableData,
 } from '../../core/models/compliance.model';
 
-const PAGE_SIZE = 2;
+const PAGE_SIZE = 50;
 
 @Component({
   selector: 'app-compliance',
   standalone: true,
-  imports: [CommonModule, FormsModule, SkeletonComponent, PaginationComponent],
+  imports: [CommonModule, FormsModule, SkeletonComponent, PaginationComponent, IconComponent],
   templateUrl: './compliance.component.html',
   styleUrl: './compliance.component.scss',
 })
@@ -70,6 +72,11 @@ export class ComplianceComponent implements OnInit {
 
   readonly notMetResults = computed(() => this.checkResult()?.results.filter((r) => !r.isMet) ?? []);
 
+  // ---- KPI row (derived from existing state — no new API calls) ----
+  readonly checksCompleted = computed(() => Object.keys(this.checkResultsByNote()).length);
+  readonly checksPending = computed(() => Math.max(this.notes().length - this.checksCompleted(), 0));
+  readonly currentConfidence = computed(() => this.checkResult()?.complianceConfidence ?? null);
+
   aiStatus = signal('Analyzing disclosure');
 
   private aiStatusMessages = [
@@ -91,7 +98,10 @@ export class ComplianceComponent implements OnInit {
 
   readonly reportToast = signal(false);
 
-  constructor(private readonly complianceService: ComplianceService) {}
+  constructor(
+    private readonly complianceService: ComplianceService,
+    private readonly router: Router,
+  ) {}
 
   ngOnInit(): void {
     this.loadNotes();
@@ -283,5 +293,9 @@ export class ComplianceComponent implements OnInit {
   showReportToast() {
     this.reportToast.set(true);
     setTimeout(() => this.reportToast.set(false), 3000);
+  }
+
+  goToVariance() {
+    this.router.navigate(['/variance']);
   }
 }

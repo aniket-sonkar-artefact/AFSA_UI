@@ -11,7 +11,20 @@ export type IconName =
   | 'settings'
   | 'sun'
   | 'moon'
-  | 'search';
+  | 'search'
+  | 'log-out'
+  | 'chevron-left'
+  | 'chevron-right'
+  | 'chevron-down'
+  | 'check'
+  | 'arrow-right'
+  | 'alert-triangle'
+  | 'upload'
+  | 'presentation'
+  | 'template'
+  | 'download'
+  | 'refresh'
+  | 'clock';
 
 @Component({
   selector: 'app-icon',
@@ -24,38 +37,40 @@ export type IconName =
       viewBox="0 0 24 24"
       fill="none"
       stroke="currentColor"
-      stroke-width="2"
+      [attr.stroke-width]="strokeWidth"
       stroke-linecap="round"
       stroke-linejoin="round"
     >
       <ng-container [ngSwitch]="name">
         <ng-container *ngSwitchCase="'home'">
-          <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
-          <polyline points="9 22 9 12 15 12 15 22" />
+          <path d="M3 10.5L12 3l9 7.5" />
+          <path d="M5 9.5V21h14V9.5" />
+          <path d="M9 21v-7h6v7" />
         </ng-container>
         <ng-container *ngSwitchCase="'file-text'">
           <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
-          <polyline points="14 2 14 8 20 8" />
-          <line x1="16" y1="13" x2="8" y2="13" />
-          <line x1="16" y1="17" x2="8" y2="17" />
-          <polyline points="10 9 9 9 8 9" />
+          <path d="M14 2v6h6" />
+          <path d="M8 13h8M8 17h6" />
         </ng-container>
         <ng-container *ngSwitchCase="'check-circle'">
-          <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
-          <polyline points="22 4 12 14.01 9 11.01" />
+          <path d="M9 11l2 2 4-4" />
+          <path d="M12 22c4.5-2.1 7-5.5 7-10V5l-7-3-7 3v7c0 4.5 2.5 7.9 7 10z" />
         </ng-container>
         <ng-container *ngSwitchCase="'bar-chart'">
-          <line x1="18" y1="20" x2="18" y2="10" />
-          <line x1="12" y1="20" x2="12" y2="4" />
-          <line x1="6" y1="20" x2="6" y2="14" />
+          <path d="M4 20V10" />
+          <path d="M10 20V4" />
+          <path d="M16 20v-7" />
+          <path d="M22 20V7" />
         </ng-container>
         <ng-container *ngSwitchCase="'shield'">
-          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+          <path d="M14 2v6h6" />
+          <path d="m8 15 2.2 2.2L16 11.5" />
         </ng-container>
         <ng-container *ngSwitchCase="'archive'">
-          <polyline points="21 8 21 21 3 21 3 8" />
-          <rect x="1" y="3" width="22" height="5" />
-          <line x1="10" y1="12" x2="14" y2="12" />
+          <path d="M6 2h9l5 5v15H6z" />
+          <path d="M14 2v6h6" />
+          <path d="M9 13h8M9 17h8" />
         </ng-container>
         <ng-container *ngSwitchCase="'settings'">
           <circle cx="12" cy="12" r="3" />
@@ -64,22 +79,71 @@ export type IconName =
           />
         </ng-container>
         <ng-container *ngSwitchCase="'sun'">
-          <circle cx="12" cy="12" r="5" />
-          <line x1="12" y1="1" x2="12" y2="3" />
-          <line x1="12" y1="21" x2="12" y2="23" />
-          <line x1="4.22" y1="4.22" x2="5.64" y2="5.64" />
-          <line x1="18.36" y1="18.36" x2="19.78" y2="19.78" />
-          <line x1="1" y1="12" x2="3" y2="12" />
-          <line x1="21" y1="12" x2="23" y2="12" />
-          <line x1="4.22" y1="19.78" x2="5.64" y2="18.36" />
-          <line x1="18.36" y1="5.64" x2="19.78" y2="4.22" />
+          <circle cx="12" cy="12" r="4" />
+          <path d="M12 2v2M12 20v2M4.93 4.93l1.42 1.42M17.65 17.65l1.42 1.42M2 12h2M20 12h2M4.93 19.07l1.42-1.42M17.65 6.35l1.42-1.42" />
         </ng-container>
         <ng-container *ngSwitchCase="'moon'">
-          <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
+          <path d="M21 12.8A9 9 0 1 1 11.2 3 7 7 0 0 0 21 12.8z" />
         </ng-container>
         <ng-container *ngSwitchCase="'search'">
           <circle cx="11" cy="11" r="8" />
           <line x1="21" y1="21" x2="16.65" y2="16.65" />
+        </ng-container>
+        <ng-container *ngSwitchCase="'log-out'">
+          <path d="M10 17l5-5-5-5" />
+          <path d="M15 12H3" />
+          <path d="M14 3h5a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-5" />
+        </ng-container>
+        <ng-container *ngSwitchCase="'chevron-left'">
+          <path d="M15 18l-6-6 6-6" />
+        </ng-container>
+        <ng-container *ngSwitchCase="'chevron-right'">
+          <path d="M9 18l6-6-6-6" />
+        </ng-container>
+        <ng-container *ngSwitchCase="'check'">
+          <path d="M20 6L9 17l-5-5" />
+        </ng-container>
+        <ng-container *ngSwitchCase="'arrow-right'">
+          <path d="M5 12h14" />
+          <path d="M13 6l6 6-6 6" />
+        </ng-container>
+        <ng-container *ngSwitchCase="'alert-triangle'">
+          <path d="M12 9v4" />
+          <path d="M12 17h.01" />
+          <path d="M10.3 3.6 2.6 17a2 2 0 0 0 1.7 3h15.4a2 2 0 0 0 1.7-3L13.7 3.6a2 2 0 0 0-3.4 0Z" />
+        </ng-container>
+        <ng-container *ngSwitchCase="'chevron-down'">
+          <path d="m6 9 6 6 6-6" />
+        </ng-container>
+        <ng-container *ngSwitchCase="'upload'">
+          <path d="M12 16V4" />
+          <path d="m7 9 5-5 5 5" />
+          <path d="M5 20h14" />
+        </ng-container>
+        <ng-container *ngSwitchCase="'presentation'">
+          <path d="M4 3h16v12H4z" />
+          <path d="M8 21l4-6 4 6" />
+          <path d="M12 15v6" />
+          <path d="M8 8h8" />
+          <path d="M8 11h5" />
+        </ng-container>
+        <ng-container *ngSwitchCase="'template'">
+          <rect x="3" y="3" width="18" height="18" rx="2" />
+          <path d="M3 9h18" />
+          <path d="M9 21V9" />
+        </ng-container>
+        <ng-container *ngSwitchCase="'download'">
+          <path d="M12 3v12" />
+          <path d="m7 10 5 5 5-5" />
+          <path d="M5 21h14" />
+        </ng-container>
+        <ng-container *ngSwitchCase="'refresh'">
+          <path d="M20 11a8 8 0 1 0-2.34 5.66" />
+          <path d="M20 4v7h-7" />
+        </ng-container>
+        <ng-container *ngSwitchCase="'clock'">
+          <circle cx="12" cy="12" r="9" />
+          <path d="M12 7v5l3 2" />
         </ng-container>
       </ng-container>
     </svg>
@@ -88,4 +152,5 @@ export type IconName =
 export class IconComponent {
   @Input() name!: IconName;
   @Input() size = 14;
+  @Input() strokeWidth = 1.8;
 }

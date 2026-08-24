@@ -7,15 +7,15 @@ import { TeamProfile } from '../models/team-profile.model';
 const MOCK_PROFILES: TeamProfile[] = [
   {
     id: 'consolidation',
-    name: 'Finance Manager',
-    desc: 'Trial balance consolidation, affiliate submission review, and financial statement preparation.',
+    name: 'Financial Consolidation & Analysis Group',
+    desc: 'Affiliate submission review, consolidation analysis, and financial statement preparation.',
     initials: 'FC&AG',
     color: '#84BD00',
   },
   {
     id: 'reporting',
-    name: 'Financial Reporting Group (FRG)',
-    desc: 'IFRS compliance monitoring, variance analysis, and management reporting.',
+    name: 'Financial Reporting Group',
+    desc: 'IFRS compliance monitoring, variance analysis, and financial reporting.',
     initials: 'FRG',
     color: '#00A3E0',
   },

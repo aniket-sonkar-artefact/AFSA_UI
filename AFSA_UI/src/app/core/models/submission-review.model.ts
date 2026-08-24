@@ -36,3 +36,16 @@ export interface ChecklistGroup {
   group: string;
   items: ChecklistItem[];
 }
+
+export type UploadPhase = 'idle' | 'uploading' | 'done' | 'error';
+
+export interface UploadState {
+  phase: UploadPhase;
+  progress: number;
+  filename: string;
+}
+
+export interface UploadProgressEvent {
+  progress: number;
+  done: boolean;
+}

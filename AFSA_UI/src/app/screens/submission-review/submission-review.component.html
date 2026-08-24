@@ -1,94 +1,240 @@
-<div class="submission-review">
-  <!-- Affiliate selector -->
-  <div class="selector-card">
+<div class="submission">
+  <!-- HEADER -->
+  <section class="sr-header">
+    <div class="sr-header-accent"></div>
+
     <div>
-      <div class="selector-label">Affiliate</div>
-      <div class="affiliate-toggle">
-        @for (aff of affiliates; track aff) {
-          <button
-            class="affiliate-btn"
-            [class.active]="affiliate() === aff"
-            (click)="selectAffiliate(aff)"
-          >
-            Affiliate {{ aff }}
-          </button>
-        }
+      <div class="sr-eyebrow">Affiliate Review</div>
+      <h1 class="sr-title">Affiliate Submission Review</h1>
+      <div class="sr-subtitle">
+        Review submission completeness, irregular values and Group CoA mappings by affiliate.
       </div>
     </div>
-    <div class="v-divider"></div>
-    <div>
-      <div class="mini-label">Period</div>
-      <div class="mini-value">Q1 2026</div>
+
+    <div class="sr-header-controls">
+      <div class="sr-affiliate-field">
+        <label for="affiliate-selector" class="sr-meta-label">Affiliate</label>
+        <select
+          id="affiliate-selector"
+          class="sr-affiliate-select"
+          [ngModel]="affiliate()"
+          (ngModelChange)="onAffiliateSelectChange($event)"
+        >
+          @for (aff of affiliates; track aff) {
+            <option [value]="aff">Affiliate {{ aff }}</option>
+          }
+        </select>
+        <span class="sr-affiliate-chevron">
+          <app-icon name="chevron-down" [size]="14" [strokeWidth]="2"></app-icon>
+        </span>
+      </div>
+
+      <div class="sr-meta-block">
+        <span class="sr-meta-label">Period</span>
+        <div class="sr-meta-value">Q1 2026</div>
+      </div>
+
+      <div class="sr-meta-block wide">
+        <span class="sr-meta-label">Reviewer</span>
+        <div class="sr-meta-value">{{ reviewerName() }}</div>
+      </div>
     </div>
-    <div>
-      <div class="mini-label">Reviewer</div>
-      <div class="mini-value">Aniket Sonkar</div>
+  </section>
+
+  <!-- TABS -->
+  <div class="sr-tabs-row">
+    <div class="sr-tabs-shell">
+      @for (t of tabs; track t) {
+        <button type="button" class="sr-tab-button" [class.active]="tab() === t" (click)="selectTab(t)">
+          {{ tabLabel[t] }}
+        </button>
+      }
+    </div>
+    <div class="sr-tabs-breadcrumb">
+      Affiliate {{ affiliate() }} &middot; {{ tabLabel[tab()] }} &middot; Q1 2026
     </div>
   </div>
-
-  <!-- Tabs -->
-  <div class="tab-row">
-    @for (t of tabs; track t) {
-      <button class="tab-btn" [class.active]="tab() === t" (click)="selectTab(t)">
-        {{ tabLabel[t] }}
-      </button>
-    }
-  </div>
-
-  <div class="tab-header">Affiliate {{ affiliate() }} &middot; {{ tabLabel[tab()] }} &middot; Q1 2026</div>
 
   <!-- COMPLETENESS -->
   @if (tab() === 'completeness') {
-    <div class="tab-content">
-      <div class="stat-row">
+    <div class="sr-tab-content">
+      <div class="sr-kpi-grid">
         @for (s of checklistStatCards(); track s.label) {
-          <div class="stat-card">
-            <div class="stat-value" [style.color]="s.color">{{ s.value }}</div>
-            <div class="stat-label">{{ s.label }}</div>
+          <div class="sr-kpi" [class.attention]="s.attention">
+            <div class="sr-kpi-top">
+              <div>
+                <div class="sr-kpi-value" [style.color]="s.color">{{ s.value }}</div>
+                <div class="sr-kpi-label">{{ s.label }}</div>
+              </div>
+              @if (s.attention) {
+                <div class="sr-kpi-alert">
+                  <span class="sr-kpi-alert-dot"></span>
+                  Attention
+                </div>
+              }
+            </div>
           </div>
         }
       </div>
 
       @for (group of checklist(); track group.group) {
-        <div class="table-card">
-          <div class="table-card-head">
-            <div class="table-card-title">{{ group.group }}</div>
+        <section class="sr-table-card">
+          <div class="sr-group-header">
+            <div class="sr-group-header-left">
+              <div class="sr-group-marker"></div>
+              <span>{{ group.group }}</span>
+              <span class="sr-group-count">{{ group.items.length }} items</span>
+            </div>
+            <button
+              type="button"
+              class="sr-collapse-button"
+              [attr.aria-expanded]="!isCollapsed(group.group)"
+              [attr.aria-label]="isCollapsed(group.group) ? 'Expand ' + group.group : 'Collapse ' + group.group"
+              [title]="isCollapsed(group.group) ? 'Expand' : 'Collapse'"
+              (click)="toggleGroup(group.group)"
+            >
+              <span class="sr-collapse-chevron" [class.collapsed]="isCollapsed(group.group)">
+                <app-icon name="chevron-down" [size]="14" [strokeWidth]="2"></app-icon>
+              </span>
+            </button>
           </div>
-          <table class="data-table">
-            <thead>
-              <tr>
-                <th>Submission Item</th>
-                <th>Submitted File</th>
-                <th>Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              @for (item of group.items; track item.label) {
-                <tr>
-                  <td class="cell-primary">{{ item.label }}</td>
-                  <td class="cell-mono" [class.faint]="item.file === '\u2014'">{{ item.file }}</td>
-                  <td>
-                    <span class="status-chip" [style.color]="statusStyle(item.status).color" [style.background]="statusStyle(item.status).bg">
-                      {{ item.status }}
-                    </span>
-                  </td>
-                </tr>
-              }
-            </tbody>
-          </table>
-        </div>
+
+          <div class="sr-collapsible" [class.collapsed]="isCollapsed(group.group)">
+            <div class="sr-collapsible-inner">
+              <table class="sr-table">
+                <thead>
+                  <tr>
+                    <th>Submission Item</th>
+                    <th>Submitted File</th>
+                    <th>Status</th>
+                    <th>Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (item of group.items; track item.label) {
+                    @let key = uploadKey(group.group, item.label);
+                    @let upload = uploadState(key);
+                    @let displayFile = upload.phase === 'done' ? upload.filename : item.file;
+                    <tr [class.row-missing]="item.status === 'Missing'" [class.row-incomplete]="item.status === 'Incomplete'">
+                      <td><span class="sr-item-name">{{ item.label }}</span></td>
+                      <td>
+                        @if (displayFile === '\u2014') {
+                          <span class="sr-no-file">No file submitted</span>
+                        } @else {
+                          <span class="sr-filename" [title]="displayFile">{{ displayFile }}</span>
+                        }
+                      </td>
+                      <td>
+                        <span
+                          class="sr-status-chip"
+                          [style.color]="statusStyle(item.status).color"
+                          [style.background]="statusStyle(item.status).background"
+                          [style.border]="'1px solid ' + statusStyle(item.status).border"
+                        >
+                          {{ item.status }}
+                        </span>
+                      </td>
+
+                      <!-- Upload cell -->
+                      @if (item.status === 'Not Applicable') {
+                        <td><span class="sr-cell-faint">&#8212;</span></td>
+                      } @else if (upload.phase === 'idle') {
+                        <td>
+                          <input #fileInput type="file" hidden (change)="onFileSelected($event, key)" />
+                          <button
+                            type="button"
+                            [class]="item.file === '\u2014' ? 'sr-upload-primary' : 'sr-upload-secondary'"
+                            (click)="fileInput.click()"
+                          >
+                            <app-icon name="upload" [size]="13" [strokeWidth]="1.9"></app-icon>
+                            {{ item.file === '\u2014' ? 'Upload File' : 'Replace' }}
+                          </button>
+                        </td>
+                      } @else if (upload.phase === 'uploading') {
+                        <td>
+                          <div class="sr-upload-progress">
+                            <div class="sr-upload-progress-head">
+                              <span>Uploading</span>
+                              <span>{{ upload.progress }}%</span>
+                            </div>
+                            <div class="sr-progress-track">
+                              <div class="sr-progress-bar" [style.width.%]="upload.progress"></div>
+                            </div>
+                          </div>
+                        </td>
+                      } @else if (upload.phase === 'done') {
+                        <td>
+                          <input #fileInputDone type="file" hidden (change)="onFileSelected($event, key)" />
+                          <div class="sr-upload-done">
+                            <span class="sr-upload-done-icon">
+                              <app-icon name="check" [size]="13" [strokeWidth]="2.1"></app-icon>
+                            </span>
+                            <button type="button" class="sr-replace-link" (click)="fileInputDone.click()">Replace</button>
+                          </div>
+                        </td>
+                      } @else {
+                        <td>
+                          <input #fileInputError type="file" hidden (change)="onFileSelected($event, key)" />
+                          <button type="button" class="sr-upload-error" (click)="fileInputError.click()">
+                            Upload failed &middot; Retry
+                          </button>
+                        </td>
+                      }
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
       }
+
+      <div class="sr-continue-row">
+        <button type="button" class="sr-continue-button" (click)="goToTab('irregularities')">
+          <span>Continue to Irregularities Review</span>
+          <span class="sr-continue-arrow">
+            <app-icon name="arrow-right" [size]="14" [strokeWidth]="2"></app-icon>
+          </span>
+        </button>
+      </div>
     </div>
   }
 
   <!-- IRREGULARITIES -->
   @if (tab() === 'irregularities') {
-    <div class="tab-content">
+    <div class="sr-tab-content">
+      <div class="sr-kpi-grid">
+        @for (s of irregularitiesStatCards(); track s.label) {
+          <div class="sr-kpi" [class.attention]="s.attention">
+            <div class="sr-kpi-top">
+              <div>
+                <div class="sr-kpi-value" [style.color]="s.color">{{ s.value }}</div>
+                <div class="sr-kpi-label">{{ s.label }}</div>
+              </div>
+              @if (s.attention) {
+                <div class="sr-kpi-alert">
+                  <span class="sr-kpi-alert-dot"></span>
+                  Attention
+                </div>
+              }
+            </div>
+          </div>
+        }
+      </div>
+
       @if (findings().length === 0) {
-        <div class="empty-card">No irregularities identified for Affiliate {{ affiliate() }}.</div>
+        <div class="sr-empty-state">No irregularities identified for Affiliate {{ affiliate() }}.</div>
       } @else {
-        <div class="table-card">
-          <table class="data-table">
+        <section class="sr-table-card">
+          <div class="sr-group-header">
+            <div class="sr-group-header-left">
+              <div class="sr-group-marker"></div>
+              <span>Irregularities Review</span>
+            </div>
+            <span class="sr-group-count">{{ findings().length }} findings</span>
+          </div>
+
+          <table class="sr-table sr-table-irregularities">
             <thead>
               <tr>
                 <th>Account Code</th>
@@ -103,18 +249,27 @@
             <tbody>
               @for (row of findings(); track row.accountCode; let i = $index) {
                 <tr>
-                  <td class="cell-code">{{ row.accountCode }}</td>
-                  <td class="cell-primary">{{ row.account }}</td>
-                  <td class="cell-mono" [ngStyle]="flagCellStyle(row.flagColumn === 'current', row.severity)">{{ row.currentPeriod }}</td>
-                  <td class="cell-mono cell-secondary">{{ row.priorPeriod }}</td>
-                  <td class="cell-mono" [ngStyle]="flagCellStyle(row.flagColumn === 'change', row.severity)">{{ row.change }}</td>
-                  <td class="cell-flag">{{ row.flag }}</td>
+                  <td><span class="sr-account-code">{{ row.accountCode }}</span></td>
+                  <td><span class="sr-item-name">{{ row.account }}</span></td>
+                  <td [class]="flagClass(row.flagColumn === 'current', row.severity)">
+                    <span class="sr-number">{{ row.currentPeriod }}</span>
+                  </td>
+                  <td><span class="sr-number sr-number-muted">{{ row.priorPeriod }}</span></td>
+                  <td [class]="flagClass(row.flagColumn === 'change', row.severity)">
+                    <span class="sr-number">{{ row.change }}</span>
+                  </td>
+                  <td>
+                    <div class="sr-flag-cell">
+                      <span class="sr-severity-dot" [class.high]="row.severity === 'High'" [class.medium]="row.severity === 'Medium'"></span>
+                      <span class="sr-flag-copy">{{ row.flag }}</span>
+                    </div>
+                  </td>
                   <td>
                     <select
-                      class="status-select"
-                      [style.background]="findingStatusStyle(row.status).bg"
+                      class="sr-status-select"
+                      [style.background]="findingStatusStyle(row.status).background"
                       [style.color]="findingStatusStyle(row.status).color"
-                      [style.border-color]="findingStatusStyle(row.status).bg"
+                      [style.border]="'1px solid ' + findingStatusStyle(row.status).border"
                       [ngModel]="row.status"
                       (ngModelChange)="onFindingStatusChange(i, $event)"
                     >
@@ -127,21 +282,58 @@
               }
             </tbody>
           </table>
-        </div>
+        </section>
       }
+
+      <div class="sr-continue-row">
+        <button type="button" class="sr-continue-button" (click)="goToTab('coa')">
+          <span>Continue to CoA Mapping Review</span>
+          <span class="sr-continue-arrow">
+            <app-icon name="arrow-right" [size]="14" [strokeWidth]="2"></app-icon>
+          </span>
+        </button>
+      </div>
     </div>
   }
 
   <!-- COA MAPPING -->
   @if (tab() === 'coa') {
-    <div class="tab-content">
+    <div class="sr-tab-content">
+      <div class="sr-kpi-grid">
+        @for (s of coaStatCards(); track s.label) {
+          <div class="sr-kpi" [class.attention]="s.attention">
+            <div class="sr-kpi-top">
+              <div>
+                <div class="sr-kpi-value" [style.color]="s.color">{{ s.value }}</div>
+                <div class="sr-kpi-label">{{ s.label }}</div>
+              </div>
+              @if (s.attention) {
+                <div class="sr-kpi-alert">
+                  <span class="sr-kpi-alert-dot"></span>
+                  Attention
+                </div>
+              }
+            </div>
+          </div>
+        }
+      </div>
+
       @if (coaHasBlockers()) {
-        <div class="warning-banner">
+        <div class="sr-warning-banner">
           Mapping review cannot be completed: confirm all Low Confidence and Unmapped accounts before proceeding.
         </div>
       }
-      <div class="table-card">
-        <table class="data-table">
+
+      <section class="sr-table-card">
+        <div class="sr-group-header">
+          <div class="sr-group-header-left">
+            <div class="sr-group-marker"></div>
+            <span>Group CoA Mapping</span>
+          </div>
+          <span class="sr-group-count">{{ coaRows().length }} accounts</span>
+        </div>
+
+        <table class="sr-table">
           <thead>
             <tr>
               <th>Affiliate Account</th>
@@ -154,22 +346,22 @@
           <tbody>
             @for (row of coaRows(); track row.code; let i = $index) {
               <tr>
-                <td class="cell-code">{{ row.code }}</td>
-                <td class="cell-primary">{{ row.description }}</td>
+                <td><span class="sr-account-code">{{ row.code }}</span></td>
+                <td><span class="sr-item-name">{{ row.description }}</span></td>
                 <td>
                   @if (row.confirmed) {
-                    <span class="mapping-confirmed">{{ row.selectedMapping }}</span>
+                    <span class="sr-mapping-value">{{ row.selectedMapping }}</span>
                   } @else if (row.originalStatus === 'High Confidence') {
-                    <span class="mapping-fixed">{{ row.selectedMapping }}</span>
+                    <span class="sr-mapping-static">{{ row.selectedMapping }}</span>
                   } @else {
                     <select
-                      class="mapping-select"
+                      class="sr-mapping-select"
                       [class.unmapped]="row.originalStatus === 'Unmapped'"
                       [class.low-conf]="row.originalStatus !== 'Unmapped'"
                       [ngModel]="row.selectedMapping"
                       (ngModelChange)="onCoaMappingChange(i, $event)"
                     >
-                      <option value="" disabled>Select Group Account &#9662;</option>
+                      <option value="" disabled>Select Group Account</option>
                       @for (a of groupAccounts; track a) {
                         <option [value]="a">{{ a }}</option>
                       }
@@ -178,23 +370,22 @@
                 </td>
                 <td>
                   <span
-                    class="status-chip bordered"
+                    class="sr-status-chip"
                     [style.color]="mappingStatusChip(row.confirmed ? 'Confirmed' : row.originalStatus).color"
-                    [style.background]="mappingStatusChip(row.confirmed ? 'Confirmed' : row.originalStatus).bg"
-                    [style.border-color]="mappingStatusChip(row.confirmed ? 'Confirmed' : row.originalStatus).border"
+                    [style.background]="mappingStatusChip(row.confirmed ? 'Confirmed' : row.originalStatus).background"
+                    [style.border]="'1px solid ' + mappingStatusChip(row.confirmed ? 'Confirmed' : row.originalStatus).border"
                   >
                     {{ row.confirmed ? 'Confirmed' : row.originalStatus }}
                   </span>
                 </td>
                 <td>
                   @if (row.confirmed) {
-                    <span class="confirmed-label">&#10003; Confirmed</span>
+                    <span class="sr-confirmed">
+                      <app-icon name="check" [size]="13" [strokeWidth]="2.1"></app-icon>
+                      Confirmed
+                    </span>
                   } @else {
-                    <button
-                      class="confirm-btn"
-                      [disabled]="!canConfirm(row)"
-                      (click)="confirmCoaMapping(i)"
-                    >
+                    <button type="button" class="sr-confirm-button" [disabled]="!canConfirm(row)" (click)="confirmCoaMapping(i)">
                       Confirm Mapping
                     </button>
                   }
@@ -203,6 +394,15 @@
             }
           </tbody>
         </table>
+      </section>
+
+      <div class="sr-continue-row">
+        <button type="button" class="sr-continue-button" (click)="goToCompliance()">
+          <span>Continue to Compliance Monitoring</span>
+          <span class="sr-continue-arrow">
+            <app-icon name="arrow-right" [size]="14" [strokeWidth]="2"></app-icon>
+          </span>
+        </button>
       </div>
     </div>
   }

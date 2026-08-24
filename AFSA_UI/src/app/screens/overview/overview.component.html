@@ -1,9 +1,13 @@
 <div class="overview">
-  <!-- Header card -->
-  <div class="header-card">
-    <div>
-      <h1 class="header-title">Q1 2026 Financial Statement Review</h1>
-      <div class="header-meta">
+  <!-- Executive header -->
+  <section class="ov-header">
+    <div class="ov-header-accent"></div>
+    <div class="ov-header-glow"></div>
+
+    <div class="ov-header-left">
+      <div class="ov-eyebrow">Executive Overview &middot; Consolidated Group</div>
+      <h1 class="ov-title">Q1 2026 Financial Statement Review</h1>
+      <div class="ov-header-meta">
         <span>Aniket Sonkar</span>
         <span class="dot">&middot;</span>
         <span>Financial Controls &amp; Reporting</span>
@@ -11,62 +15,104 @@
         <span>Last updated: Today, 09:42</span>
       </div>
     </div>
-    <span class="status-pill">In Progress</span>
-  </div>
+
+    <div class="ov-header-right">
+      <div class="ov-issue-count">
+        <div class="ov-issue-number" [class.danger]="totalIssues() > 0" [class.success]="totalIssues() === 0">
+          {{ totalIssues() }}
+        </div>
+        <div class="ov-issue-label">items requiring attention</div>
+      </div>
+      <span class="ov-progress-pill">
+        <span class="ov-progress-dot"></span>
+        In Progress
+      </span>
+    </div>
+  </section>
+
+  <!-- Review Status timeline -->
+  <section class="ov-status">
+    <div class="ov-status-head">
+      <div>
+        <div class="ov-status-title">Review Status</div>
+        <div class="ov-status-sub">Current position across the financial statement review</div>
+      </div>
+      <div class="ov-status-period">Q1 2026</div>
+    </div>
+
+    <div class="ov-stage-row">
+      @for (stage of processStages(); track stage.label; let last = $last) {
+        <div class="ov-stage-wrap">
+          @if (!last) {
+            <div class="ov-stage-line"></div>
+          }
+          <button
+            type="button"
+            class="ov-stage"
+            [class.attention]="stage.status === 'Requires Attention'"
+            [class.ready]="stage.status === 'Ready'"
+            [class.in-review]="stage.status === 'In Review'"
+            [style.--stage-accent]="stage.accent"
+            (click)="navigate(stage.route)"
+          >
+            <div class="ov-stage-dot">
+              @if (stage.status === 'Ready') {
+                <app-icon name="check" [size]="12" [strokeWidth]="2.2"></app-icon>
+              } @else if (stage.status === 'Requires Attention') {
+                <app-icon name="alert-triangle" [size]="12" [strokeWidth]="2"></app-icon>
+              } @else {
+                <span class="ov-stage-bullet"></span>
+              }
+            </div>
+            <div class="ov-stage-label">{{ stage.label }}</div>
+            <div class="ov-stage-status">{{ stage.status }}</div>
+          </button>
+        </div>
+      }
+    </div>
+  </section>
 
   <!-- KPI row -->
-  <div class="kpi-row">
+  <section class="ov-kpi-row">
     @for (kpi of kpis(); track kpi.label) {
-      <div class="kpi-card">
-        <div class="kpi-value" [style.color]="kpi.color">{{ kpi.value }}</div>
-        <div class="kpi-label">{{ kpi.label }}</div>
-      </div>
-    }
-  </div>
-
-  <!-- Capability cards 2x2 -->
-  <div class="capability-grid">
-    @for (cap of capabilityCards; track cap.title) {
-      <div class="capability-card" [style.border-left-color]="cap.accentBorder">
-        <div class="capability-title">{{ cap.title }}</div>
-        <div class="capability-desc">{{ cap.desc }}</div>
-        <div>
-          <button class="open-btn" (click)="navigate(cap.route)">Open workspace &rarr;</button>
+      <div class="ov-kpi" [class.attention]="kpi.attention">
+        <div class="ov-kpi-top">
+          <div>
+            <div class="ov-kpi-value" [style.color]="kpi.color">{{ kpi.value }}</div>
+            <div class="ov-kpi-label">{{ kpi.label }}</div>
+          </div>
+          @if (kpi.attention) {
+            <div class="ov-kpi-attention-badge">
+              <span class="ov-kpi-attention-dot"></span>
+              Attention
+            </div>
+          }
         </div>
       </div>
     }
-  </div>
+  </section>
 
-  <!-- Requires Attention -->
-  <div>
-    <div class="section-head">
-      <h2 class="section-title">Requires Attention</h2>
-      @if (issues().length > 0) {
-        <span class="count-badge">{{ issues().length }}</span>
-      }
-    </div>
-
-    @if (issues().length === 0) {
-      <div class="empty-state">&#10003; No open issues &mdash; all items resolved.</div>
-    } @else {
-      <div class="issue-list">
-        @for (item of issues(); track item.label + item.sublabel) {
-          <div
-            class="issue-row"
-            [class.high]="item.priority === 'High'"
-            [class.medium]="item.priority !== 'High'"
-          >
-            <span class="priority-badge" [class.high]="item.priority === 'High'" [class.medium]="item.priority !== 'High'">
-              {{ item.priority }}
-            </span>
-            <div class="issue-text">
-              <div class="issue-label">{{ item.label }}</div>
-              <div class="issue-sublabel">{{ item.sublabel }}</div>
+  <!-- Routing cards -->
+  <section class="ov-routing-grid">
+    @for (card of capabilityCards; track card.title) {
+      <button type="button" class="ov-routing-card" [style.--card-accent]="card.accent" (click)="navigate(card.route)">
+        <div class="ov-routing-accent"></div>
+        <div class="ov-routing-top">
+          <div class="ov-routing-left">
+            <div class="ov-routing-icon">
+              <app-icon [name]="card.icon" [size]="17" [strokeWidth]="1.8"></app-icon>
             </div>
-            <button class="open-link-btn" (click)="navigate(item.route)">Open &rarr;</button>
+            <div class="ov-routing-copy">
+              <div class="ov-routing-title">{{ card.title }}</div>
+              <div class="ov-routing-status">{{ capabilityStatus(card) }}</div>
+            </div>
           </div>
-        }
-      </div>
+          <div class="ov-routing-arrow">
+            <app-icon name="arrow-right" [size]="15" [strokeWidth]="2"></app-icon>
+          </div>
+        </div>
+        <div class="ov-routing-desc">{{ card.desc }}</div>
+      </button>
     }
-  </div>
+  </section>
 </div>

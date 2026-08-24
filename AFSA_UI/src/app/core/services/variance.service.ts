@@ -2,7 +2,27 @@ import { Injectable } from '@angular/core';
 import { Observable, of } from 'rxjs';
 import { delay } from 'rxjs/operators';
 import { environment } from '../../../environments/environment';
-import { VarianceRow } from '../models/variance.model';
+import { GenerationHistoryRow, GenerationStepEvent, ReadinessItem, VarianceRow } from '../models/variance.model';
+
+export const GENERATION_STEPS: string[] = [
+  'Preparing consolidated financial data',
+  'Loading standardized template',
+  'Generating management commentary',
+  'Populating charts and tables',
+  'Applying standardized formatting',
+  'Validating and finalising PPTX',
+];
+
+export const READINESS_ITEMS: ReadinessItem[] = [
+  { label: 'Consolidated financials available', detail: 'Group financial results loaded' },
+  { label: 'Variance analysis available', detail: 'Period movements assessed' },
+  { label: 'Standardized template loaded', detail: 'Finance Management Report v2026.1' },
+  { label: 'Reporting context confirmed', detail: 'Group Consolidated' },
+];
+
+const MOCK_GENERATION_HISTORY: GenerationHistoryRow[] = [
+  { period: 'Q4 2025', fileName: 'Q4_2025_Management_Report.pptx', date: '31 Mar 2026', status: 'Previous' },
+];
 
 const MOCK_VARIANCE_ROWS: VarianceRow[] = [
   { item: 'Revenue', current: 285000, comparison: 248000, variance: 37000, varPct: '+14.9%', analysis: 'Revenue increased 14.9% vs prior period.' },
@@ -23,5 +43,49 @@ export class VarianceService {
   /** Simulates GET {apiUrl}/variance?period=..&comparison=..&entity=..&currency=.. */
   getVarianceRows(): Observable<VarianceRow[]> {
     return of(MOCK_VARIANCE_ROWS).pipe(delay(this.mockDelay()));
+  }
+
+  /** Simulates GET {apiUrl}/variance/management-report/history */
+  getGenerationHistory(): Observable<GenerationHistoryRow[]> {
+    return of(MOCK_GENERATION_HISTORY).pipe(delay(this.mockDelay()));
+  }
+
+  /**
+   * Mocked, swap-ready Management Report generation (matches the file-upload mock's
+   * pattern in SubmissionReviewService). Emits a step-progress event as each stage of
+   * GENERATION_STEPS is reached, then a final `done: true` event once the report is
+   * ready. A real backend endpoint (e.g. HttpClient POST with reportProgress: true)
+   * would emit the same event shape, so only this method's body changes later.
+   */
+  generateManagementReport(): Observable<GenerationStepEvent> {
+    return new Observable<GenerationStepEvent>((subscriber) => {
+      const lastIndex = GENERATION_STEPS.length - 1;
+
+      if (!environment.useMockData) {
+        subscriber.next({ stepIndex: lastIndex, stepLabel: GENERATION_STEPS[lastIndex], done: true });
+        subscriber.complete();
+        return;
+      }
+
+      const timers: ReturnType<typeof setTimeout>[] = [];
+
+      GENERATION_STEPS.forEach((stepLabel, index) => {
+        timers.push(
+          setTimeout(() => {
+            subscriber.next({ stepIndex: index, stepLabel, done: false });
+            if (index === lastIndex) {
+              timers.push(
+                setTimeout(() => {
+                  subscriber.next({ stepIndex: index, stepLabel, done: true });
+                  subscriber.complete();
+                }, 750),
+              );
+            }
+          }, index * 850),
+        );
+      });
+
+      return () => timers.forEach((id) => clearTimeout(id));
+    });
   }
 }

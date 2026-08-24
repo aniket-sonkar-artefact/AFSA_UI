@@ -1,117 +1,317 @@
-<div class="integrity">
-  <div class="header-card">
+<div class="integrity-page">
+  <!-- ===================================================
+       HEADER
+  ==================================================== -->
+  <section class="integrity-header">
+    <div class="integrity-header-marker"></div>
+
     <div>
-      <h1 class="header-title">Financial Statement Integrity Check</h1>
-      <div class="header-meta">
-        <span>Cross-References: <strong>{{ xrefStats().checked }} checked</strong> &middot; {{ xrefFlaggedCount() }} flagged</span>
-        <span class="dot">&middot;</span>
-        <span>Footings &amp; Subfootings: <strong>{{ footingStats().checked }} checked</strong> &middot; {{ footingFlaggedCount() }} flagged</span>
+      <div class="integrity-kicker">Statement Validation</div>
+      <h1 class="integrity-title">Financial Statement Integrity Check</h1>
+
+      <div class="integrity-summary">
+        <span>
+          Cross-References:
+          <strong>{{ xrefChecked() }} checked &middot; {{ xrefFlagged() }} flagged</strong>
+        </span>
+        <span class="integrity-summary-divider">|</span>
+        <span>
+          Footings &amp; Subfootings:
+          <strong>{{ footingChecked() }} checked &middot; {{ footingFlagged() }} flagged</strong>
+        </span>
       </div>
     </div>
-    <button class="report-outline-btn">Footings &amp; Cross-References Exception Report</button>
+
+    <button type="button" class="integrity-report-button" (click)="generateReport()">
+      <app-icon name="file-text" [size]="14" [strokeWidth]="1.9" />
+      Footings &amp; Cross-References Exception Report
+    </button>
+  </section>
+
+  <!-- ===================================================
+       TABS
+  ==================================================== -->
+  <div class="integrity-tabs-shell">
+    <button type="button" class="integrity-tab-button" [class.active]="tab() === 'xref'" (click)="setTab('xref')">
+      Cross-Reference Check
+    </button>
+    <button
+      type="button"
+      class="integrity-tab-button"
+      [class.active]="tab() === 'footing'"
+      (click)="setTab('footing')"
+    >
+      Footing &amp; Subfooting Check
+    </button>
   </div>
 
-  <div class="tab-row">
-    <button class="tab-btn" [class.active]="subTab() === 'xref'" (click)="selectTab('xref')">Cross-Reference Check</button>
-    <button class="tab-btn" [class.active]="subTab() === 'footing'" (click)="selectTab('footing')">Footing &amp; Subfooting Check</button>
-  </div>
+  <!-- ===================================================
+       CROSS-REFERENCE TAB
+  ==================================================== -->
+  @if (tab() === 'xref') {
+    <div class="integrity-tab-panel">
+      <section class="integrity-kpi-grid">
+        <div class="integrity-kpi">
+          <div class="integrity-kpi-value primary">{{ xrefStats().checked }}</div>
+          <div class="integrity-kpi-label">Checked</div>
+        </div>
+        <div class="integrity-kpi">
+          <div class="integrity-kpi-value success">{{ xrefStats().valid }}</div>
+          <div class="integrity-kpi-label">Valid</div>
+        </div>
+        <div class="integrity-kpi" [class.attention]="xrefStats().flagged > 0">
+          <div class="integrity-kpi-value" [ngClass]="xrefStats().flagged > 0 ? 'danger' : 'success'">
+            {{ xrefStats().flagged }}
+          </div>
+          <div class="integrity-kpi-label">Flagged</div>
+        </div>
+        <div class="integrity-kpi">
+          <div class="integrity-kpi-value neutral">{{ xrefStats().completed }}</div>
+          <div class="integrity-kpi-label">Completed</div>
+        </div>
+      </section>
 
-  @if (subTab() === 'xref') {
-    <div class="stat-row">
-      <div class="stat-card"><div class="stat-value">{{ xrefStats().checked }}</div><div class="stat-label">Checked</div></div>
-      <div class="stat-card"><div class="stat-value" style="color:#065F46">{{ xrefStats().valid }}</div><div class="stat-label">Valid</div></div>
-      <div class="stat-card"><div class="stat-value" style="color:#DC2626">{{ xrefStats().flagged }}</div><div class="stat-label">Flagged</div></div>
-      <div class="stat-card"><div class="stat-value">{{ xrefStats().complete }}</div><div class="stat-label">Complete</div></div>
-    </div>
-
-    <div class="table-card">
-      <table class="data-table">
-        <thead>
-          <tr>
-            <th>Statement / Location</th>
-            <th>Referenced Note</th>
-            <th>Referenced Topic</th>
-            <th>Check Result</th>
-            <th>Status</th>
-          </tr>
-        </thead>
-        <tbody>
-          @for (row of xrefRows(); track row.id) {
-            <tr [class.flagged-row]="row.status === 'Flagged' && !row.completed">
-              <td class="cell-primary">{{ row.statement }}</td>
-              <td class="cell-mono">{{ row.referencedNote }}</td>
-              <td class="cell-secondary">{{ row.referencedTopic }}</td>
-              <td>
-                <span class="status-chip" [style.color]="resultChip(row.result).color" [style.background]="resultChip(row.result).bg">
-                  {{ row.result }}
-                </span>
-                @if (row.issue) {
-                  <div class="issue-note">{{ row.issue }}</div>
-                }
-              </td>
-              <td>
-                @if (row.completed) {
-                  <span class="complete-label">&#10003; Complete</span>
-                } @else if (row.status === 'Flagged') {
-                  <button class="mark-complete-btn" (click)="markXRefComplete(row.id)">Mark Complete</button>
-                } @else {
-                  <span class="complete-label">&#10003; Complete</span>
-                }
-              </td>
+      <section class="integrity-table-card">
+        <table class="integrity-table">
+          <colgroup>
+            <col style="width: 26%" />
+            <col style="width: 13%" />
+            <col style="width: 19%" />
+            <col style="width: 19%" />
+            <col style="width: 10%" />
+            <col style="width: 13%" />
+          </colgroup>
+          <thead>
+            <tr>
+              <th>Statement / Location</th>
+              <th>Referenced Note</th>
+              <th>Referenced Topic</th>
+              <th>Check Result</th>
+              <th>Status</th>
+              <th></th>
             </tr>
-          }
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            @for (row of xrefRows(); track row.id) {
+              <tr
+                class="integrity-row"
+                [class.flagged]="isXrefFlagged(row)"
+                [class.completed]="row.completed"
+              >
+                <td><span class="integrity-primary-cell">{{ row.statement }}</span></td>
+                <td><span class="integrity-note">{{ row.referencedNote }}</span></td>
+                <td><span class="integrity-secondary-cell">{{ row.referencedTopic }}</span></td>
+                <td>
+                  <span class="integrity-pill" [ngClass]="xrefResultClass(row)">{{ row.result }}</span>
+                </td>
+                <td>
+                  <span class="integrity-pill" [ngClass]="row.completed || !isXrefFlagged(row) ? 'success' : 'danger'">
+                    {{ row.completed ? 'Complete' : row.status }}
+                  </span>
+                </td>
+                <td>
+                  @if (isXrefFlagged(row)) {
+                    <div class="integrity-row-actions">
+                      <button
+                        type="button"
+                        class="integrity-expand-button"
+                        (click)="toggleXrefRow(row.id)"
+                        [attr.aria-expanded]="isXrefExpanded(row.id)"
+                        [attr.aria-label]="isXrefExpanded(row.id) ? 'Collapse issue details' : 'Expand issue details'"
+                        [title]="isXrefExpanded(row.id) ? 'Collapse' : 'Expand'"
+                      >
+                        <span
+                          class="integrity-chevron"
+                          [style.transform]="isXrefExpanded(row.id) ? 'rotate(180deg)' : 'rotate(0deg)'"
+                        >
+                          <app-icon name="chevron-down" [size]="14" [strokeWidth]="2" />
+                        </span>
+                      </button>
+                      <button type="button" class="integrity-complete-button" (click)="markXRefComplete(row.id)">
+                        Mark Complete
+                      </button>
+                    </div>
+                  }
+                </td>
+              </tr>
+              @if (row.issue && isXrefFlagged(row)) {
+                <tr class="integrity-detail-row">
+                  <td colspan="6">
+                    <div class="integrity-detail-collapse" [class.expanded]="isXrefExpanded(row.id)">
+                      <div class="integrity-detail-collapse-inner">
+                        <div class="integrity-xref-detail">
+                          <span class="integrity-detail-title">Issue Identified: </span>
+                          {{ row.issue }}
+                        </div>
+                      </div>
+                    </div>
+                  </td>
+                </tr>
+              }
+            }
+          </tbody>
+        </table>
+      </section>
+
+      <div class="integrity-continue-row">
+        <button type="button" class="integrity-continue-button" (click)="goToFootingTab()">
+          Continue to Footing &amp; Subfooting Check
+          <span class="integrity-continue-arrow">
+            <app-icon name="arrow-right" [size]="14" [strokeWidth]="2" />
+          </span>
+        </button>
+      </div>
     </div>
   }
 
-  @if (subTab() === 'footing') {
-    <div class="stat-row">
-      <div class="stat-card"><div class="stat-value">{{ footingStats().checked }}</div><div class="stat-label">Checked</div></div>
-      <div class="stat-card"><div class="stat-value" style="color:#065F46">{{ footingStats().passed }}</div><div class="stat-label">Passed</div></div>
-      <div class="stat-card"><div class="stat-value" style="color:#DC2626">{{ footingStats().flagged }}</div><div class="stat-label">Flagged</div></div>
-      <div class="stat-card"><div class="stat-value">{{ footingStats().complete }}</div><div class="stat-label">Complete</div></div>
-    </div>
+  <!-- ===================================================
+       FOOTING TAB
+  ==================================================== -->
+  @if (tab() === 'footing') {
+    <div class="integrity-tab-panel">
+      <section class="integrity-kpi-grid">
+        <div class="integrity-kpi">
+          <div class="integrity-kpi-value primary">{{ footingStats().checked }}</div>
+          <div class="integrity-kpi-label">Checked</div>
+        </div>
+        <div class="integrity-kpi">
+          <div class="integrity-kpi-value success">{{ footingStats().passed }}</div>
+          <div class="integrity-kpi-label">Passed</div>
+        </div>
+        <div class="integrity-kpi" [class.attention]="footingStats().flagged > 0">
+          <div class="integrity-kpi-value" [ngClass]="footingStats().flagged > 0 ? 'danger' : 'success'">
+            {{ footingStats().flagged }}
+          </div>
+          <div class="integrity-kpi-label">Flagged</div>
+        </div>
+        <div class="integrity-kpi">
+          <div class="integrity-kpi-value neutral">{{ footingStats().completed }}</div>
+          <div class="integrity-kpi-label">Completed</div>
+        </div>
+      </section>
 
-    <div class="table-card">
-      <table class="data-table">
-        <thead>
-          <tr>
-            <th>Table / Section</th>
-            <th>Location</th>
-            <th>Reported Total</th>
-            <th>Calculated Total</th>
-            <th>Difference</th>
-            <th>Result</th>
-            <th>Status</th>
-          </tr>
-        </thead>
-        <tbody>
-          @for (row of footingRows(); track row.id) {
-            <tr [class.flagged-row]="row.status === 'Flagged' && !row.completed">
-              <td class="cell-primary">{{ row.table }}</td>
-              <td class="cell-secondary">{{ row.location }}</td>
-              <td class="cell-mono">{{ row.reportedTotal }}</td>
-              <td class="cell-mono">{{ row.calculatedTotal }}</td>
-              <td class="cell-mono" [style.color]="row.difference !== '\u2014' ? '#DC2626' : 'inherit'">{{ row.difference }}</td>
-              <td>
-                <span class="status-chip" [style.color]="resultChip(row.result).color" [style.background]="resultChip(row.result).bg">
-                  {{ row.result }}
-                </span>
-              </td>
-              <td>
-                @if (row.completed) {
-                  <span class="complete-label">&#10003; Complete</span>
-                } @else if (row.status === 'Flagged') {
-                  <button class="mark-complete-btn" (click)="markFootingComplete(row.id)">Mark Complete</button>
-                } @else {
-                  <span class="complete-label">&#10003; Complete</span>
-                }
-              </td>
+      <section class="integrity-table-card">
+        <table class="integrity-table">
+          <colgroup>
+            <col style="width: 19%" />
+            <col style="width: 18%" />
+            <col style="width: 14%" />
+            <col style="width: 14%" />
+            <col style="width: 12%" />
+            <col style="width: 10%" />
+            <col style="width: 13%" />
+          </colgroup>
+          <thead>
+            <tr>
+              <th>Table / Section</th>
+              <th>Location</th>
+              <th>Reported Total</th>
+              <th>Calculated Total</th>
+              <th>Difference</th>
+              <th>Result</th>
+              <th></th>
             </tr>
-          }
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            @for (row of footingRows(); track row.id) {
+              <tr
+                class="integrity-row"
+                [class.flagged]="isFootingFlagged(row)"
+                [class.completed]="row.completed"
+              >
+                <td><span class="integrity-primary-cell">{{ row.table }}</span></td>
+                <td><span class="integrity-secondary-cell">{{ row.location }}</span></td>
+                <td>
+                  <span class="integrity-number" [class.danger]="isFootingFlagged(row)">{{ row.reportedTotal }}</span>
+                </td>
+                <td><span class="integrity-number muted">{{ row.calculatedTotal }}</span></td>
+                <td>
+                  <span class="integrity-number difference" [class.danger]="isFootingFlagged(row)">
+                    {{ row.difference }}
+                  </span>
+                </td>
+                <td>
+                  <span class="integrity-pill" [ngClass]="row.completed || row.result === 'Pass' ? 'success' : 'danger'">
+                    {{ row.completed ? 'Complete' : row.result }}
+                  </span>
+                </td>
+                <td>
+                  @if (isFootingFlagged(row)) {
+                    <div class="integrity-row-actions">
+                      <button
+                        type="button"
+                        class="integrity-expand-button"
+                        (click)="toggleFootingRow(row.id)"
+                        [attr.aria-expanded]="isFootingExpanded(row.id)"
+                        [attr.aria-label]="
+                          isFootingExpanded(row.id) ? 'Collapse exception details' : 'Expand exception details'
+                        "
+                        [title]="isFootingExpanded(row.id) ? 'Collapse' : 'Expand'"
+                      >
+                        <span
+                          class="integrity-chevron"
+                          [style.transform]="isFootingExpanded(row.id) ? 'rotate(180deg)' : 'rotate(0deg)'"
+                        >
+                          <app-icon name="chevron-down" [size]="14" [strokeWidth]="2" />
+                        </span>
+                      </button>
+                      <button type="button" class="integrity-complete-button" (click)="markFootingComplete(row.id)">
+                        Mark Complete
+                      </button>
+                    </div>
+                  }
+                </td>
+              </tr>
+              @if (isFootingFlagged(row)) {
+                <tr class="integrity-detail-row">
+                  <td colspan="7">
+                    <div class="integrity-detail-collapse" [class.expanded]="isFootingExpanded(row.id)">
+                      <div class="integrity-detail-collapse-inner">
+                        <div class="integrity-footing-detail-grid">
+                          <div class="integrity-exception-card danger">
+                            <div class="integrity-exception-label">Reported Total</div>
+                            <div class="integrity-exception-value">{{ row.reportedTotal }}</div>
+                          </div>
+                          <div class="integrity-exception-card neutral">
+                            <div class="integrity-exception-label">Calculated Total</div>
+                            <div class="integrity-exception-value">{{ row.calculatedTotal }}</div>
+                          </div>
+                          <div class="integrity-exception-card danger">
+                            <div class="integrity-exception-label">Difference</div>
+                            <div class="integrity-exception-value danger">{{ row.difference }}</div>
+                          </div>
+                          <div class="integrity-exception-card warning">
+                            <div class="integrity-exception-label">Exception Type</div>
+                            <div class="integrity-exception-text">{{ row.exceptionType }}</div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </td>
+                </tr>
+              }
+            }
+          </tbody>
+        </table>
+      </section>
+
+      <div class="integrity-continue-row">
+        <button type="button" class="integrity-continue-button" (click)="goToReports()">
+          Continue to Reports
+          <span class="integrity-continue-arrow">
+            <app-icon name="arrow-right" [size]="14" [strokeWidth]="2" />
+          </span>
+        </button>
+      </div>
     </div>
   }
 </div>
+
+@if (toast()) {
+  <div class="integrity-toast">
+    <span class="integrity-toast-icon">
+      <app-icon name="check" [size]="13" [strokeWidth]="2.2" />
+    </span>
+    Footings &amp; Cross-References Exception Report generated
+  </div>
+}

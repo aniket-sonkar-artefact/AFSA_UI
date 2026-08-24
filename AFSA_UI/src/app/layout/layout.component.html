@@ -1,83 +1,101 @@
-<div class="shell">
+<div class="afsa-shell" [class.logging-out]="loggingOut()">
   <!-- Sidebar -->
-  <aside class="sidebar" [style.width.px]="sidebarWidth()">
-    <div class="sidebar-head" [class.collapsed]="collapsed()">
-      <div class="brand">
-        <app-logo-badge [size]="28" [borderRadius]="8"></app-logo-badge>
+  <aside class="afsa-sidebar" [class.collapsed]="collapsed()" [style.width.px]="sidebarWidth()">
+    <div class="afsa-sidebar-brand">
+      <div class="afsa-brand-lockup">
+        <app-logo-badge [size]="30" [borderRadius]="8"></app-logo-badge>
         @if (!collapsed()) {
-          <span class="brand-name">AFSA PLATFORM</span>
+          <span class="afsa-brand-name">AFSA PLATFORM</span>
         }
       </div>
       @if (!collapsed()) {
-        <button class="collapse-btn" title="Collapse sidebar" (click)="toggleCollapsed()">&#8249;&#8249;</button>
+        <button class="afsa-sidebar-toggle" title="Collapse sidebar" (click)="toggleCollapsed()">
+          <app-icon name="chevron-left" [size]="15" [strokeWidth]="2"></app-icon>
+        </button>
       }
     </div>
 
     @if (collapsed()) {
-      <button class="expand-btn" title="Expand sidebar" (click)="toggleCollapsed()">&#8250;&#8250;</button>
+      <div class="expand-wrap">
+        <button class="afsa-sidebar-toggle" title="Expand sidebar" (click)="toggleCollapsed()">
+          <app-icon name="chevron-right" [size]="15" [strokeWidth]="2"></app-icon>
+        </button>
+      </div>
     }
 
-    <nav class="nav">
+    <nav class="afsa-nav">
+      @if (!collapsed()) {
+        <div class="afsa-nav-label">Workspace</div>
+      }
+
       @for (item of navItems; track item.path) {
         <a
-          class="nav-item"
-          [class.collapsed]="collapsed()"
-          [class.disabled]="item.disabled"
-          [routerLink]="item.disabled ? null : item.path"
+          class="afsa-nav-item"
+          [routerLink]="item.path"
           routerLinkActive="active"
-          [style.--accent]="item.accent"
+          #rla="routerLinkActive"
+          [style.--item-accent]="item.accent"
+          [style.box-shadow]="rla.isActive ? ('0 5px 14px ' + item.glow + ', 0 0 0 2px ' + item.glow) : 'none'"
           [title]="collapsed() ? item.label : null"
         >
-          <span class="nav-icon">
+          <span class="afsa-nav-selection" [style.background]="item.selectionBackground"></span>
+          <span class="afsa-nav-icon">
             <app-icon [name]="item.icon"></app-icon>
           </span>
           @if (!collapsed()) {
-            <span class="nav-label">{{ item.label }}</span>
+            <span class="afsa-nav-text">{{ item.label }}</span>
           }
         </a>
       }
     </nav>
 
-    <div class="sidebar-user" [class.collapsed]="collapsed()">
-      <div class="user-row">
-        <div class="avatar">{{ currentUser()?.initials || '' }}</div>
+    <div class="afsa-sidebar-user">
+      <div class="afsa-user-row">
+        <div class="afsa-avatar">{{ currentUser()?.initials || '' }}</div>
         @if (!collapsed()) {
-          <div class="user-info">
-            <div class="user-name">{{ currentUser()?.name || 'Aniket Sonkar' }}</div>
-            <div class="user-role">{{ currentUser()?.roleLabel || 'Finance Manager' }}</div>
+          <div class="afsa-user-meta">
+            <div class="afsa-user-name">{{ currentUser()?.name || 'Aniket Sonkar' }}</div>
+            <div class="afsa-user-group" [title]="currentUser()?.roleLabel">{{ currentUser()?.roleLabel || 'Finance User' }}</div>
           </div>
         }
       </div>
-      <button class="signout-btn" [class.collapsed]="collapsed()" title="Sign out" (click)="logout()">
-        <span class="signout-icon">&#9099;</span>
+
+      <button class="afsa-signout" [disabled]="loggingOut()" title="Sign out" (click)="logout()">
+        <app-icon name="log-out" [size]="14"></app-icon>
         @if (!collapsed()) {
-          <span>Sign out</span>
+          <span class="afsa-signout-text">{{ loggingOut() ? 'Signing out...' : 'Sign out' }}</span>
         }
       </button>
+
+      @if (!collapsed()) {
+        <div class="afsa-powered-by">Powered By Aramco - PoC Environment</div>
+      }
     </div>
   </aside>
 
   <!-- Main -->
-  <div class="main" [style.margin-left.px]="sidebarWidth()">
-    <header class="topbar">
-      <div class="context-strip">
-        <span class="context-primary">Consolidated Group</span>
-        <span class="sep">|</span>
-        <span class="context-secondary">Q1 2026</span>
-        <span class="sep">|</span>
-        <span class="status-badge">In Review</span>
+  <div class="afsa-main-shell" [style.margin-left.px]="sidebarWidth()" [style.width]="'calc(100% - ' + sidebarWidth() + 'px)'">
+    <header class="afsa-topbar">
+      <div class="afsa-context">
+        <span class="afsa-context-primary">Consolidated Group</span>
+        <span class="afsa-context-dot">&middot;</span>
+        <span class="afsa-context-secondary">Q1 2026</span>
+        <span class="afsa-status-pill afsa-status-warning">In Review</span>
       </div>
 
-      <div class="topbar-right">
-        <button class="theme-toggle" [class.dark]="darkMode()" (click)="toggleDarkMode()">
-          <app-icon [name]="darkMode() ? 'moon' : 'sun'"></app-icon>
-          <span>{{ darkMode() ? 'Dark' : 'Light' }}</span>
+      <div class="afsa-topbar-actions">
+        <button
+          class="afsa-icon-button"
+          (click)="toggleDarkMode()"
+          [title]="darkMode() ? 'Switch to Light Mode' : 'Switch to Dark Mode'"
+        >
+          <app-icon [name]="darkMode() ? 'sun' : 'moon'"></app-icon>
         </button>
-        <div class="avatar">{{ currentUser()?.initials || '' }}</div>
+        <div class="afsa-avatar" [title]="currentUser()?.name">{{ currentUser()?.initials || '' }}</div>
       </div>
     </header>
 
-    <main class="content">
+    <main class="afsa-page">
       <router-outlet></router-outlet>
     </main>
   </div>

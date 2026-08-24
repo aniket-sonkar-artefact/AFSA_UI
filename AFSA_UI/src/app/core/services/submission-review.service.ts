@@ -8,6 +8,7 @@ import {
   CoaRow,
   Finding,
   FindingStatus,
+  UploadProgressEvent,
 } from '../models/submission-review.model';
 
 const MOCK_FINDINGS: Record<Affiliate, Finding[]> = {
@@ -143,5 +144,34 @@ export class SubmissionReviewService {
       delay(this.mockDelay()),
       tap(() => this.coaState.update((prev) => ({ ...prev, [affiliate]: updated }))),
     );
+  }
+
+  /**
+   * Simulates POST {apiUrl}/affiliates/{affiliate}/checklist/{item}/file with
+   * upload progress reporting. Emits {@link UploadProgressEvent}s as progress
+   * climbs from 0 -> 100, matching the shape `HttpClient.request(..., {
+   * reportProgress: true, observe: 'events' })` would produce once a real
+   * upload endpoint exists, so swapping this method's body for a real
+   * `HttpClient` call is a one-file change — callers don't need to change.
+   */
+  simulateFileUpload(): Observable<UploadProgressEvent> {
+    return new Observable<UploadProgressEvent>((subscriber) => {
+      if (!environment.useMockData) {
+        subscriber.next({ progress: 100, done: true });
+        subscriber.complete();
+        return;
+      }
+      let progress = 0;
+      const id = setInterval(() => {
+        progress = Math.min(100, progress + Math.round(Math.random() * 22 + 12));
+        const done = progress >= 100;
+        subscriber.next({ progress, done });
+        if (done) {
+          subscriber.complete();
+          clearInterval(id);
+        }
+      }, 220);
+      return () => clearInterval(id);
+    });
   }
 }

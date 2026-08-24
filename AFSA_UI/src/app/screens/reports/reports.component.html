@@ -1,12 +1,20 @@
-<div class="reports">
-  <div class="header-card">
-    <h1 class="header-title">Reports</h1>
-    <div class="header-meta">Generated outputs from the Advanced Financial Statement Agent.</div>
+<div class="reports-page">
+  <!-- ===================================================
+       HEADER
+  ==================================================== -->
+  <section class="reports-header">
+    <div class="reports-header-marker"></div>
 
-    <div class="search-box">
-      <span class="search-icon">&#128269;</span>
+    <div class="reports-kicker">Report Library</div>
+    <h1 class="reports-title">Reports</h1>
+    <div class="reports-subtitle">Generated outputs from the Advanced Financial Statement Agent.</div>
+
+    <div class="reports-search-wrap">
+      <span class="reports-search-icon">
+        <app-icon name="search" [size]="15" [strokeWidth]="2" />
+      </span>
       <input
-        class="search-input"
+        class="reports-search"
         type="text"
         placeholder="Search reports..."
         [ngModel]="search()"
@@ -14,48 +22,101 @@
       />
     </div>
 
-    <div class="filter-row">
-      <button class="filter-chip" [class.active]="activeFilter() === 'All'" (click)="setFilter('All')">All</button>
-      @for (cap of capabilities; track cap) {
-        <button class="filter-chip" [class.active]="activeFilter() === cap" (click)="setFilter(cap)">{{ cap }}</button>
+    <div class="reports-filters">
+      @for (filter of filterOptions; track filter) {
+        <button
+          type="button"
+          class="reports-filter"
+          [class.active]="activeFilter() === filter"
+          [style]="filterVars(filter)"
+          (click)="setFilter(filter)"
+        >
+          {{ filter }}
+        </button>
       }
     </div>
-  </div>
+  </section>
 
-  @for (group of groupedReports(); track group.capability) {
-    <div class="group-card" [style.border-left-color]="dotColor[group.capability]">
-      <div class="group-head">
-        <span class="group-dot" [style.background]="dotColor[group.capability]"></span>
-        <span class="group-title">{{ group.capability }}</span>
-        <span class="group-count">{{ group.reports.length }} report{{ group.reports.length === 1 ? '' : 's' }}</span>
-      </div>
+  <!-- ===================================================
+       EMPTY STATE
+  ==================================================== -->
+  @if (groupedReports().length === 0) {
+    <section class="reports-empty">
+      <div class="reports-empty-title">No reports found</div>
+      <div class="reports-empty-copy">No reports match your current search or filter.</div>
+    </section>
+  } @else {
+    <!-- ===================================================
+         REPORT GROUPS
+    ==================================================== -->
+    @for (group of groupedReports(); track group.capability) {
+      <section class="reports-group" [style]="groupVars(group.capability)">
+        <div class="reports-group-header" [class.expanded]="!isCollapsed(group.capability)">
+          <div class="reports-group-header-left">
+            <span class="reports-group-dot"></span>
+            <span class="reports-group-name">{{ group.capability }}</span>
+            <span class="reports-group-count">
+              {{ group.reports.length }} report{{ group.reports.length !== 1 ? 's' : '' }}
+            </span>
+          </div>
 
-      <div class="report-list">
-        @for (r of group.reports; track r.id) {
-          <div class="report-row">
-            <span class="report-icon">&#128196;</span>
-            <div class="report-text">
-              <div class="report-title">{{ r.title }}</div>
-              <div class="report-meta">{{ r.meta }}</div>
-            </div>
-            @if (r.download && isGenerated(r.id)) {
-              <button class="solid-btn">Download</button>
-            } @else if (isGenerated(r.id)) {
-              <button class="solid-btn" disabled>&#10003; Generated</button>
-            } @else {
-              <button class="outline-btn" (click)="generate(r)">Generate Report</button>
+          <button
+            type="button"
+            class="reports-collapse-button"
+            (click)="toggleGroup(group.capability)"
+            [attr.aria-expanded]="!isCollapsed(group.capability)"
+            [attr.aria-label]="isCollapsed(group.capability) ? 'Expand ' + group.capability : 'Collapse ' + group.capability"
+            [title]="isCollapsed(group.capability) ? 'Expand' : 'Collapse'"
+          >
+            <span
+              class="reports-chevron"
+              [style.transform]="isCollapsed(group.capability) ? 'rotate(0deg)' : 'rotate(180deg)'"
+            >
+              <app-icon name="chevron-down" [size]="14" [strokeWidth]="2" />
+            </span>
+          </button>
+        </div>
+
+        <div class="reports-group-collapse" [class.collapsed]="isCollapsed(group.capability)">
+          <div class="reports-group-collapse-inner">
+            @for (report of group.reports; track report.id) {
+              <div class="reports-row">
+                <div class="reports-row-marker"></div>
+
+                <div class="reports-document-icon">
+                  <app-icon name="file-text" [size]="16" [strokeWidth]="1.6" />
+                </div>
+
+                <div class="reports-row-content">
+                  <div class="reports-row-title">{{ report.title }}</div>
+                  <div class="reports-row-meta">{{ report.meta }}</div>
+                </div>
+
+                @if (report.download) {
+                  <button type="button" class="reports-row-action download" (click)="download(report)">
+                    <app-icon name="download" [size]="14" [strokeWidth]="1.9" />
+                    Download PPTX
+                  </button>
+                } @else {
+                  <button type="button" class="reports-row-action generate" (click)="generate(report)">
+                    <app-icon name="file-text" [size]="14" [strokeWidth]="1.9" />
+                    Generate Report
+                  </button>
+                }
+              </div>
             }
           </div>
-        }
-      </div>
-    </div>
-  }
-
-  @if (groupedReports().length === 0) {
-    <div class="empty-card">No reports match your search.</div>
-  }
-
-  @if (toast()) {
-    <div class="toast">&#10003; Report generated successfully</div>
+        </div>
+      </section>
+    }
   }
 </div>
+
+@if (toast()) {
+  <div class="reports-toast">
+    <span class="reports-toast-icon">
+      <app-icon name="check" [size]="13" [strokeWidth]="2.2" />
+    </span>
+    {{ toast() }}
+  </div>
+}

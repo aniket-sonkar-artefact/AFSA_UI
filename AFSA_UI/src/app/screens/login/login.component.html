@@ -1,84 +1,95 @@
-<div class="login-shell">
-  <!-- LEFT panel -->
-  <div class="left-panel">
-    <div class="orbs">
-      <div class="orb orb-1"></div>
-      <div class="orb orb-2"></div>
-      <div class="orb orb-3"></div>
-    </div>
-    <div class="dot-grid"></div>
+<div class="login-shell" [class.expanded]="expanded()">
+  <!-- Background photo -->
+  <div class="bg-photo"></div>
+  <div class="bg-overlay"></div>
 
-    <div class="left-content">
-      <div class="brand-row">
-        <app-logo-badge [size]="42" [borderRadius]="13"></app-logo-badge>
-        <div>
-          <div class="brand-title">ADVANCED FINANCIAL STATEMENT AGENT</div>
-          <div class="brand-subtitle">Financial Agent Platform</div>
-        </div>
+  <!-- Left content: brand lockup + welcome copy -->
+  <div class="left-content">
+    <div class="brand-lockup">
+      <div class="frd-title">Transforming FC&amp;RD with AI</div>
+      <div class="logo-wrap">
+        <app-logo-badge [size]="expanded() ? 44 : 68" [borderRadius]="expanded() ? 12 : 19"></app-logo-badge>
       </div>
+      <div class="solution-name">Advanced Financial Statement Agent</div>
+    </div>
 
-      <h1 class="headline">
-        Intelligent<br />
-        <span class="accent">Financial Review</span><br />
-        at Enterprise Scale
-      </h1>
-      <p class="tagline">
-        Specialist AI agents review affiliate submissions, assess IFRS compliance, validate financial integrity,
-        and generate formal outputs.
+    <div class="welcome-content">
+      <div class="pilot-badge">Q1 2026 &middot; FINANCE PILOT</div>
+      <h1 class="welcome-title">Welcome<br />Back.</h1>
+      <p class="welcome-desc">
+        Advanced Financial Statement Agent supports Finance teams in reviewing affiliate submissions,
+        monitoring IFRS compliance, analysing Group variances and validating financial statement integrity.
       </p>
+    </div>
 
-      <div class="feature-list">
-        @for (f of features; track f.title; let i = $index) {
-          <div class="feature-item" [style.--accent]="f.accent" [style.animation-delay.s]="0.15 + i * 0.1">
-            <div class="feature-icon">{{ f.icon }}</div>
-            <div>
-              <div class="feature-title">{{ f.title }}</div>
-              <div class="feature-desc">{{ f.desc }}</div>
-            </div>
+    <div class="bottom-left-note">Controlled Finance Environment</div>
+  </div>
+
+  <!-- Login rail / expanding panel -->
+  <aside
+    class="login-rail"
+    (mouseenter)="onRailEnter()"
+    (mouseleave)="onRailLeave()"
+    (click)="onRailClick()"
+  >
+    <!-- Collapsed state -->
+    <div class="rail-collapsed">
+      <div class="rail-arrow">
+        <app-icon name="chevron-left" [size]="17" [strokeWidth]="2"></app-icon>
+      </div>
+      <div class="rail-label">Log in</div>
+    </div>
+
+    <!-- Expanded state -->
+    <div class="rail-expanded">
+      <div class="rail-expanded-inner">
+        <div class="rail-form">
+          <h1 class="login-heading">Log in</h1>
+
+          <div class="team-list">
+            @for (profile of profiles(); track profile.id) {
+              <button
+                type="button"
+                class="team-btn"
+                [class.active]="selectedId() === profile.id"
+                (click)="select(profile.id, $event)"
+              >
+                <div class="team-acronym" [class.long]="profile.initials.length > 4">
+                  {{ profile.initials }}
+                </div>
+                <div class="team-copy">
+                  <div class="team-name">{{ profile.name }}</div>
+                  <div class="team-desc">{{ profile.desc }}</div>
+                </div>
+                <div class="team-radio">
+                  @if (selectedId() === profile.id) {
+                    <app-icon name="check" [size]="13" [strokeWidth]="2.2"></app-icon>
+                  }
+                </div>
+              </button>
+            }
           </div>
-        }
-      </div>
-    </div>
-  </div>
 
-  <!-- RIGHT — profile selection -->
-  <div class="right-panel">
-    <div class="right-inner">
-      <div class="form-wrap">
-        <div class="eyebrow">Q1 2026 Financial Review &mdash; Pilot</div>
-        <h2 class="form-title">Select your team</h2>
-        <p class="form-subtitle">Choose your finance group to access your workspace.</p>
+          <div class="selection-status">
+            <span>{{ selectedProfile ? 'Selected: ' + selectedProfile.initials : 'No team selected' }}</span>
+            <span>AFSA Pilot Access</span>
+          </div>
 
-        <div class="profile-list">
-          @for (p of profiles(); track p.id) {
-            <button
-              class="profile-btn"
-              [class.selected]="selectedId() === p.id"
-              [style.--pcolor]="p.color"
-              (click)="select(p.id)"
-            >
-              <div class="profile-initials">{{ p.initials }}</div>
-              <div class="profile-text">
-                <div class="profile-name">{{ p.name }}</div>
-                <div class="profile-desc">{{ p.desc }}</div>
-              </div>
-              <div class="profile-radio">
-                @if (selectedId() === p.id) {
-                  <span>&#10003;</span>
-                }
-              </div>
-            </button>
-          }
-        </div>
-
-        <button class="continue-btn" [disabled]="!selectedId() || submitting()" (click)="continue()">
-          {{ submitting() ? 'Signing in\u2026' : 'Continue \u2192' }}
-        </button>
-
-        <div class="footer-note">
-          <div>Access-Controlled Workspace &middot; Financial Controls & Reporting</div>
+          <button
+            type="button"
+            class="login-btn"
+            [disabled]="!selectedProfile || submitting()"
+            (click)="continue($event)"
+          >
+            {{ submitting() ? 'Signing in\u2026' : 'Log in' }}
+            @if (selectedProfile && !submitting()) {
+              <app-icon name="arrow-right" [size]="16" [strokeWidth]="2"></app-icon>
+            }
+          </button>
         </div>
       </div>
+
+      <div class="powered-by">Powered by Aramco</div>
     </div>
-  </div>
+  </aside>
 </div>

@@ -2,6 +2,7 @@ import { Component, OnInit, computed, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { forkJoin } from 'rxjs';
+import { IconComponent, IconName } from '../../shared/icon/icon';
 import { SubmissionReviewService } from '../../core/services/submission-review.service';
 import { IntegrityService } from '../../core/services/integrity.service';
 import { Affiliate, CoaRow, Finding } from '../../core/models/submission-review.model';
@@ -11,27 +12,59 @@ interface CapabilityCard {
   title: string;
   route: string;
   desc: string;
-  accentBorder: string;
+  accent: string;
+  icon: IconName;
 }
 
-interface IssueItem {
+interface ProcessStage {
   label: string;
-  sublabel: string;
   route: string;
-  priority: 'High' | 'Medium';
+  status: 'In Review' | 'Ready' | 'Requires Attention' | 'Pending';
+  accent: string;
+}
+
+interface Kpi {
+  value: string;
+  label: string;
+  color: string;
+  attention: boolean;
 }
 
 const CAPABILITY_CARDS: CapabilityCard[] = [
-  { title: 'Affiliate Submission Review', route: '/submission', desc: 'Review submission completeness, irregular values and Group CoA mappings by affiliate.', accentBorder: '#84BD00' },
-  { title: 'Compliance Monitoring & Benchmarking', route: '/ifrs', desc: 'Run on-demand IFRS compliance checks against note tables and editable narratives.', accentBorder: '#0033A0' },
-  { title: 'Management Reports & Variance Analysis', route: '/variance', desc: 'Compare reporting periods and review key movements across Group financial results.', accentBorder: '#00A3E0' },
-  { title: 'Financial Statement Integrity Check', route: '/integrity', desc: 'Validate statement-to-note cross-references and footings and subfootings.', accentBorder: '#00843D' },
+  {
+    title: 'Affiliate Submission Review',
+    route: '/submission',
+    desc: 'Review submission completeness, irregular values and Group CoA mappings by affiliate.',
+    accent: '#1F497D',
+    icon: 'file-text',
+  },
+  {
+    title: 'Compliance Monitoring & Benchmarking',
+    route: '/ifrs',
+    desc: 'Run on-demand IFRS compliance checks against note tables and editable narratives.',
+    accent: '#C0504D',
+    icon: 'check-circle',
+  },
+  {
+    title: 'Management Reports & Variance Analysis',
+    route: '/variance',
+    desc: 'Compare reporting periods and review key movements across Group financial results.',
+    accent: '#8064A2',
+    icon: 'bar-chart',
+  },
+  {
+    title: 'Financial Statement Integrity Check',
+    route: '/integrity',
+    desc: 'Validate statement-to-note cross-references and footings and subfootings.',
+    accent: '#4BACC6',
+    icon: 'shield',
+  },
 ];
 
 @Component({
   selector: 'app-overview',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, IconComponent],
   templateUrl: './overview.component.html',
   styleUrl: './overview.component.scss',
 })
@@ -66,63 +99,66 @@ export class OverviewComponent implements OnInit {
       this.footingRows().filter((r) => r.result !== 'Pass' && !r.completed).length,
   );
 
-  readonly kpis = computed(() => {
+  readonly affiliateItemsRequiringAttention = computed(
+    () => this.irregularitiesRequiringReview() + this.coaMappingsRequiringAttention(),
+  );
+
+  readonly totalIssues = computed(
+    () =>
+      this.irregularitiesRequiringReview() +
+      this.coaMappingsRequiringAttention() +
+      this.integrityExceptionsOpen(),
+  );
+
+  readonly kpis = computed<Kpi[]>(() => {
     const irregularities = this.irregularitiesRequiringReview();
     const coaAttention = this.coaMappingsRequiringAttention();
     const integrityOpen = this.integrityExceptionsOpen();
     return [
-      { value: String(this.affiliatesInReview), label: 'Affiliates in Review', color: '#0033A0' },
-      { value: String(irregularities), label: 'Irregularities Requiring Review', color: irregularities > 0 ? '#DC2626' : '#00843D' },
-      { value: String(coaAttention), label: 'CoA Mappings Requiring Attention', color: coaAttention > 0 ? '#D97706' : '#00843D' },
-      { value: String(integrityOpen), label: 'Integrity Exceptions Open', color: integrityOpen > 0 ? '#DC2626' : '#00843D' },
+      { value: String(this.affiliatesInReview), label: 'Affiliates in Review', color: '#0033A0', attention: false },
+      {
+        value: String(irregularities),
+        label: 'Irregularities Requiring Review',
+        color: irregularities > 0 ? '#DC2626' : '#00843D',
+        attention: irregularities > 0,
+      },
+      {
+        value: String(coaAttention),
+        label: 'CoA Mappings Requiring Attention',
+        color: coaAttention > 0 ? '#D97706' : '#00843D',
+        attention: coaAttention > 0,
+      },
+      {
+        value: String(integrityOpen),
+        label: 'Integrity Exceptions Open',
+        color: integrityOpen > 0 ? '#DC2626' : '#00843D',
+        attention: integrityOpen > 0,
+      },
     ];
   });
 
-  readonly issues = computed<IssueItem[]>(() => {
-    const items: IssueItem[] = [];
-
-    (['A', 'B'] as Affiliate[]).forEach((aff) => {
-      const findings = aff === 'A' ? this.findingsA() : this.findingsB();
-      findings.forEach((f) => {
-        if (f.status !== 'Closed') {
-          items.push({
-            label: `Affiliate ${aff} \u00b7 ${f.account}`,
-            sublabel: `Irregularity \u2014 ${f.status}`,
-            route: '/submission',
-            priority: f.severity === 'High' ? 'High' : 'Medium',
-          });
-        }
-      });
-    });
-
-    (['A', 'B'] as Affiliate[]).forEach((aff) => {
-      const rows = aff === 'A' ? this.coaA() : this.coaB();
-      rows.forEach((r) => {
-        if (!r.confirmed && (r.originalStatus === 'Low Confidence' || r.originalStatus === 'Unmapped')) {
-          items.push({
-            label: `Affiliate ${aff} \u00b7 Account ${r.code}`,
-            sublabel: 'CoA mapping requires review',
-            route: '/submission',
-            priority: r.originalStatus === 'Unmapped' ? 'High' : 'Medium',
-          });
-        }
-      });
-    });
-
-    this.xrefRows().forEach((r) => {
-      if (r.status === 'Flagged' && !r.completed) {
-        items.push({ label: r.statement, sublabel: 'Cross-reference exception', route: '/integrity', priority: 'High' });
-      }
-    });
-
-    this.footingRows().forEach((r) => {
-      if (r.result !== 'Pass' && !r.completed) {
-        items.push({ label: r.table, sublabel: r.exceptionType ?? 'Footing exception', route: '/integrity', priority: 'High' });
-      }
-    });
-
-    return items;
-  });
+  readonly processStages = computed<ProcessStage[]>(() => [
+    {
+      label: 'Affiliate Review',
+      route: '/submission',
+      status: this.affiliateItemsRequiringAttention() > 0 ? 'In Review' : 'Ready',
+      accent: '#1F497D',
+    },
+    { label: 'Compliance', route: '/ifrs', status: 'Ready', accent: '#C0504D' },
+    { label: 'Variance Analysis', route: '/variance', status: 'Ready', accent: '#8064A2' },
+    {
+      label: 'Integrity Check',
+      route: '/integrity',
+      status: this.integrityExceptionsOpen() > 0 ? 'Requires Attention' : 'Ready',
+      accent: '#4BACC6',
+    },
+    {
+      label: 'Reporting',
+      route: '/reports',
+      status: this.totalIssues() > 0 ? 'Pending' : 'Ready',
+      accent: '#64748B',
+    },
+  ]);
 
   constructor(
     private readonly submissionReviewService: SubmissionReviewService,
@@ -146,6 +182,20 @@ export class OverviewComponent implements OnInit {
       this.xrefRows.set(xref);
       this.footingRows.set(footings);
     });
+  }
+
+  capabilityStatus(card: CapabilityCard): string {
+    if (card.route === '/submission') {
+      const n = this.affiliateItemsRequiringAttention();
+      return n > 0 ? `${n} items requiring review` : 'Review clear';
+    }
+    if (card.route === '/ifrs') return 'Compliance review ready';
+    if (card.route === '/variance') return 'Variance analysis ready';
+    if (card.route === '/integrity') {
+      const n = this.integrityExceptionsOpen();
+      return n > 0 ? `${n} exceptions open` : 'Integrity clear';
+    }
+    return '';
   }
 
   navigate(route: string) {

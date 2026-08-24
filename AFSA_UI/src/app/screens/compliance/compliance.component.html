@@ -1,67 +1,158 @@
-<div class="compliance">
-  <div class="header-card">
+<div class="compliance-page">
+  <!-- ===================================================
+       HEADER
+  ==================================================== -->
+  <section class="compliance-header">
+    <div class="compliance-header-accent"></div>
+
     @if (loadingNotes()) {
-      <app-skeleton width="260px" height="16px" radius="4px"></app-skeleton>
-      <div style="height:6px"></div>
-      <app-skeleton width="180px" height="11px" radius="4px"></app-skeleton>
+      <div class="compliance-header-skel">
+        <app-skeleton width="90px" height="9px" radius="4px"></app-skeleton>
+        <div style="height:9px"></div>
+        <app-skeleton width="260px" height="18px" radius="4px"></app-skeleton>
+        <div style="height:7px"></div>
+        <app-skeleton width="300px" height="11px" radius="4px"></app-skeleton>
+      </div>
     } @else {
-      <h1 class="header-title">Compliance Monitoring &amp; Benchmarking</h1>
-      <div class="header-meta">{{ priorityRequirementsCount() }} priority IFRS requirements &middot; {{ formattedPeriod() }}</div>
+      <div>
+        <div class="compliance-kicker">IFRS Review</div>
+        <h1 class="compliance-title">Compliance Monitoring &amp; Benchmarking</h1>
+        <div class="compliance-subtitle">Review priority financial statement disclosures against relevant IFRS requirements.</div>
+      </div>
+
+      <div class="compliance-header-meta">
+        <div>
+          <div class="compliance-meta-label">Priority Requirements</div>
+          <div class="compliance-meta-value">{{ priorityRequirementsCount() }}</div>
+        </div>
+        <div>
+          <div class="compliance-meta-label">Period</div>
+          <div class="compliance-meta-value">{{ formattedPeriod() }}</div>
+        </div>
+      </div>
     }
-  </div>
+  </section>
 
   @if (notesError()) {
     <div class="error-banner">{{ notesError() }}</div>
   }
 
-  <div class="grid">
-    <!-- Left: note list -->
-    <div class="notes-col">
-      <div class="col-label">IFRS NOTES</div>
-      <div class="notes-list">
-        @if (loadingNotes()) {
-          @for (i of [1,2,3]; track i) {
-            <div class="note-item">
-              <app-skeleton width="70%" height="13px" radius="4px"></app-skeleton>
-              <div style="height:6px"></div>
-              <app-skeleton width="40%" height="10px" radius="4px"></app-skeleton>
-            </div>
+  <!-- ===================================================
+       KPI ROW
+  ==================================================== -->
+  <section class="compliance-kpi-grid">
+    @if (loadingNotes()) {
+      @for (i of [1, 2, 3, 4]; track i) {
+        <div class="compliance-kpi">
+          <app-skeleton width="34px" height="22px" radius="4px"></app-skeleton>
+          <div style="height:8px"></div>
+          <app-skeleton width="70%" height="9px" radius="4px"></app-skeleton>
+        </div>
+      }
+    } @else {
+      <div class="compliance-kpi">
+        <div class="compliance-kpi-value" style="color: var(--compliance-accent)">{{ notes().length }}</div>
+        <div class="compliance-kpi-label">Notes in Scope</div>
+      </div>
+
+      <div class="compliance-kpi">
+        <div class="compliance-kpi-value" style="color: var(--compliance-success)">{{ checksCompleted() }}</div>
+        <div class="compliance-kpi-label">Checks Completed</div>
+      </div>
+
+      <div class="compliance-kpi" [class.compliance-kpi-attention]="checksPending() > 0">
+        <div class="compliance-kpi-value" style="color: var(--compliance-warning)">{{ checksPending() }}</div>
+        <div class="compliance-kpi-label">
+          Checks Pending
+          @if (checksPending() > 0) {
+            <span class="compliance-attention-pill">
+              <span class="compliance-attention-dot"></span>
+              Action needed
+            </span>
           }
-        } @else {
-          @for (n of notes(); track n.noteId) {
-            <button class="note-item" [class.active]="selectedNoteId() === n.noteId" (click)="selectNote(n.noteId)">
-              <div class="note-title">{{ n.title }}</div>
-              <div class="note-standard">{{ n.noteCode }}</div>
-              @if (noteBadgeConfidence(n.noteId); as confidence) {
-                <div class="note-badge" [style.color]="confidence >= 85 ? '#00843D' : confidence >= 70 ? '#B45309' : '#DC2626'">
-                  {{ confidence }}% compliant
-                </div>
-                <div class="note-progress-track">
+        </div>
+      </div>
+
+      <div class="compliance-kpi">
+        <div
+          class="compliance-kpi-value"
+          [style.color]="currentConfidence() !== null ? confidenceColor() : 'var(--compliance-neutral)'"
+        >
+          {{ currentConfidence() !== null ? currentConfidence() + '%' : '\u2014' }}
+        </div>
+        <div class="compliance-kpi-label">Current Confidence</div>
+      </div>
+    }
+  </section>
+
+  <!-- ===================================================
+       WORKSPACE
+  ==================================================== -->
+  <section class="compliance-workspace">
+    <!-- Left: note list -->
+    <aside class="compliance-note-nav">
+      <div class="compliance-section-header">
+        <app-icon name="file-text" [size]="13" [strokeWidth]="1.8"></app-icon>
+        IFRS Notes
+      </div>
+
+      @if (loadingNotes()) {
+        @for (i of [1, 2, 3]; track i) {
+          <div class="compliance-note-item-skel">
+            <app-skeleton width="70%" height="13px" radius="4px"></app-skeleton>
+            <div style="height:6px"></div>
+            <app-skeleton width="40%" height="10px" radius="4px"></app-skeleton>
+          </div>
+        }
+      } @else {
+        @for (n of notes(); track n.noteId) {
+          <button
+            type="button"
+            class="compliance-note-button"
+            [class.active]="selectedNoteId() === n.noteId"
+            (click)="selectNote(n.noteId)"
+          >
+            <div class="compliance-note-title">{{ n.title }}</div>
+            <div class="compliance-note-standard">{{ n.noteCode }}</div>
+
+            @if (noteBadgeConfidence(n.noteId); as confidence) {
+              <div class="compliance-note-result">
+                <div class="compliance-note-progress">
                   <div
-                    class="note-progress-fill"
+                    class="compliance-note-progress-fill"
                     [style.width.%]="confidence"
-                    [style.background]="confidence >= 85 ? '#00843D' : confidence >= 70 ? '#B45309' : '#DC2626'"
+                    [style.background]="
+                      confidence >= 85 ? 'var(--compliance-success)' : confidence >= 70 ? 'var(--compliance-warning)' : 'var(--compliance-danger)'
+                    "
                   ></div>
                 </div>
-              }
-            </button>
-          }
+                <span
+                  class="compliance-note-result-value"
+                  [style.color]="
+                    confidence >= 85 ? 'var(--compliance-success)' : confidence >= 70 ? 'var(--compliance-warning)' : 'var(--compliance-danger)'
+                  "
+                >
+                  {{ confidence }}%
+                </span>
+              </div>
+            }
+          </button>
         }
-      </div>
-    </div>
+      }
+    </aside>
 
     <!-- Middle: note detail -->
-    <div class="detail-col">
+    <div class="compliance-centre">
       @if (loadingDetail()) {
-        <div class="detail-card">
+        <div class="compliance-card compliance-note-heading">
           <app-skeleton width="45%" height="15px" radius="4px"></app-skeleton>
           <div style="height:8px"></div>
           <app-skeleton width="65%" height="11px" radius="4px"></app-skeleton>
         </div>
-        <div class="table-card">
-          <div class="table-card-head"><app-skeleton width="140px" height="10px" radius="4px"></app-skeleton></div>
+        <div class="compliance-card">
+          <div class="compliance-section-header"><app-skeleton width="140px" height="10px" radius="4px"></app-skeleton></div>
           <div class="skeleton-table-body">
-            @for (i of [1,2,3,4]; track i) {
+            @for (i of [1, 2, 3, 4]; track i) {
               <div class="skeleton-row">
                 <app-skeleton width="90%" height="11px" radius="4px"></app-skeleton>
                 <app-skeleton width="70%" height="11px" radius="4px"></app-skeleton>
@@ -71,8 +162,8 @@
             }
           </div>
         </div>
-        <div class="table-card">
-          <div class="table-card-head"><app-skeleton width="200px" height="10px" radius="4px"></app-skeleton></div>
+        <div class="compliance-card">
+          <div class="compliance-section-header"><app-skeleton width="200px" height="10px" radius="4px"></app-skeleton></div>
           <div style="padding:14px 16px">
             <app-skeleton width="100%" height="80px" radius="6px"></app-skeleton>
           </div>
@@ -80,29 +171,34 @@
       } @else if (detailError()) {
         <div class="error-banner">{{ detailError() }}</div>
       } @else if (schema(); as s) {
-        <div class="detail-card">
-          <div class="detail-title">{{ selectedNote()?.title }}</div>
-          <a class="standard-link">{{ s.standard }}</a>
+        <div class="compliance-card compliance-note-heading compliance-detail-enter">
+          <div class="compliance-note-heading-title">{{ selectedNote()?.title }}</div>
+          <div class="compliance-standard-chip">{{ s.standard }}</div>
         </div>
 
         @if (s.tables.length > 1) {
-          <div class="table-tab-row">
+          <div class="compliance-table-tab-row">
             @for (t of s.tables; track t.id) {
-              <button class="table-tab-btn" [class.active]="activeTableId() === t.id" (click)="selectTable(t.id)">
+              <button
+                type="button"
+                class="compliance-table-tab-btn"
+                [class.active]="activeTableId() === t.id"
+                (click)="selectTable(t.id)"
+              >
                 {{ t.name }}
               </button>
             }
           </div>
         }
 
-        <div class="table-card">
-          <div class="table-card-head">{{ activeTableSchema()?.name || 'TABLE' }} ({{ s.currency }})</div>
+        <div class="compliance-card compliance-detail-enter">
+          <div class="compliance-section-header">{{ activeTableSchema()?.name || 'Table' }} ({{ s.currency }})</div>
 
           @if (tableError()) {
             <div class="error-banner inline">{{ tableError() }}</div>
           } @else if (tableLoading()) {
             <div class="skeleton-table-body">
-              @for (i of [1,2,3,4]; track i) {
+              @for (i of [1, 2, 3, 4]; track i) {
                 <div class="skeleton-row">
                   <app-skeleton width="90%" height="11px" radius="4px"></app-skeleton>
                   <app-skeleton width="70%" height="11px" radius="4px"></app-skeleton>
@@ -112,8 +208,8 @@
               }
             </div>
           } @else if (tableData(); as td) {
-            <div class="table-scroll">
-              <table class="data-table">
+            <div class="compliance-table-scroll">
+              <table class="compliance-table">
                 <thead>
                   <tr>
                     @for (col of td.tableColumns; track col.key) {
@@ -140,53 +236,71 @@
           }
         </div>
 
-        <div class="table-card">
-          <div class="table-card-head">DISCLOSURE NARRATIVE (EDITABLE)</div>
-          <textarea
-            class="narrative-textarea"
-            rows="6"
-            [ngModel]="narrativeDraft()"
-            (ngModelChange)="onNarrativeChange($event)"
-          ></textarea>
+        <div class="compliance-card compliance-detail-enter">
+          <div class="compliance-section-header">Disclosure Narrative (Editable)</div>
+          <div class="compliance-narrative-wrap">
+            <textarea
+              class="compliance-narrative"
+              rows="6"
+              [ngModel]="narrativeDraft()"
+              (ngModelChange)="onNarrativeChange($event)"
+            ></textarea>
+            <div class="compliance-narrative-help">Edit the narrative above, then run a compliance check.</div>
+          </div>
         </div>
       }
     </div>
 
     <!-- Right: compliance check -->
     @if (!loadingDetail() && schema()) {
-      <div class="check-col">
-        <div class="check-card">
-          <div class="check-label">COMPLIANCE CHECK</div>
-          <button class="run-check-btn" [disabled]="checkRunning()" (click)="runCheck()">
-            @if (checkRunning()) {
-              <span class="ai-thinking">
-                <span class="ai-sparkle">✦</span>
-                <span>{{ aiStatus() }}</span>
-                <span class="thinking-dots">
-                  <span>.</span><span>.</span><span>.</span>
-                </span>
+      <aside class="compliance-check-panel compliance-detail-enter">
+        <div class="compliance-check-heading">
+          <app-icon name="shield" [size]="14" [strokeWidth]="1.8"></app-icon>
+          Compliance Check
+        </div>
+
+        <button type="button" class="compliance-run-button" [disabled]="checkRunning()" (click)="runCheck()">
+          @if (checkRunning()) {
+            <span class="ai-thinking">
+              <span class="ai-sparkle">✦</span>
+              <span>{{ aiStatus() }}</span>
+              <span class="thinking-dots">
+                <span>.</span><span>.</span><span>.</span>
               </span>
-            } @else {
-              <span class="ai-icon">✦</span>
-              Run Compliance Check
-            }
-          </button>
-
-          @if (checkError()) {
-            <div class="error-banner inline">{{ checkError() }}</div>
+            </span>
+          } @else {
+            <span class="ai-icon">✦</span>
+            {{ checkResult() ? 'Run Check Again' : 'Run Compliance Check' }}
           }
+        </button>
 
-          @if (!checkRunning() && checkResult(); as r) {
-            <div class="result-box">
-              <div class="result-header">
-                <span class="result-note">{{ r.noteTitle }} &mdash; {{ r.standardCode }}</span>
-                <span class="result-ratio">{{ r.requirementsMet }} / {{ r.requirementsTotal }} requirements met</span>
+        @if (checkError()) {
+          <div class="error-banner inline">{{ checkError() }}</div>
+        }
+
+        @if (!checkRunning() && checkResult(); as r) {
+          <div class="compliance-result-stack">
+            <div class="compliance-result-card">
+              <div class="compliance-result-label">Compliance Confidence</div>
+              <div class="compliance-confidence" [style.color]="confidenceColor()">{{ r.complianceConfidence }}%</div>
+              <div class="compliance-confidence-track">
+                <div
+                  class="compliance-confidence-bar"
+                  [style.width.%]="r.complianceConfidence"
+                  [style.background]="confidenceColor()"
+                ></div>
               </div>
+              <div class="compliance-result-ratio">{{ r.requirementsMet }} / {{ r.requirementsTotal }} requirements met</div>
+            </div>
 
-              <p class="result-summary">{{ r.summary }}</p>
+            <div class="compliance-result-card">
+              <div class="compliance-result-label">Assessment Summary</div>
+              <div class="compliance-summary-copy">{{ r.summary }}</div>
+            </div>
 
-              @if (notMetResults().length > 0) {
-                <div class="not-met-label">Not met</div>
+            @if (notMetResults().length > 0) {
+              <div class="compliance-result-card">
+                <div class="compliance-result-label compliance-not-met-label">Not Met</div>
                 <div class="not-met-list">
                   @for (req of notMetResults(); track req.reqId) {
                     <div class="not-met-item">
@@ -197,21 +311,34 @@
                     </div>
                   }
                 </div>
-              }
+              </div>
+            }
 
-              <button class="report-btn" (click)="showReportToast()">Generate Compliance Report</button>
-            </div>
-          }
+            <button type="button" class="compliance-generate-report-button" (click)="showReportToast()">
+              Generate Compliance Report
+            </button>
+          </div>
+        }
 
-          @if (!checkRunning() && !checkResult()) {
-            <p class="check-hint">Run a compliance check to assess this disclosure against the note's requirements.</p>
-          }
-        </div>
-      </div>
+        @if (!checkRunning() && !checkResult()) {
+          <p class="compliance-check-hint">Run a compliance check to assess this disclosure against the note's requirements.</p>
+        }
+      </aside>
     }
-  </div>
+  </section>
 
-  @if (reportToast()) {
-    <div class="toast">&#10003; Report generated successfully</div>
+  @if (!loadingNotes() && !notesError()) {
+    <div class="compliance-continue-row">
+      <button type="button" class="compliance-continue-button" (click)="goToVariance()">
+        Continue to Management Reports &amp; Variance Analysis
+        <span class="compliance-continue-arrow">
+          <app-icon name="arrow-right" [size]="14" [strokeWidth]="2"></app-icon>
+        </span>
+      </button>
+    </div>
   }
 </div>
+
+@if (reportToast()) {
+  <div class="toast">&#10003; Report generated successfully</div>
+}

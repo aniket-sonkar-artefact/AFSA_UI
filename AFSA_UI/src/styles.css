@@ -1,39 +1,85 @@
 :root {
+  --bg-app: #F4F7FB;
+  --sidebar: #FFFFFF;
+  --header: rgba(255, 255, 255, 0.92);
+
   --card: #FFFFFF;
   --surface: #F8FAFC;
-  --bg-app: #EEF3F9;
-  --sidebar: #FFFFFF;
-  --header: #FFFFFF;
-  --border: #E2E8F0;
-  --border-light: #F1F5F9;
+  --surface-2: #F1F5F9;
+
+  --border: #DCE4EE;
+  --border-light: #EDF2F7;
+
   --text-primary: #0F172A;
   --text-secondary: #475569;
   --text-muted: #64748B;
   --text-faint: #94A3B8;
   --text-separator: #CBD5E1;
-  --accent-bg: #EEF3F9;
-  --flagged-warm: #FFFBF0;
-  --flagged-red: #FFF5F5;
+
+  --navy: #0033A0;
+  --navy-hover: #002B88;
+  --navy-soft: #EDF4FF;
+
+  --green: #00843D;
+  --green-soft: #ECFDF3;
+
+  --lime: #84BD00;
+  --cyan: #00A3E0;
+
+  --amber: #D97706;
+  --amber-soft: #FFF7E6;
+
+  --red: #DC2626;
+  --red-soft: #FFF1F2;
+
+  --flagged-warm: #FFFBEB;
+  --flagged-red: #FFF6F6;
+  --accent-bg: #EEF4FF;
+
+  --shadow-xs: 0 1px 2px rgba(15, 23, 42, 0.03);
+  --shadow-sm: 0 2px 8px rgba(15, 23, 42, 0.05);
+  --shadow-md: 0 8px 24px rgba(15, 23, 42, 0.08);
+
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 10px;
+  --radius-xl: 12px;
+
   --skeleton-base: #E7ECF3;
   --skeleton-shine: #F5F8FC;
 }
 
-[data-theme='dark'] {
-  --card: #1A2535;
-  --surface: #141F2E;
-  --bg-app: #0E1624;
-  --sidebar: #111827;
-  --header: #111827;
-  --border: #253548;
-  --border-light: #1D2D40;
-  --text-primary: #E2E8F0;
-  --text-secondary: #8FA3B8;
-  --text-muted: #607080;
-  --text-faint: #4A5A6A;
-  --text-separator: #2D3F55;
-  --accent-bg: #162A4A;
-  --flagged-warm: #1F1D10;
-  --flagged-red: #1F1015;
+html[data-theme='dark'] {
+  --bg-app: #0C1423;
+  --sidebar: #101A2B;
+  --header: rgba(15, 25, 42, 0.94);
+
+  --card: #142033;
+  --surface: #111C2D;
+  --surface-2: #18253A;
+
+  --border: #27364D;
+  --border-light: #202E43;
+
+  --text-primary: #F1F5F9;
+  --text-secondary: #C4CEDB;
+  --text-muted: #94A3B8;
+  --text-faint: #718096;
+  --text-separator: #34445C;
+
+  --navy-soft: rgba(0, 87, 255, 0.14);
+  --green-soft: rgba(0, 132, 61, 0.14);
+  --amber-soft: rgba(217, 119, 6, 0.14);
+  --red-soft: rgba(220, 38, 38, 0.14);
+
+  --flagged-warm: rgba(217, 119, 6, 0.08);
+  --flagged-red: rgba(220, 38, 38, 0.08);
+  --accent-bg: rgba(0, 87, 255, 0.12);
+
+  --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.12);
+  --shadow-sm: 0 3px 10px rgba(0, 0, 0, 0.16);
+  --shadow-md: 0 10px 30px rgba(0, 0, 0, 0.22);
+
   --skeleton-base: #223349;
   --skeleton-shine: #2C4160;
 }
@@ -48,13 +94,19 @@ html, body {
 }
 
 body {
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  font-family: 'Maven Pro', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
   background: var(--bg-app);
   color: var(--text-primary);
+  -webkit-font-smoothing: antialiased;
 }
 
 button, input, select, textarea {
   font-family: inherit;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
 }
 
 .glass {
@@ -195,4 +247,498 @@ button, input, select, textarea {
 }
 ::-webkit-scrollbar-thumb:hover {
   background: rgba(0, 51, 160, 0.35);
+}
+/* ---------- Shared UI ---------- */
+
+.afsa-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-xs);
+}
+
+.afsa-button {
+  min-height: 34px;
+  padding: 7px 13px;
+  border-radius: var(--radius-md);
+  border: 1px solid transparent;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 650;
+  cursor: pointer;
+  transition:
+    background 160ms ease,
+    border-color 160ms ease,
+    color 160ms ease,
+    box-shadow 160ms ease,
+    transform 160ms ease;
+}
+
+.afsa-button:hover:not(:disabled) {
+  transform: translateY(-1px);
+}
+
+.afsa-button:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.afsa-button-primary {
+  background: var(--navy);
+  color: white;
+}
+
+.afsa-button-primary:hover:not(:disabled) {
+  background: var(--navy-hover);
+  box-shadow: 0 4px 12px rgba(0, 51, 160, 0.18);
+}
+
+.afsa-button-secondary {
+  background: var(--card);
+  border-color: var(--border);
+  color: var(--text-secondary);
+}
+
+.afsa-button-secondary:hover:not(:disabled) {
+  border-color: #aebcd0;
+  color: var(--text-primary);
+}
+
+.afsa-button:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+/* ---------- Shell ---------- */
+
+.afsa-shell {
+  display: flex;
+  min-height: 100vh;
+  background: var(--bg-app);
+}
+
+.afsa-sidebar {
+  position: fixed;
+  inset: 0 auto 0 0;
+  z-index: 50;
+
+  display: flex;
+  flex-direction: column;
+
+  background: var(--sidebar);
+  border-right: 1px solid var(--border);
+  box-shadow: 2px 0 12px rgba(15, 23, 42, 0.025);
+
+  transition: width 180ms ease;
+  overflow: hidden;
+}
+
+.afsa-sidebar-brand {
+  height: 62px;
+  padding: 0 16px;
+
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.afsa-brand-lockup {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.afsa-brand-name {
+  font-size: 11.5px;
+  font-weight: 750;
+  letter-spacing: 0.035em;
+  color: var(--navy);
+  white-space: nowrap;
+}
+
+html[data-theme='dark'] .afsa-brand-name {
+  color: #8eb6ff;
+}
+
+.afsa-sidebar-toggle {
+  width: 28px;
+  height: 28px;
+
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  border-radius: 7px;
+  border: 1px solid var(--border);
+  background: transparent;
+
+  color: var(--text-muted);
+  cursor: pointer;
+
+  transition: all 150ms ease;
+}
+
+.afsa-sidebar-toggle:hover {
+  background: var(--surface);
+  color: var(--text-primary);
+}
+
+.afsa-nav {
+  flex: 1;
+  padding: 14px 10px;
+  overflow-y: auto;
+}
+
+.afsa-nav-label {
+  padding: 0 10px 10px;
+
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+}
+
+.afsa-nav-item {
+  position: relative;
+
+  width: 100%;
+  min-height: 42px;
+
+  display: flex;
+  align-items: center;
+  gap: 11px;
+
+  margin-bottom: 4px;
+  padding: 8px 10px;
+
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+
+  color: var(--text-secondary);
+  text-align: left;
+  text-decoration: none;
+  cursor: pointer;
+
+  transition:
+    background 150ms ease,
+    color 150ms ease;
+}
+
+.afsa-nav-item:hover {
+  background: var(--surface);
+  color: var(--text-primary);
+}
+
+.afsa-nav-item.active {
+  background: var(--navy-soft);
+  color: var(--navy);
+  font-weight: 650;
+}
+
+html[data-theme='dark'] .afsa-nav-item.active {
+  color: #9abaff;
+}
+
+.afsa-nav-item.active::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 10px;
+  bottom: 10px;
+
+  width: 3px;
+  border-radius: 0 4px 4px 0;
+  background: var(--item-accent, var(--navy));
+}
+
+.afsa-nav-icon {
+  width: 28px;
+  height: 28px;
+
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  flex-shrink: 0;
+  color: var(--text-muted);
+}
+
+.afsa-nav-item.active .afsa-nav-icon {
+  color: var(--item-accent, var(--navy));
+}
+
+.afsa-nav-text {
+  flex: 1;
+  min-width: 0;
+
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+.afsa-sidebar-user {
+  padding: 14px;
+  border-top: 1px solid var(--border);
+}
+
+.afsa-user-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.afsa-avatar {
+  width: 34px;
+  height: 34px;
+
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  flex-shrink: 0;
+
+  border-radius: 50%;
+  background: #e8eff9;
+  color: var(--navy);
+
+  font-size: 10.5px;
+  font-weight: 800;
+}
+
+html[data-theme='dark'] .afsa-avatar {
+  background: #23344e;
+  color: #a9c4ff;
+}
+
+.afsa-user-meta {
+  min-width: 0;
+  flex: 1;
+}
+
+.afsa-user-name {
+  font-size: 12.5px;
+  font-weight: 650;
+  color: var(--text-primary);
+}
+
+.afsa-user-group {
+  margin-top: 2px;
+
+  font-size: 10.5px;
+  color: var(--text-muted);
+
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.afsa-signout {
+  width: 100%;
+  margin-top: 10px;
+
+  display: flex;
+  align-items: center;
+  gap: 7px;
+
+  padding: 7px 9px;
+
+  border-radius: 7px;
+  border: 1px solid transparent;
+  background: transparent;
+
+  color: var(--text-muted);
+  font-family: inherit;
+  font-size: 11px;
+
+  cursor: pointer;
+}
+
+.afsa-signout:hover {
+  background: var(--surface);
+  border-color: var(--border);
+  color: var(--text-primary);
+}
+
+/* ---------- Main app ---------- */
+
+.afsa-main-shell {
+  flex: 1;
+  min-width: 0;
+
+  display: flex;
+  flex-direction: column;
+
+  transition: margin-left 180ms ease;
+}
+
+.afsa-topbar {
+  position: sticky;
+  top: 0;
+  z-index: 40;
+
+  height: 62px;
+
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  padding: 0 30px;
+
+  background: var(--header);
+  backdrop-filter: blur(14px);
+
+  border-bottom: 1px solid var(--border);
+}
+
+.afsa-context {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.afsa-context-primary {
+  font-size: 12.5px;
+  font-weight: 650;
+  color: var(--text-primary);
+}
+
+.afsa-context-secondary {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.afsa-context-dot {
+  color: var(--text-separator);
+}
+
+.afsa-status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+
+  padding: 4px 9px;
+
+  border-radius: 999px;
+
+  font-size: 10.5px;
+  line-height: 1;
+  font-weight: 700;
+}
+
+.afsa-status-pill::before {
+  content: "";
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.afsa-status-warning {
+  color: #9a5a06;
+  background: var(--amber-soft);
+  border: 1px solid rgba(217, 119, 6, 0.18);
+}
+
+.afsa-topbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.afsa-icon-button {
+  width: 34px;
+  height: 34px;
+
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  border-radius: 8px;
+  border: 1px solid var(--border);
+
+  background: var(--card);
+  color: var(--text-muted);
+
+  cursor: pointer;
+  transition: all 150ms ease;
+}
+
+.afsa-icon-button:hover {
+  color: var(--text-primary);
+  border-color: #adbacb;
+  box-shadow: var(--shadow-xs);
+}
+
+.afsa-page {
+  flex: 1;
+  padding: 28px 32px 36px;
+}
+
+/* ---------- Collapsed sidebar ---------- */
+
+.afsa-sidebar.collapsed .afsa-sidebar-brand {
+  justify-content: center;
+  padding: 0;
+}
+
+.afsa-sidebar.collapsed .afsa-brand-name,
+.afsa-sidebar.collapsed .afsa-nav-label,
+.afsa-sidebar.collapsed .afsa-nav-text,
+.afsa-sidebar.collapsed .afsa-user-meta,
+.afsa-sidebar.collapsed .afsa-signout-text {
+  display: none;
+}
+
+.afsa-sidebar.collapsed .afsa-nav {
+  padding-left: 8px;
+  padding-right: 8px;
+}
+
+.afsa-sidebar.collapsed .afsa-nav-item {
+  justify-content: center;
+  padding-left: 0;
+  padding-right: 0;
+}
+
+.afsa-sidebar.collapsed .afsa-nav-item.active::before {
+  top: 9px;
+  bottom: 9px;
+}
+
+.afsa-sidebar.collapsed .afsa-sidebar-user {
+  padding-left: 8px;
+  padding-right: 8px;
+}
+
+.afsa-sidebar.collapsed .afsa-user-row {
+  justify-content: center;
+}
+
+.afsa-sidebar.collapsed .afsa-signout {
+  justify-content: center;
+}
+
+/* ---------- Tables globally ---------- */
+
+table {
+  font-variant-numeric: tabular-nums;
+}
+
+select,
+input,
+textarea,
+button {
+  font-family: inherit;
+}
+
+select:focus,
+input:focus,
+textarea:focus,
+button:focus-visible {
+  outline: 2px solid rgba(0, 51, 160, 0.22);
+  outline-offset: 2px;
 }
