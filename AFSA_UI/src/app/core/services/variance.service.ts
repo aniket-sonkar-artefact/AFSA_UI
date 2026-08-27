@@ -1,8 +1,16 @@
 import { Injectable } from '@angular/core';
-import { Observable, of } from 'rxjs';
-import { delay } from 'rxjs/operators';
+import { HttpClient } from '@angular/common/http';
+import { Observable, timer } from 'rxjs';
+import { map, switchMap, takeWhile } from 'rxjs/operators';
 import { environment } from '../../../environments/environment';
-import { GenerationHistoryRow, GenerationStepEvent, ReadinessItem, VarianceRow } from '../models/variance.model';
+import {
+  FinancialInsightsApiResponse,
+  ManagementReportData,
+  ReadinessItem,
+  VarianceAnalysisData,
+  VarianceApiRow,
+  VarianceRow,
+} from '../models/variance.model';
 
 export const GENERATION_STEPS: string[] = [
   'Preparing consolidated financial data',
@@ -20,72 +28,116 @@ export const READINESS_ITEMS: ReadinessItem[] = [
   { label: 'Reporting context confirmed', detail: 'Group Consolidated' },
 ];
 
-const MOCK_GENERATION_HISTORY: GenerationHistoryRow[] = [
-  { period: 'Q4 2025', fileName: 'Q4_2025_Management_Report.pptx', date: '31 Mar 2026', status: 'Previous' },
-];
+/** How often to poll the GET status endpoints while an analysis/report is running. */
+const POLL_INTERVAL_MS = 5000;
 
-const MOCK_VARIANCE_ROWS: VarianceRow[] = [
-  { item: 'Revenue', current: 285000, comparison: 248000, variance: 37000, varPct: '+14.9%', analysis: 'Revenue increased 14.9% vs prior period.' },
-  { item: 'Cost of Sales', current: -168000, comparison: -152000, variance: -16000, varPct: '+10.5%', analysis: 'Cost of sales increased 10.5% vs prior period.' },
-  { item: 'Gross Profit', current: 117000, comparison: 96000, variance: 21000, varPct: '+21.9%', analysis: 'Gross profit increased 21.9%, above revenue growth.', isSubtotal: true },
-  { item: 'Distribution Costs', current: -18000, comparison: -16000, variance: -2000, varPct: '+12.5%', analysis: 'Distribution costs increased 12.5% vs prior period.' },
-  { item: 'G&A Expenses', current: -42000, comparison: -38000, variance: -4000, varPct: '+10.5%', analysis: 'G&A expenses increased 10.5% vs prior period.' },
-  { item: 'Finance Costs', current: -3200, comparison: 0, variance: -3200, varPct: 'N/A', analysis: 'Finance costs recorded with no prior-period comparator.' },
-  { item: 'Net Profit', current: 71800, comparison: 58000, variance: 13800, varPct: '+23.8%', analysis: 'Net profit increased 23.8%, above revenue growth.', isSubtotal: true },
-];
+const SUBTOTAL_LINE_ITEMS = new Set(['gross profit', 'operating profit', 'net profit', 'total assets', 'total liabilities', 'total equity']);
+
+/** UI select shows "Q1 2026" — the API wants "2026Q1". */
+export function toApiPeriod(label: string): string | null {
+  const match = label.trim().match(/^Q([1-4])\s+(\d{4})$/i);
+  if (!match) return null;
+  const [, quarter, year] = match;
+  return `${year}Q${quarter}`;
+}
+
+/** API returns "2026Q1" — the UI displays "Q1 2026". */
+export function fromApiPeriod(apiPeriod: string): string {
+  const match = apiPeriod.trim().match(/^(\d{4})Q([1-4])$/i);
+  if (!match) return apiPeriod;
+  const [, year, quarter] = match;
+  return `Q${quarter} ${year}`;
+}
+
+function formatVarPct(row: VarianceApiRow): string {
+  if (row.variance_pct === null || row.comparison_value_sar_thousands === 0) return 'N/A';
+  const sign = row.variance_pct >= 0 ? '+' : '';
+  return `${sign}${row.variance_pct.toFixed(1)}%`;
+}
+
+/** Maps one Financial Insights API row onto the table's existing UI-row shape. */
+export function mapApiRowToVarianceRow(row: VarianceApiRow): VarianceRow {
+  return {
+    item: row.line_item,
+    current: row.current_value_sar_thousands,
+    comparison: row.comparison_value_sar_thousands,
+    variance: row.variance_sar_thousands,
+    varPct: formatVarPct(row),
+    analysis: row.analysis,
+    color: row.color,
+    isSubtotal: SUBTOTAL_LINE_ITEMS.has(row.line_item.trim().toLowerCase()),
+  };
+}
 
 @Injectable({ providedIn: 'root' })
 export class VarianceService {
-  private mockDelay() {
-    return environment.useMockData ? 250 : 0;
+  private readonly base = environment.financialInsightsApiUrl;
+
+  constructor(private readonly http: HttpClient) {}
+
+  /* =========================================================================
+   * Group Variance Analysis — POST /group-variance-analysis, GET .../{id}
+   * ======================================================================= */
+
+  /** POST /group-variance-analysis — table rows come back immediately, analysis: null per row. */
+  startVarianceAnalysis(targetPeriod: string, comparisonPeriod: string): Observable<VarianceAnalysisData> {
+    return this.http
+      .post<FinancialInsightsApiResponse<VarianceAnalysisData>>(`${this.base}/group-variance-analysis`, {
+        target_period: targetPeriod,
+        comparison_period: comparisonPeriod,
+      })
+      .pipe(map((res) => res.data));
   }
 
-  /** Simulates GET {apiUrl}/variance?period=..&comparison=..&entity=..&currency=.. */
-  getVarianceRows(): Observable<VarianceRow[]> {
-    return of(MOCK_VARIANCE_ROWS).pipe(delay(this.mockDelay()));
-  }
-
-  /** Simulates GET {apiUrl}/variance/management-report/history */
-  getGenerationHistory(): Observable<GenerationHistoryRow[]> {
-    return of(MOCK_GENERATION_HISTORY).pipe(delay(this.mockDelay()));
+  /** GET /group-variance-analysis/{id} — one status check. */
+  getVarianceAnalysisStatus(analysisId: string): Observable<VarianceAnalysisData> {
+    return this.http
+      .get<FinancialInsightsApiResponse<VarianceAnalysisData>>(`${this.base}/group-variance-analysis/${analysisId}`)
+      .pipe(map((res) => res.data));
   }
 
   /**
-   * Mocked, swap-ready Management Report generation (matches the file-upload mock's
-   * pattern in SubmissionReviewService). Emits a step-progress event as each stage of
-   * GENERATION_STEPS is reached, then a final `done: true` event once the report is
-   * ready. A real backend endpoint (e.g. HttpClient POST with reportProgress: true)
-   * would emit the same event shape, so only this method's body changes later.
+   * Polls GET /group-variance-analysis/{id} every POLL_INTERVAL_MS until the
+   * per-row Gemini commentary is fully populated (status "ready") or the job
+   * fails, emitting each intermediate snapshot along the way so the caller
+   * can update the table's "Analyzing…" cells as they resolve.
    */
-  generateManagementReport(): Observable<GenerationStepEvent> {
-    return new Observable<GenerationStepEvent>((subscriber) => {
-      const lastIndex = GENERATION_STEPS.length - 1;
-
-      if (!environment.useMockData) {
-        subscriber.next({ stepIndex: lastIndex, stepLabel: GENERATION_STEPS[lastIndex], done: true });
-        subscriber.complete();
-        return;
-      }
-
-      const timers: ReturnType<typeof setTimeout>[] = [];
-
-      GENERATION_STEPS.forEach((stepLabel, index) => {
-        timers.push(
-          setTimeout(() => {
-            subscriber.next({ stepIndex: index, stepLabel, done: false });
-            if (index === lastIndex) {
-              timers.push(
-                setTimeout(() => {
-                  subscriber.next({ stepIndex: index, stepLabel, done: true });
-                  subscriber.complete();
-                }, 750),
-              );
-            }
-          }, index * 850),
-        );
-      });
-
-      return () => timers.forEach((id) => clearTimeout(id));
-    });
+  pollVarianceAnalysis(analysisId: string): Observable<VarianceAnalysisData> {
+    return timer(0, POLL_INTERVAL_MS).pipe(
+      switchMap(() => this.getVarianceAnalysisStatus(analysisId)),
+      takeWhile((data) => data.status === 'queued' || data.status === 'running', true),
+    );
   }
+
+  /* =========================================================================
+   * Management Report PPTX — POST /management-reports, GET .../{id}
+   * ======================================================================= */
+
+  startManagementReport(targetPeriod: string): Observable<ManagementReportData> {
+    return this.http
+      .post<FinancialInsightsApiResponse<ManagementReportData>>(`${this.base}/management-reports`, {
+        target_period: targetPeriod,
+      })
+      .pipe(map((res) => res.data));
+  }
+
+  getManagementReportStatus(reportId: string): Observable<ManagementReportData> {
+    return this.http
+      .get<FinancialInsightsApiResponse<ManagementReportData>>(`${this.base}/management-reports/${reportId}`)
+      .pipe(map((res) => res.data));
+  }
+
+  /**
+   * Polls GET /management-reports/{id} every POLL_INTERVAL_MS until the
+   * PPTX is ready (with a fresh download_url, valid ~15 minutes) or the
+   * job fails.
+   */
+  pollManagementReport(reportId: string): Observable<ManagementReportData> {
+    return timer(0, POLL_INTERVAL_MS).pipe(
+      switchMap(() => this.getManagementReportStatus(reportId)),
+      takeWhile((data) => data.status === 'queued' || data.status === 'running', true),
+    );
+  }
+
+
 }

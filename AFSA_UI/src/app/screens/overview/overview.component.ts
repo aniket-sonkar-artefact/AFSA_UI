@@ -2,11 +2,11 @@ import { Component, OnInit, computed, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { forkJoin } from 'rxjs';
+import { map } from 'rxjs/operators';
 import { IconComponent, IconName } from '../../shared/icon/icon';
 import { SubmissionReviewService } from '../../core/services/submission-review.service';
 import { IntegrityService } from '../../core/services/integrity.service';
-import { Affiliate, CoaRow, Finding } from '../../core/models/submission-review.model';
-import { FootingRow, XRefRow } from '../../core/models/integrity.model';
+import { CoaAffiliate, CoaRow, Finding } from '../../core/models/submission-review.model';
 
 interface CapabilityCard {
   title: string;
@@ -75,8 +75,7 @@ export class OverviewComponent implements OnInit {
   private readonly findingsB = signal<Finding[]>([]);
   private readonly coaA = signal<CoaRow[]>([]);
   private readonly coaB = signal<CoaRow[]>([]);
-  private readonly xrefRows = signal<XRefRow[]>([]);
-  private readonly footingRows = signal<FootingRow[]>([]);
+  private readonly integrityFlagged = signal(0);
 
   readonly affiliatesInReview = 2;
 
@@ -89,15 +88,11 @@ export class OverviewComponent implements OnInit {
   readonly coaMappingsRequiringAttention = computed(
     () =>
       [...this.coaA(), ...this.coaB()].filter(
-        (r) => !r.confirmed && (r.originalStatus === 'Low Confidence' || r.originalStatus === 'Unmapped'),
+        (r) => !r.confirmed && (r.mappingStatus === 'Low Confidence' || r.mappingStatus === 'Unmapped'),
       ).length,
   );
 
-  readonly integrityExceptionsOpen = computed(
-    () =>
-      this.xrefRows().filter((r) => r.status === 'Flagged' && !r.completed).length +
-      this.footingRows().filter((r) => r.result !== 'Pass' && !r.completed).length,
-  );
+  readonly integrityExceptionsOpen = computed(() => this.integrityFlagged());
 
   readonly affiliateItemsRequiringAttention = computed(
     () => this.irregularitiesRequiringReview() + this.coaMappingsRequiringAttention(),
@@ -168,19 +163,17 @@ export class OverviewComponent implements OnInit {
 
   ngOnInit(): void {
     forkJoin({
-      findingsA: this.submissionReviewService.getFindings('A'),
-      findingsB: this.submissionReviewService.getFindings('B'),
-      coaA: this.submissionReviewService.getCoaRows('A'),
-      coaB: this.submissionReviewService.getCoaRows('B'),
-      xref: this.integrityService.getXRefRows(),
-      footings: this.integrityService.getFootingRows(),
-    }).subscribe(({ findingsA, findingsB, coaA, coaB, xref, footings }) => {
+      findingsA: this.submissionReviewService.getFindings('2010', 1).pipe(map((result) => result.items)),
+      findingsB: this.submissionReviewService.getFindings('2380', 1).pipe(map((result) => result.items)),
+      coaA: this.submissionReviewService.getCoaRows('sabic', 1).pipe(map((result) => result.items)),
+      coaB: this.submissionReviewService.getCoaRows('rabigh', 1).pipe(map((result) => result.items)),
+      integritySummary: this.integrityService.getSummary(),
+    }).subscribe(({ findingsA, findingsB, coaA, coaB, integritySummary }) => {
       this.findingsA.set(findingsA);
       this.findingsB.set(findingsB);
       this.coaA.set(coaA);
       this.coaB.set(coaB);
-      this.xrefRows.set(xref);
-      this.footingRows.set(footings);
+      this.integrityFlagged.set(integritySummary.totalFlagged);
     });
   }
 

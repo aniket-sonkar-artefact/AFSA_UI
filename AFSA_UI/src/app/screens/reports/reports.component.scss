@@ -408,6 +408,12 @@
     background: var(--group-accent);
     color: #FFFFFF;
   }
+
+  &:disabled {
+    cursor: not-allowed;
+    opacity: 0.6;
+    transform: none !important;
+  }
 }
 
 /* =====================================================

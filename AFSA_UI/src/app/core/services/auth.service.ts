@@ -4,6 +4,11 @@ import { delay } from 'rxjs/operators';
 import { environment } from '../../../environments/environment';
 import { User, UserRole } from '../models/user.model';
 import { getInitials } from '../utils/initials';
+import { deleteCookie, getCookie, setCookie } from '../utils/cookies';
+
+/** Cookie name + lifetime for the mocked FE-only session (no backend auth yet). */
+const AUTH_COOKIE_NAME = 'afsa_auth_role';
+const AUTH_COOKIE_DAYS = 7;
 
 /**
  * MOCK USER DIRECTORY
@@ -41,6 +46,20 @@ export class AuthService {
   readonly isAuthenticated = () => this.currentUserSignal() !== null;
 
   /**
+   * On construction (i.e. on every page load/reload), check for a saved
+   * mock session cookie and restore the "logged in" user from it, so a
+   * reload doesn't bounce the user back to /login. Swap this for a real
+   * GET {apiUrl}/auth/me call once a backend session exists.
+   */
+  constructor() {
+    const savedRole = getCookie(AUTH_COOKIE_NAME) as UserRole | null;
+    const savedUser = savedRole ? MOCK_USERS[savedRole] : undefined;
+    if (savedUser) {
+      this.currentUserSignal.set({ ...savedUser, initials: getInitials(savedUser.name) });
+    }
+  }
+
+  /**
    * Simulates calling the backend to authenticate/select a team and fetch
    * the user's profile (id, name, email, role). Swap the `of(...)` body
    * for an HttpClient call to `${environment.apiUrl}/auth/login` when a
@@ -62,9 +81,11 @@ export class AuthService {
 
   setCurrentUser(user: User): void {
     this.currentUserSignal.set(user);
+    setCookie(AUTH_COOKIE_NAME, user.role, AUTH_COOKIE_DAYS);
   }
 
   logout(): void {
     this.currentUserSignal.set(null);
+    deleteCookie(AUTH_COOKIE_NAME);
   }
 }

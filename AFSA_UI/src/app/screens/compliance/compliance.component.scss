@@ -557,23 +557,7 @@
   }
 }
 
-.toast {
-  position: fixed;
-  bottom: 24px;
-  right: 24px;
-  display: flex;
-  align-items: center;
-  gap: 9px;
-  background: #0F172A;
-  color: #FFFFFF;
-  padding: 11px 17px;
-  border-radius: 9px;
-  font-family: 'Maven Pro', sans-serif;
-  font-size: 11px;
-  font-weight: 650;
-  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.24);
-  z-index: 300;
-}
+
 
 /* =====================================================
    CHECK PANEL
@@ -774,24 +758,7 @@
   line-height: 1.5;
 }
 
-.compliance-generate-report-button {
-  width: 100%;
-  min-height: 34px;
-  border: 1px solid var(--compliance-accent);
-  border-radius: 8px;
-  background: transparent;
-  color: var(--compliance-accent);
-  font-family: 'Maven Pro', sans-serif;
-  font-size: 9.5px;
-  font-weight: 700;
-  cursor: pointer;
-  transition: background-color 180ms ease, transform 180ms ease;
 
-  &:hover {
-    transform: translateY(-1px);
-    background: var(--compliance-accent-soft);
-  }
-}
 
 .compliance-check-hint {
   font-size: 10.5px;
@@ -961,7 +928,6 @@
 ====================================================== */
 
 .compliance-note-button:focus-visible,
-.compliance-generate-report-button:focus-visible,
 .compliance-run-button:focus-visible,
 .compliance-continue-button:focus-visible,
 .compliance-table-tab-btn:focus-visible {

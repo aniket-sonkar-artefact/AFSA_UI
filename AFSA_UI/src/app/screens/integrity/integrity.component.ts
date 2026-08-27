@@ -2,61 +2,78 @@ import { Component, OnInit, computed, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { IconComponent } from '../../shared/icon/icon';
+import { SkeletonComponent } from '../../shared/skeleton/skeleton.component';
+import { PaginationComponent } from '../../shared/pagination/pagination.component';
 import { IntegrityService } from '../../core/services/integrity.service';
-import { FootingRow, XRefRow } from '../../core/models/integrity.model';
+import {
+  FootingRow,
+  IntegrityCheckCounts,
+  IntegritySummary,
+  IntegrityTableSchema,
+  XRefRow,
+} from '../../core/models/integrity.model';
 
 type Tab = 'xref' | 'footing';
-type RowId = number;
+
+const PAGE_SIZE = 10;
+const EMPTY_COUNTS: IntegrityCheckCounts = { checked: 0, passed: 0, flagged: 0, completed: 0 };
 
 @Component({
   selector: 'app-integrity',
   standalone: true,
-  imports: [CommonModule, IconComponent],
+  imports: [CommonModule, IconComponent, SkeletonComponent, PaginationComponent],
   templateUrl: './integrity.component.html',
   styleUrl: './integrity.component.scss',
 })
 export class IntegrityComponent implements OnInit {
   readonly tab = signal<Tab>('xref');
   readonly toast = signal(false);
+  readonly toastMessage = signal('');
 
+  /* ---------- Summary (header strip) ---------- */
+  readonly summary = signal<IntegritySummary | null>(null);
+  readonly summaryLoading = signal(true);
+  readonly summaryError = signal<string | null>(null);
+
+  /* ---------- Schemas (fetched once, drive labels/badge tones) ---------- */
+  readonly xrefSchema = signal<IntegrityTableSchema | null>(null);
+  readonly footingSchema = signal<IntegrityTableSchema | null>(null);
+
+  /* ---------- Cross-Reference tab state ---------- */
   readonly xrefRows = signal<XRefRow[]>([]);
+  readonly xrefCounts = signal<IntegrityCheckCounts>(EMPTY_COUNTS);
+  readonly xrefPage = signal(1);
+  readonly xrefTotalPages = signal(1);
+  readonly xrefLoading = signal(true);
+  readonly xrefError = signal<string | null>(null);
+  readonly xrefLoaded = signal(false);
+  readonly expandedXrefRows = signal<Set<string>>(new Set());
+  readonly markingXrefRow = signal<string | null>(null);
+
+  /* ---------- Footing tab state ---------- */
   readonly footingRows = signal<FootingRow[]>([]);
+  readonly footingCounts = signal<IntegrityCheckCounts>(EMPTY_COUNTS);
+  readonly footingPage = signal(1);
+  readonly footingTotalPages = signal(1);
+  readonly footingLoading = signal(true);
+  readonly footingError = signal<string | null>(null);
+  readonly footingLoaded = signal(false);
+  readonly expandedFootingRows = signal<Set<string>>(new Set());
+  readonly markingFootingRow = signal<string | null>(null);
 
-  readonly expandedXrefRows = signal<Set<RowId>>(new Set());
-  readonly expandedFootingRows = signal<Set<RowId>>(new Set());
+  readonly refreshing = signal(false);
 
-  /* ---------- Header summary (both tabs, always visible) ---------- */
-
-  readonly xrefChecked = computed(() => this.xrefRows().length);
-  readonly xrefFlagged = computed(() => this.xrefRows().filter((r) => r.status === 'Flagged' && !r.completed).length);
-  readonly footingChecked = computed(() => this.footingRows().length);
-  readonly footingFlagged = computed(
-    () => this.footingRows().filter((r) => r.result !== 'Pass' && !r.completed).length,
+  /* ---------- Derived: header strip counts ---------- */
+  readonly xrefChecked = computed(() => this.summary()?.checks.crossReference.checked ?? this.xrefCounts().checked);
+  readonly xrefFlaggedHeader = computed(
+    () => this.summary()?.checks.crossReference.flagged ?? this.xrefCounts().flagged,
+  );
+  readonly footingChecked = computed(() => this.summary()?.checks.footing.checked ?? this.footingCounts().checked);
+  readonly footingFlaggedHeader = computed(
+    () => this.summary()?.checks.footing.flagged ?? this.footingCounts().flagged,
   );
 
-  /* ---------- Cross-Reference KPIs ---------- */
-
-  readonly xrefStats = computed(() => {
-    const rows = this.xrefRows();
-    return {
-      checked: rows.length,
-      valid: rows.filter((r) => r.result === 'Reference Valid').length,
-      flagged: rows.filter((r) => r.status === 'Flagged' && !r.completed).length,
-      completed: rows.filter((r) => r.completed).length,
-    };
-  });
-
-  /* ---------- Footing KPIs ---------- */
-
-  readonly footingStats = computed(() => {
-    const rows = this.footingRows();
-    return {
-      checked: rows.length,
-      passed: rows.filter((r) => r.result === 'Pass').length,
-      flagged: rows.filter((r) => r.result !== 'Pass' && !r.completed).length,
-      completed: rows.filter((r) => r.completed).length,
-    };
-  });
+  readonly currency = computed(() => this.summary()?.document.currency ?? '');
 
   constructor(
     private readonly integrityService: IntegrityService,
@@ -64,16 +81,82 @@ export class IntegrityComponent implements OnInit {
   ) {}
 
   ngOnInit(): void {
-    this.integrityService.getXRefRows().subscribe((rows) => this.xrefRows.set(rows));
-    this.integrityService.getFootingRows().subscribe((rows) => this.footingRows.set(rows));
+    this.loadSummary();
+    this.integrityService.getCrossReferenceSchema().subscribe({
+      next: (schema) => this.xrefSchema.set(schema),
+    });
+    this.integrityService.getFootingSchema().subscribe({
+      next: (schema) => this.footingSchema.set(schema),
+    });
+    this.loadXrefRows(1);
   }
+
+  private loadSummary(refresh = false): void {
+    this.summaryLoading.set(!this.summary());
+    this.summaryError.set(null);
+    this.integrityService.getSummary(refresh).subscribe({
+      next: (data) => {
+        this.summary.set(data);
+        this.summaryLoading.set(false);
+      },
+      error: () => {
+        this.summaryLoading.set(false);
+        this.summaryError.set('Unable to load the review summary.');
+      },
+    });
+  }
+
+  private loadXrefRows(page: number): void {
+    this.xrefLoading.set(true);
+    this.xrefError.set(null);
+    this.integrityService.getCrossReferenceRows(page, PAGE_SIZE).subscribe({
+      next: (data) => {
+        this.xrefRows.set(data.items);
+        this.xrefCounts.set(data.counts);
+        this.xrefPage.set(data.pageNumber);
+        this.xrefTotalPages.set(Math.max(1, data.totalPages));
+        this.xrefLoading.set(false);
+        this.xrefLoaded.set(true);
+      },
+      error: () => {
+        this.xrefLoading.set(false);
+        this.xrefLoaded.set(true);
+        this.xrefError.set('Unable to load the cross-reference check. Please try again.');
+      },
+    });
+  }
+
+  private loadFootingRows(page: number): void {
+    this.footingLoading.set(true);
+    this.footingError.set(null);
+    this.integrityService.getFootingRows(page, PAGE_SIZE).subscribe({
+      next: (data) => {
+        this.footingRows.set(data.items);
+        this.footingCounts.set(data.counts);
+        this.footingPage.set(data.pageNumber);
+        this.footingTotalPages.set(Math.max(1, data.totalPages));
+        this.footingLoading.set(false);
+        this.footingLoaded.set(true);
+      },
+      error: () => {
+        this.footingLoading.set(false);
+        this.footingLoaded.set(true);
+        this.footingError.set('Unable to load the footing & subfooting check. Please try again.');
+      },
+    });
+  }
+
+  /* ---------- Tabs ---------- */
 
   setTab(tab: Tab): void {
     this.tab.set(tab);
+    if (tab === 'footing' && !this.footingLoaded()) {
+      this.loadFootingRows(1);
+    }
   }
 
   goToFootingTab(): void {
-    this.tab.set('footing');
+    this.setTab('footing');
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
@@ -81,18 +164,70 @@ export class IntegrityComponent implements OnInit {
     this.router.navigate(['/reports']);
   }
 
-  generateReport(): void {
+  /* ---------- Pagination ---------- */
+
+  onXrefPageChange(page: number): void {
+    this.loadXrefRows(page);
+  }
+
+  onFootingPageChange(page: number): void {
+    this.loadFootingRows(page);
+  }
+
+  /* ---------- Retry ---------- */
+
+  retryXref(): void {
+    this.loadXrefRows(this.xrefPage());
+  }
+
+  retryFooting(): void {
+    this.loadFootingRows(this.footingPage());
+  }
+
+  /* ---------- Re-run checks (refresh=true) ---------- */
+
+  rerunChecks(): void {
+    if (this.refreshing()) return;
+    this.refreshing.set(true);
+    this.loadSummary(true);
+    this.integrityService.getCrossReferenceRows(this.xrefPage(), PAGE_SIZE, { refresh: true }).subscribe({
+      next: (data) => {
+        this.xrefRows.set(data.items);
+        this.xrefCounts.set(data.counts);
+        this.xrefTotalPages.set(Math.max(1, data.totalPages));
+      },
+    });
+    if (this.footingLoaded()) {
+      this.integrityService
+        .getFootingRows(this.footingPage(), PAGE_SIZE, { refresh: true })
+        .subscribe({
+          next: (data) => {
+            this.footingRows.set(data.items);
+            this.footingCounts.set(data.counts);
+            this.footingTotalPages.set(Math.max(1, data.totalPages));
+          },
+        });
+    }
+    window.setTimeout(() => this.refreshing.set(false), 800);
+  }
+
+  goToReportsFromToast(): void {
     this.toast.set(true);
+    this.toastMessage.set('Footings & Cross-References Exception Report generated');
     window.setTimeout(() => this.toast.set(false), 3000);
+  }
+
+  generateReport(): void {
+    this.goToReportsFromToast();
   }
 
   /* ---------- Row expand/collapse ---------- */
 
-  isXrefExpanded(id: RowId): boolean {
+  isXrefExpanded(id: string): boolean {
     return this.expandedXrefRows().has(id);
   }
 
-  toggleXrefRow(id: RowId): void {
+  toggleXrefRow(id: string): void {
     this.expandedXrefRows.update((prev) => {
       const next = new Set(prev);
       next.has(id) ? next.delete(id) : next.add(id);
@@ -100,11 +235,11 @@ export class IntegrityComponent implements OnInit {
     });
   }
 
-  isFootingExpanded(id: RowId): boolean {
+  isFootingExpanded(id: string): boolean {
     return this.expandedFootingRows().has(id);
   }
 
-  toggleFootingRow(id: RowId): void {
+  toggleFootingRow(id: string): void {
     this.expandedFootingRows.update((prev) => {
       const next = new Set(prev);
       next.has(id) ? next.delete(id) : next.add(id);
@@ -115,30 +250,96 @@ export class IntegrityComponent implements OnInit {
   /* ---------- Row helpers ---------- */
 
   isXrefFlagged(row: XRefRow): boolean {
-    return row.status === 'Flagged' && !row.completed;
+    return row.status === 'Flagged';
   }
 
   xrefResultClass(row: XRefRow): string {
-    if (row.result === 'Reference Valid') return 'success';
-    if (row.result === 'Reference Mismatch') return 'danger';
-    return 'warning';
+    return this.toneFor(this.xrefSchema(), 'checkResults', row.checkResult);
+  }
+
+  xrefStatusClass(row: XRefRow): string {
+    return this.toneFor(this.xrefSchema(), 'statuses', row.status);
   }
 
   isFootingFlagged(row: FootingRow): boolean {
-    return row.result !== 'Pass' && !row.completed;
+    return row.status === 'Flagged';
+  }
+
+  footingResultClass(row: FootingRow): string {
+    return this.toneFor(this.footingSchema(), 'checkResults', row.result);
+  }
+
+  footingStatusClass(row: FootingRow): string {
+    return this.toneFor(this.footingSchema(), 'statuses', row.status);
+  }
+
+  /** Look up a badge's colour tone from the schema's vocab, per the API contract, never by matching text. */
+  private toneFor(
+    schema: IntegrityTableSchema | null,
+    vocab: 'checkResults' | 'statuses',
+    value: string,
+  ): string {
+    const entry = schema?.[vocab]?.find((v) => v.value === value);
+    return entry?.tone ?? 'neutral';
+  }
+
+  /** Money formatting per the API contract: thousands separators, parentheses for negatives, em dash for null. */
+  formatMoney(value: number | null): string {
+    if (value === null || value === undefined) return '—';
+    const abs = Math.abs(value);
+    const formatted = abs.toLocaleString('en-US');
+    const currency = this.currency();
+    const prefixed = currency ? `${currency} ${formatted}` : formatted;
+    return value < 0 ? `(${prefixed})` : prefixed;
   }
 
   /* ---------- Row actions ---------- */
 
-  markXRefComplete(id: number): void {
-    this.integrityService.markXRefComplete(id).subscribe((updated) => {
-      this.xrefRows.update((rows) => rows.map((r) => (r.id === id ? updated : r)));
+  markXRefComplete(row: XRefRow): void {
+    if (this.markingXrefRow()) return;
+    this.markingXrefRow.set(row.lineId);
+    this.integrityService.markComplete<XRefRow>('crossReference', row.lineId, true).subscribe({
+      next: ({ row: updated, counts }) => {
+        this.xrefRows.update((rows) => rows.map((r) => (r.lineId === updated.lineId ? updated : r)));
+        this.xrefCounts.set(counts);
+        this.markingXrefRow.set(null);
+        this.expandedXrefRows.update((prev) => {
+          const next = new Set(prev);
+          next.delete(updated.lineId);
+          return next;
+        });
+        this.refreshSummarySilently();
+      },
+      error: () => {
+        this.markingXrefRow.set(null);
+      },
     });
   }
 
-  markFootingComplete(id: number): void {
-    this.integrityService.markFootingComplete(id).subscribe((updated) => {
-      this.footingRows.update((rows) => rows.map((r) => (r.id === id ? updated : r)));
+  markFootingComplete(row: FootingRow): void {
+    if (this.markingFootingRow()) return;
+    this.markingFootingRow.set(row.lineId);
+    this.integrityService.markComplete<FootingRow>('footing', row.lineId, true).subscribe({
+      next: ({ row: updated, counts }) => {
+        this.footingRows.update((rows) => rows.map((r) => (r.lineId === updated.lineId ? updated : r)));
+        this.footingCounts.set(counts);
+        this.markingFootingRow.set(null);
+        this.expandedFootingRows.update((prev) => {
+          const next = new Set(prev);
+          next.delete(updated.lineId);
+          return next;
+        });
+        this.refreshSummarySilently();
+      },
+      error: () => {
+        this.markingFootingRow.set(null);
+      },
     });
   }
+
+  private refreshSummarySilently(): void {
+    this.integrityService.getSummary().subscribe({ next: (data) => this.summary.set(data) });
+  }
+
+  readonly skeletonRows = [1, 2, 3, 4, 5, 6, 7, 8];
 }

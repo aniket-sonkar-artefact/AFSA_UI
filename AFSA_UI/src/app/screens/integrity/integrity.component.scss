@@ -143,6 +143,13 @@
   color: var(--border);
 }
 
+.integrity-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
 .integrity-report-button {
   min-height: 37px;
   display: inline-flex;
@@ -164,6 +171,84 @@
     transform: translateY(-1px);
     background: var(--integrity-accent-soft);
   }
+}
+
+.integrity-rerun-button {
+  min-height: 37px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 8px 13px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--card);
+  color: var(--text-secondary);
+  font-family: 'Maven Pro', sans-serif;
+  font-size: 10.5px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform 180ms ease, background-color 180ms ease, border-color 180ms ease;
+
+  &:hover:not(:disabled) {
+    transform: translateY(-1px);
+    border-color: var(--integrity-accent-border);
+    color: var(--integrity-accent-strong);
+  }
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: default;
+  }
+}
+
+.integrity-inline-error {
+  color: var(--integrity-danger);
+  font-weight: 650;
+}
+
+.integrity-error-banner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  border: 1px solid var(--integrity-danger-border);
+  border-radius: 10px;
+  background: var(--integrity-danger-soft);
+  color: var(--integrity-danger);
+  font-size: 10.5px;
+  font-weight: 650;
+}
+
+.integrity-retry-button {
+  margin-left: auto;
+  padding: 5px 12px;
+  border: 1px solid var(--integrity-danger-border);
+  border-radius: 7px;
+  background: transparent;
+  color: var(--integrity-danger);
+  font-family: 'Maven Pro', sans-serif;
+  font-size: 9.5px;
+  font-weight: 750;
+  cursor: pointer;
+  white-space: nowrap;
+
+  &:hover {
+    background: rgba(180, 35, 24, 0.08);
+  }
+}
+
+.integrity-empty-cell {
+  padding: 26px 14px;
+  color: var(--text-muted);
+  font-size: 10.5px;
+  text-align: center;
+}
+
+.integrity-pagination-row {
+  display: flex;
+  justify-content: flex-end;
+  border-top: 1px solid var(--border-light);
 }
 
 .integrity-tabs-shell {
@@ -373,6 +458,12 @@
     color: var(--integrity-warning);
     background: var(--integrity-warning-soft);
     border-color: var(--integrity-warning-border);
+  }
+
+  &.neutral {
+    color: var(--text-secondary);
+    background: var(--surface);
+    border-color: var(--border);
   }
 }
 

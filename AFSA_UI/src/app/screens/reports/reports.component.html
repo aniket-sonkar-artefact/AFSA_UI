@@ -92,17 +92,15 @@
                   <div class="reports-row-meta">{{ report.meta }}</div>
                 </div>
 
-                @if (report.download) {
-                  <button type="button" class="reports-row-action download" (click)="download(report)">
-                    <app-icon name="download" [size]="14" [strokeWidth]="1.9" />
-                    Download PPTX
-                  </button>
-                } @else {
-                  <button type="button" class="reports-row-action generate" (click)="generate(report)">
-                    <app-icon name="file-text" [size]="14" [strokeWidth]="1.9" />
-                    Generate Report
-                  </button>
-                }
+                <button
+                  type="button"
+                  class="reports-row-action generate"
+                  [disabled]="isGenerating(report)"
+                  (click)="generate(report)"
+                >
+                  <app-icon name="file-text" [size]="14" [strokeWidth]="1.9" />
+                  {{ isGenerating(report) ? 'Generating…' : 'Generate Report' }}
+                </button>
               </div>
             }
           </div>

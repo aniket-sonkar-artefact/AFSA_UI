@@ -2,7 +2,7 @@ import { Component, OnInit, computed, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { IconComponent } from '../../shared/icon/icon';
-import { ReportsService } from '../../core/services/reports.service';
+import { ReportsService, targetPeriodFromMeta } from '../../core/services/reports.service';
 import { ReportCapability, ReportRow } from '../../core/models/reports.model';
 
 const CAPABILITIES: ReportCapability[] = [
@@ -71,6 +71,8 @@ export class ReportsComponent implements OnInit {
   readonly activeFilter = signal<FilterValue>('All');
   readonly collapsedGroups = signal<Set<ReportCapability>>(new Set());
   readonly toast = signal<string | null>(null);
+  /** report ids currently generating, so the row can show a busy state. */
+  readonly generatingIds = signal<Set<string>>(new Set());
 
   readonly filteredReports = computed(() => {
     const q = this.search().trim().toLowerCase();
@@ -152,15 +154,42 @@ export class ReportsComponent implements OnInit {
     setTimeout(() => this.toast.set(null), 3000);
   }
 
-  download(report: ReportRow) {
-    this.reportsService.generateReport(report.id).subscribe(() => {
-      this.showToast('Management Report PPTX downloaded');
+  isGenerating(report: ReportRow) {
+    return this.generatingIds().has(report.id);
+  }
+
+  private setGenerating(id: string, generating: boolean) {
+    this.generatingIds.update((prev) => {
+      const next = new Set(prev);
+      if (generating) next.add(id);
+      else next.delete(id);
+      return next;
     });
   }
 
   generate(report: ReportRow) {
-    this.reportsService.generateReport(report.id).subscribe(() => {
-      this.showToast(`${report.title} generated`);
+    if (this.isGenerating(report)) return;
+
+    this.setGenerating(report.id, true);
+    const targetPeriod = targetPeriodFromMeta(report.meta);
+
+    this.reportsService.generateReport(report.reportType, targetPeriod).subscribe({
+      next: (result) => {
+        if (result.status === 'ready') {
+          this.setGenerating(report.id, false);
+          if (result.download_url) {
+            window.open(result.download_url, '_blank');
+          }
+          this.showToast(`${report.title} generated`);
+        } else if (result.status === 'failed') {
+          this.setGenerating(report.id, false);
+          this.showToast(result.error || `${report.title} failed to generate`);
+        }
+      },
+      error: () => {
+        this.setGenerating(report.id, false);
+        this.showToast(`${report.title} failed to generate`);
+      },
     });
   }
 }

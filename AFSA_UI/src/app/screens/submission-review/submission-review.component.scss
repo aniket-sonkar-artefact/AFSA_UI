@@ -587,8 +587,10 @@
 }
 
 .sr-status-select {
-  min-width: 105px;
-  padding: 5px 9px;
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 130px;
+  padding: 5px 6px;
   border-radius: 7px;
   font-family: 'Maven Pro', sans-serif;
   font-size: 9.5px;
@@ -654,17 +656,6 @@
   transition: width 200ms ease;
 }
 
-.sr-upload-done {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-}
-
-.sr-upload-done-icon {
-  display: flex;
-  color: var(--submission-success);
-}
-
 .sr-replace-link,
 .sr-upload-error {
   border: 0;
@@ -705,6 +696,7 @@
 }
 
 .sr-mapping-select {
+  box-sizing: border-box;
   width: 100%;
   max-width: 220px;
   padding: 6px 9px;
@@ -818,4 +810,140 @@
   background: var(--card);
   color: var(--text-muted);
   text-align: center;
+}
+
+/* =====================================================
+   API / LOADING / PAGINATION
+====================================================== */
+
+.sr-kpi-skeleton {
+  gap: 7px;
+  align-items: flex-start;
+}
+
+.sr-skeleton-card {
+  min-height: 180px;
+}
+
+.sr-skeleton-card .sr-group-header {
+  gap: 12px;
+}
+
+.sr-status-reason {
+  display: block;
+  margin-top: 4px;
+  max-width: 260px;
+  color: var(--text-muted);
+  font-size: 8px;
+  line-height: 1.35;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sr-error-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 13px;
+  border: 1px solid var(--submission-danger-border);
+  border-radius: 9px;
+  background: var(--submission-danger-soft);
+  color: var(--submission-danger);
+  font-size: 10px;
+  font-weight: 650;
+}
+
+.sr-error-banner button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font-size: 18px;
+  cursor: pointer;
+}
+
+.sr-table-completeness,
+.sr-table-irregularities,
+.sr-table-coa {
+  table-layout: fixed;
+}
+
+.sr-table-completeness .col-item { width: 28%; }
+.sr-table-completeness .col-file { width: 34%; }
+.sr-table-completeness .col-status { width: 18%; }
+.sr-table-completeness .col-action { width: 20%; }
+
+.sr-table-completeness th,
+.sr-table-completeness td,
+.sr-table-irregularities th,
+.sr-table-irregularities td,
+.sr-table-coa th,
+.sr-table-coa td {
+  vertical-align: middle;
+}
+
+/* Action column: left-aligned (previously hugged the far right edge via
+   `text-align: right` on the last cell). Buttons now sit closer to the
+   rest of the row content instead of pinned to the table's outer edge. */
+.sr-table-completeness th:last-child,
+.sr-table-completeness td:last-child,
+.sr-table-coa th:last-child,
+.sr-table-coa td:last-child {
+  text-align: left;
+}
+
+.ir-code { width: 10%; }
+.ir-account { width: 22%; }
+.ir-value { width: 13%; }
+.ir-change { width: 9%; }
+.ir-flag { width: 20%; }
+.ir-status { width: 14%; }
+
+.coa-account { width: 12%; }
+.coa-description { width: 23%; }
+.coa-mapping { width: 30%; }
+.coa-status { width: 15%; }
+.coa-action { width: 20%; }
+
+.sr-table-scroll {
+  width: 100%;
+  overflow-x: auto;
+}
+
+.sr-pagination-row {
+  display: flex;
+  justify-content: flex-end;
+  padding: 10px 14px;
+  border-top: 1px solid var(--border-light);
+  background: var(--card);
+}
+
+.sr-pagination-row app-pagination {
+  display: block;
+}
+
+@media (max-width: 1050px) {
+  .sr-header {
+    align-items: flex-start;
+    gap: 18px;
+  }
+
+  .sr-header-controls {
+    flex-wrap: wrap;
+    justify-content: flex-end;
+  }
+
+  /* Only force a minimum table width (and therefore a horizontal
+     scrollbar inside .sr-table-scroll) once the viewport is genuinely
+     too narrow to fit the fixed-layout columns comfortably. Above this
+     breakpoint the table simply shrinks to the container width. */
+  .sr-table-scroll .sr-table {
+    min-width: 760px;
+  }
 }

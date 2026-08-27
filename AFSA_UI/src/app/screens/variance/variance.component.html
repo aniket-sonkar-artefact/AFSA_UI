@@ -14,10 +14,6 @@
     </div>
 
     @if (tab() === 'variance') {
-      <button type="button" class="variance-report-button" (click)="generateVarianceReport()">
-        <app-icon name="file-text" [size]="15" [strokeWidth]="1.9" />
-        Variance Analysis Report
-      </button>
     }
   </section>
 
@@ -55,12 +51,12 @@
           <div class="variance-kpi-label">Revenue Variance</div>
         </div>
         <div class="variance-kpi">
-          <div class="variance-kpi-value">{{ grossProfitRow()?.varPct ?? '—' }}</div>
-          <div class="variance-kpi-label">Gross Profit Variance</div>
+          <div class="variance-kpi-value">{{ OperatingCostRow()?.varPct ?? '—' }}</div>
+          <div class="variance-kpi-label">Operating Costs Variance</div>
         </div>
         <div class="variance-kpi">
-          <div class="variance-kpi-value">{{ netProfitRow()?.varPct ?? '—' }}</div>
-          <div class="variance-kpi-label">Net Profit Variance</div>
+          <div class="variance-kpi-value">{{ CurrentAssetsRow()?.varPct ?? '—' }}</div>
+          <div class="variance-kpi-label">Current Assets Variance</div>
         </div>
       </section>
 
@@ -68,7 +64,7 @@
       <section class="variance-filter-card">
         <div class="variance-filter">
           <label class="variance-filter-label">Actual Period</label>
-          <select class="variance-select" [(ngModel)]="period">
+          <select class="variance-select" [(ngModel)]="period" (ngModelChange)="onFiltersChanged()">
             <option>Q1 2026</option>
             <option>Q4 2025</option>
             <option>Q3 2025</option>
@@ -77,20 +73,20 @@
 
         <div class="variance-filter">
           <label class="variance-filter-label">Comparison Period</label>
-          <select class="variance-select" [(ngModel)]="comparison">
+          <select class="variance-select" [(ngModel)]="comparison" (ngModelChange)="onFiltersChanged()">
             <option>Q1 2025</option>
             <option>Q4 2024</option>
-            <option>Budget Q1 2026</option>
+            <option>Q3 2024</option>
           </select>
         </div>
 
-        <div class="variance-filter">
+        <!-- <div class="variance-filter">
           <label class="variance-filter-label">Currency</label>
           <select class="variance-select" [(ngModel)]="currency">
             <option>SAR (000s)</option>
             <option>USD (000s)</option>
           </select>
-        </div>
+        </div> -->
 
         <div class="variance-filter-context">
           <span class="variance-context-dot"></span>
@@ -126,24 +122,64 @@
             </tr>
           </thead>
           <tbody>
+            @if (varianceLoading() && rows().length === 0) {
+              @for (i of [1, 2, 3, 4, 5]; track i) {
+                <tr class="variance-skeleton-row">
+                  <td><app-skeleton width="80%" height="11px" radius="4px"></app-skeleton></td>
+                  <td style="text-align: right"><app-skeleton width="70%" height="11px" radius="4px"></app-skeleton></td>
+                  <td style="text-align: right"><app-skeleton width="70%" height="11px" radius="4px"></app-skeleton></td>
+                  <td style="text-align: right"><app-skeleton width="60%" height="11px" radius="4px"></app-skeleton></td>
+                  <td style="text-align: right"><app-skeleton width="50%" height="11px" radius="4px"></app-skeleton></td>
+                  <td><app-skeleton width="95%" height="11px" radius="4px"></app-skeleton></td>
+                </tr>
+              }
+            }
             @for (row of rows(); track row.item + $index) {
               <tr [class.variance-row-subtotal]="row.isSubtotal">
-                <td><span class="variance-line-item">{{ row.item }}</span></td>
-                <td style="text-align: right">
-                  <span class="variance-number">{{ formatNumber(row.current) }}</span>
+                <td>
+                  <span class="variance-line-item">{{ row.item }}</span>
                 </td>
+
                 <td style="text-align: right">
-                  <span class="variance-number variance-comparison">{{ formatNumber(row.comparison) }}</span>
+                  <span class="variance-number">
+                    {{ formatNumber(row.current) }}
+                  </span>
                 </td>
+
                 <td style="text-align: right">
-                  <span class="variance-movement" [style.color]="movementColor(row.variance)">
+                  <span class="variance-number variance-comparison">
+                    {{ formatNumber(row.comparison) }}
+                  </span>
+                </td>
+
+                <td style="text-align: right">
+                  <span
+                    class="variance-movement"
+                    [ngClass]="varianceColorClass(row.color)"
+                  >
                     {{ formatNumber(row.variance) }}
                   </span>
                 </td>
+
                 <td style="text-align: right">
-                  <span class="variance-pct-pill" [ngClass]="pctPillClass(row)">{{ row.varPct }}</span>
+                  <span
+                    class="variance-pct-pill"
+                    [ngClass]="varianceColorClass(row.color)"
+                  >
+                    {{ row.varPct }}
+                  </span>
                 </td>
-                <td><span class="variance-analysis">{{ row.analysis }}</span></td>
+
+                <td>
+                  @if (row.analysis === null) {
+                    <div class="variance-analysis-skeleton">
+                      <app-skeleton width="92%" height="9px" radius="4px"></app-skeleton>
+                      <app-skeleton width="58%" height="9px" radius="4px"></app-skeleton>
+                    </div>
+                  } @else {
+                    <span class="variance-analysis">{{ row.analysis }}</span>
+                  }
+                </td>
               </tr>
             }
           </tbody>
@@ -353,14 +389,6 @@
                   </div>
                 }
 
-                @for (row of history(); track row.fileName) {
-                  <div class="management-history-row">
-                    <div class="management-history-period">{{ row.period }}</div>
-                    <div class="management-history-file">{{ row.fileName }}</div>
-                    <div class="management-history-date">{{ row.date }}</div>
-                    <div class="management-history-status previous">{{ row.status }}</div>
-                  </div>
-                }
               </div>
             </div>
           </section>

@@ -96,7 +96,6 @@ export class ComplianceComponent implements OnInit {
     return r.complianceConfidence >= 85 ? '#00843D' : r.complianceConfidence >= 70 ? '#B45309' : '#DC2626';
   });
 
-  readonly reportToast = signal(false);
 
   constructor(
     private readonly complianceService: ComplianceService,
@@ -288,11 +287,6 @@ export class ComplianceComponent implements OnInit {
 
   noteBadgeConfidence(noteId: string): number | null {
     return this.checkResultsByNote()[noteId]?.complianceConfidence ?? null;
-  }
-
-  showReportToast() {
-    this.reportToast.set(true);
-    setTimeout(() => this.reportToast.set(false), 3000);
   }
 
   goToVariance() {
