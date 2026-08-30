@@ -193,7 +193,7 @@
                     <tr>
                       <td><span class="sr-account-code">{{ row.accountCode }}</span></td>
                       <td><span class="sr-item-name">{{ row.account }}</span></td>
-                      <td [class]="flagClass(row.colorLocation === 'current', row.severityColor)"><span class="sr-number">{{ row.currentPeriod }}</span></td>
+                      <td [class]="flagClass(row.colorLocation === 'currentPeriod', row.severityColor)"><span class="sr-number">{{ row.currentPeriod }}</span></td>
                       <td><span class="sr-number sr-number-muted">{{ row.priorPeriod }}</span></td>
                       <td [class]="flagClass(row.colorLocation === 'change', row.severityColor)"><span class="sr-number">{{ row.change }}</span></td>
                       <td><div class="sr-flag-cell"><span class="sr-severity-dot" [class.high]="row.severityColor === 'red'" [class.medium]="row.severityColor === 'yellow'"></span><span class="sr-flag-copy">{{ row.flag }}</span></div></td>

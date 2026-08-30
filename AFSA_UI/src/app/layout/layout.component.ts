@@ -1,9 +1,10 @@
-import { Component, computed, signal } from '@angular/core';
+import { Component, computed, effect, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { IconComponent, IconName } from '../shared/icon/icon';
 import { LogoBadgeComponent } from '../shared/logo-badge/logo-badge';
 import { AuthService } from '../core/services/auth.service';
+import { ResponsiveService } from '../core/services/responsive.service';
 
 interface NavItem {
   path: string;
@@ -73,17 +74,48 @@ const NAV_ITEMS: NavItem[] = [
   styleUrl: './layout.component.scss',
 })
 export class LayoutComponent {
+  private readonly responsive = inject(ResponsiveService);
+
   readonly navItems = NAV_ITEMS;
   readonly collapsed = signal(false);
   readonly darkMode = signal<boolean>(this.readStoredTheme());
   readonly loggingOut = signal(false);
 
-  readonly sidebarWidth = computed(() => (this.collapsed() ? 64 : 232));
+  /** Off-canvas drawer sidebar: handset + tablet-portrait (too narrow for a permanent rail) */
+  readonly isDrawerMode = computed(() => this.responsive.isHandset() || this.responsive.isTabletPortrait());
+  /** Tablet-landscape: keep the permanent rail, but default it to the icon-only collapsed state */
+  readonly isCompactPush = computed(() => this.responsive.isTabletLandscape());
+  readonly drawerOpen = signal(false);
+  readonly drawerWidth = 260;
+
+  /** 0 when the sidebar overlays instead of pushing content (drawer mode) */
+  readonly sidebarWidth = computed(() => (this.isDrawerMode() ? 0 : this.collapsed() ? 64 : 232));
+  /** The drawer is always full-width/labelled, so labels show whenever expanded or in drawer mode */
+  readonly showLabels = computed(() => this.isDrawerMode() || !this.collapsed());
   readonly currentUser;
+
+  /** Set once the user manually toggles the rail, so we stop overriding their choice */
+  private userToggledCollapse = false;
 
   constructor(private readonly auth: AuthService, private readonly router: Router) {
     this.currentUser = this.auth.currentUser;
     this.applyTheme(this.darkMode());
+
+    // Auto-collapse the pushed sidebar on tablet-landscape, auto-expand back on desktop,
+    // unless the person has already told us what they want via the manual toggle.
+    effect(() => {
+      const compact = this.isCompactPush();
+      const drawer = this.isDrawerMode();
+      if (this.userToggledCollapse || drawer) return;
+      this.collapsed.set(compact);
+    });
+
+    // If the viewport grows out of drawer range while the drawer happens to be open, close it.
+    effect(() => {
+      if (!this.isDrawerMode() && this.drawerOpen()) {
+        this.drawerOpen.set(false);
+      }
+    });
   }
 
   private readStoredTheme(): boolean {
@@ -104,7 +136,16 @@ export class LayoutComponent {
   }
 
   toggleCollapsed() {
+    this.userToggledCollapse = true;
     this.collapsed.update((c) => !c);
+  }
+
+  toggleDrawer() {
+    this.drawerOpen.update((o) => !o);
+  }
+
+  closeDrawer() {
+    this.drawerOpen.set(false);
   }
 
   toggleDarkMode() {

@@ -2,39 +2,33 @@ import { Injectable, signal } from '@angular/core';
 import { Observable, of } from 'rxjs';
 import { delay } from 'rxjs/operators';
 import { environment } from '../../../environments/environment';
-import { User, UserRole } from '../models/user.model';
+import { User } from '../models/user.model';
 import { getInitials } from '../utils/initials';
 import { deleteCookie, getCookie, setCookie } from '../utils/cookies';
 
 /** Cookie name + lifetime for the mocked FE-only session (no backend auth yet). */
-const AUTH_COOKIE_NAME = 'afsa_auth_role';
+const AUTH_COOKIE_NAME = 'afsa_auth_user';
 const AUTH_COOKIE_DAYS = 7;
 
 /**
  * MOCK USER DIRECTORY
  * -------------------
  * Stand-in for what would normally be returned by GET {apiUrl}/auth/me
- * once a real backend/identity provider is wired up. Keyed by the team
- * profile chosen on the login screen so the "logged in" user reflects
- * the selection, the same way a real session would.
+ * once a real backend/identity provider is wired up. Keyed by the demo
+ * account chosen on the login screen (not by role — a role can now have
+ * more than one demo account) so the "logged in" user reflects the exact
+ * account picked, the same way a real session would.
  */
-const MOCK_USERS: Record<UserRole, User> = {
-  consolidation: {
-    id: 'usr_1001',
-    name: 'Aniket Sonkar',
-    email: 'mohammed.k@afsa-platform.com',
-    role: 'consolidation',
-    roleLabel: 'Financial Consolidation & Analysis Group',
-    initials: 'MK',
-  },
-  reporting: {
-    id: 'usr_1002',
-    name: 'Aniket Sonkar',
-    email: 'mohammed.k@afsa-platform.com',
-    role: 'reporting',
-    roleLabel: 'Financial Reporting Group',
-    initials: 'MK',
-  },
+const MOCK_USERS: Record<string, User> = {
+  usr_2001: {
+    id: 'usr_2001',
+    name: 'FC&RD Analyst',
+    email: 'analyst@aramco.com',
+    role: 'finance-analyst',
+    roleLabel: 'Finance Analyst',
+    title: 'Analyst',
+    initials: 'NC',
+  }
 };
 
 @Injectable({ providedIn: 'root' })
@@ -52,21 +46,21 @@ export class AuthService {
    * GET {apiUrl}/auth/me call once a backend session exists.
    */
   constructor() {
-    const savedRole = getCookie(AUTH_COOKIE_NAME) as UserRole | null;
-    const savedUser = savedRole ? MOCK_USERS[savedRole] : undefined;
+    const savedUserId = getCookie(AUTH_COOKIE_NAME);
+    const savedUser = savedUserId ? MOCK_USERS[savedUserId] : undefined;
     if (savedUser) {
       this.currentUserSignal.set({ ...savedUser, initials: getInitials(savedUser.name) });
     }
   }
 
   /**
-   * Simulates calling the backend to authenticate/select a team and fetch
-   * the user's profile (id, name, email, role). Swap the `of(...)` body
+   * Simulates calling the backend to authenticate a specific demo account
+   * and fetch its profile (id, name, email, role). Swap the `of(...)` body
    * for an HttpClient call to `${environment.apiUrl}/auth/login` when a
    * real backend is available — the calling components won't need to change.
    */
-  login(role: UserRole): Observable<User> {
-    const user = { ...MOCK_USERS[role], initials: getInitials(MOCK_USERS[role].name) };
+  login(accountId: string): Observable<User> {
+    const user = { ...MOCK_USERS[accountId], initials: getInitials(MOCK_USERS[accountId].name) };
     return of(user).pipe(delay(environment.useMockData ? 250 : 0));
   }
 
@@ -81,7 +75,7 @@ export class AuthService {
 
   setCurrentUser(user: User): void {
     this.currentUserSignal.set(user);
-    setCookie(AUTH_COOKIE_NAME, user.role, AUTH_COOKIE_DAYS);
+    setCookie(AUTH_COOKIE_NAME, user.id, AUTH_COOKIE_DAYS);
   }
 
   logout(): void {

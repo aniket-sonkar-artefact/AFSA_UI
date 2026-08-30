@@ -40,3 +40,17 @@
   color: var(--text-faint);
   font-size: 12px;
 }
+
+/* Touch devices: 24px buttons are well under the 44px minimum comfortable
+   tap target — bump them up regardless of screen size. */
+@media (pointer: coarse) {
+  .page-btn {
+    min-width: 36px;
+    height: 36px;
+    font-size: 12px;
+  }
+
+  .page-btn.nav {
+    padding: 0 10px;
+  }
+}

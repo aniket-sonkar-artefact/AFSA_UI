@@ -1,3 +1,5 @@
+@use 'breakpoints' as bp;
+
 :host {
   --integrity-accent: #4BACC6;
   --integrity-accent-strong: #1686A3;
@@ -96,6 +98,10 @@
   border-radius: 13px;
   background: var(--card);
   box-shadow: 0 2px 8px rgba(15, 23, 42, 0.03);
+
+  @include bp.tablet-down {
+    flex-wrap: wrap;
+  }
 }
 
 .integrity-header-marker {
@@ -132,6 +138,11 @@
   margin-top: 6px;
   color: var(--text-muted);
   font-size: 10.5px;
+
+  @include bp.tablet-down {
+    flex-wrap: wrap;
+    row-gap: 4px;
+  }
 
   strong {
     color: var(--text-primary);
@@ -258,6 +269,12 @@
   border: 1px solid var(--border);
   border-radius: 11px;
   background: var(--card);
+
+  @include bp.tablet-down {
+    display: flex;
+    width: 100%;
+    flex-wrap: wrap;
+  }
 }
 
 .integrity-tab-button {
@@ -272,6 +289,11 @@
   font-weight: 650;
   cursor: pointer;
   transition: background-color 180ms ease, color 180ms ease, transform 180ms ease;
+
+  @include bp.tablet-down {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
 
   &:hover {
     color: var(--integrity-accent-strong);
@@ -290,6 +312,10 @@
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 10px;
+
+  @include bp.tablet-down {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 
 .integrity-kpi {
@@ -348,12 +374,28 @@
   border-radius: 11px;
   background: var(--card);
   box-shadow: 0 1px 4px rgba(15, 23, 42, 0.025);
+
+  @include bp.tablet-down {
+    /* table-layout:fixed with percentage columns adapts by wrapping cell
+       text, which is fine for plain text columns — but the Status/Actions
+       columns hold a badge, a chevron button, and a "Mark Complete" button
+       that can't wrap or shrink below their own content size. Below desktop
+       width those get crushed together. Switch to a natural-width,
+       horizontally-scrollable table instead, same fallback used elsewhere. */
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
 }
 
 .integrity-table {
   width: 100%;
   border-collapse: collapse;
   table-layout: fixed;
+
+  @include bp.tablet-down {
+    table-layout: auto;
+    min-width: 760px;
+  }
 
   thead {
     background: var(--integrity-table-head);
@@ -563,6 +605,14 @@
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 8px;
   margin: 0 14px 10px;
+
+  @include bp.tablet-down {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  @include bp.handset {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }
 
 .integrity-exception-card {

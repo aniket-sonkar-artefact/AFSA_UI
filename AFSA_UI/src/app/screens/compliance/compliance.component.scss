@@ -1,3 +1,5 @@
+@use 'breakpoints' as bp;
+
 :host {
   --compliance-accent: #C0504D;
   --compliance-accent-hover: #A94340;
@@ -127,6 +129,12 @@
   border-radius: 14px;
   background: var(--card);
   box-shadow: 0 2px 8px rgba(15, 23, 42, 0.03);
+
+  @include bp.tablet-down {
+    flex-wrap: wrap;
+    gap: 14px;
+    padding: 16px 18px;
+  }
 }
 
 .compliance-header-accent {
@@ -167,6 +175,11 @@
   align-items: center;
   gap: 26px;
   flex-shrink: 0;
+
+  @include bp.tablet-down {
+    width: 100%;
+    justify-content: space-between;
+  }
 }
 
 .compliance-meta-label {
@@ -192,6 +205,10 @@
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 12px;
+
+  @include bp.tablet-down {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 
 .compliance-kpi {
@@ -263,6 +280,18 @@
   grid-template-columns: 220px minmax(0, 1fr) 290px;
   gap: 14px;
   align-items: start;
+
+  @include bp.tablet-landscape {
+    grid-template-columns: 180px minmax(0, 1fr) 250px;
+    gap: 10px;
+  }
+
+  @include bp.tablet-down {
+    /* Three fixed-width columns (220 + center + 290) don't fit below desktop
+       width — stack into a single scrolling column instead. Order stays the
+       same as reading order: pick a note, review it, then run the check. */
+    grid-template-columns: minmax(0, 1fr);
+  }
 }
 
 /* =====================================================
@@ -278,6 +307,12 @@
   border-radius: 12px;
   background: var(--card);
   box-shadow: 0 2px 8px rgba(15, 23, 42, 0.025);
+
+  @include bp.tablet-down {
+    min-height: 0;
+    max-height: 320px;
+    overflow-y: auto;
+  }
 }
 
 .compliance-section-header {
@@ -298,6 +333,23 @@
 .compliance-note-item-skel {
   padding: 13px 15px;
   border-bottom: 1px solid var(--border-light);
+}
+
+.compliance-note-select {
+  width: 100%;
+  padding: 11px 15px;
+  border: 0;
+  background: var(--card);
+  color: var(--text-primary);
+  font-family: 'Maven Pro', sans-serif;
+  font-size: 11.5px;
+  font-weight: 650;
+  cursor: pointer;
+
+  &:focus-visible {
+    outline: 2px solid var(--compliance-accent);
+    outline-offset: -2px;
+  }
 }
 
 .compliance-note-button {
@@ -446,6 +498,7 @@
 
 .compliance-table-scroll {
   overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 .compliance-table {
@@ -571,6 +624,14 @@
   box-shadow: 0 2px 8px rgba(15, 23, 42, 0.025);
   position: sticky;
   top: 12px;
+
+  @include bp.tablet-down {
+    /* Sticky makes sense pinned to the viewport alongside a taller sibling
+       column; once it's stacked full-width at the bottom of the page there's
+       nothing for it to float over, so keep it in normal flow. */
+    position: static;
+    top: auto;
+  }
 }
 
 .compliance-check-heading {

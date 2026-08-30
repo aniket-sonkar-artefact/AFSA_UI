@@ -1,0 +1,113 @@
+// =============================================================================
+// Shared breakpoint definitions — SINGLE SOURCE OF TRUTH for layout breakpoints.
+// These pixel values MUST stay in sync with src/app/core/services/responsive.service.ts
+// (BREAKPOINTS constant). If you change a number here, change it there too.
+//
+// Model: viewport-range based (not device-name based), because there is no reliable
+// way to ask a browser "are you a tablet" — screen size + pointer type is the only
+// honest signal. A large-screen touch device in portrait is treated the same as a
+// tablet regardless of what the User-Agent claims to be.
+//
+//   handset          : 0    – 599px
+//   tablet-portrait   : 600  – 899px
+//   tablet-landscape   : 900  – 1279px
+//   desktop            : 1280px +
+// =============================================================================
+
+$bp-handset-max: 599px;
+$bp-tablet-portrait-min: 600px;
+$bp-tablet-portrait-max: 899px;
+$bp-tablet-landscape-min: 900px;
+$bp-tablet-landscape-max: 1279px;
+$bp-desktop-min: 1280px;
+
+// Convenience: "tablet" as a whole (portrait + landscape combined)
+$bp-tablet-min: $bp-tablet-portrait-min;
+$bp-tablet-max: $bp-tablet-landscape-max;
+
+// -----------------------------------------------------------------------------
+// Mixins — use these instead of writing raw @media queries so every screen
+// agrees on the same thresholds.
+// -----------------------------------------------------------------------------
+
+// Anything narrower than tablet (phones)
+@mixin handset {
+  @media (max-width: #{$bp-handset-max}) {
+    @content;
+  }
+}
+
+// Tablet portrait only (e.g. iPad in portrait, ~768–834px)
+@mixin tablet-portrait {
+  @media (min-width: #{$bp-tablet-portrait-min}) and (max-width: #{$bp-tablet-portrait-max}) {
+    @content;
+  }
+}
+
+// Tablet landscape only (e.g. iPad in landscape, ~1024–1194px, up to 1279px for larger tablets)
+@mixin tablet-landscape {
+  @media (min-width: #{$bp-tablet-landscape-min}) and (max-width: #{$bp-tablet-landscape-max}) {
+    @content;
+  }
+}
+
+// Full tablet range, both orientations (600px–1279px) — most common use case
+@mixin tablet {
+  @media (min-width: #{$bp-tablet-min}) and (max-width: #{$bp-tablet-max}) {
+    @content;
+  }
+}
+
+// Tablet AND below (i.e. "not desktop") — use for "collapse to compact layout" rules
+@mixin tablet-down {
+  @media (max-width: #{$bp-tablet-max}) {
+    @content;
+  }
+}
+
+// Tablet-portrait AND below (i.e. "not desktop, not tablet-landscape") — narrower than
+// tablet-down. Use when tablet-landscape genuinely has enough width to keep the normal/
+// wide layout and only tablet-portrait + handset need the compact treatment (e.g. the
+// login screen's stacked layout — a 1024px-wide landscape tablet doesn't need it).
+@mixin tablet-portrait-down {
+  @media (max-width: #{$bp-tablet-portrait-max}) {
+    @content;
+  }
+}
+
+// Desktop and up (explicit escape hatch, rarely needed since desktop is the default)
+@mixin desktop-up {
+  @media (min-width: #{$bp-desktop-min}) {
+    @content;
+  }
+}
+
+// Touch / coarse-pointer input, independent of screen size. Use for hit-target sizing,
+// hover-state removal, etc. This catches touch laptops too, which is correct — the
+// need (bigger tap targets, no hover-only affordances) is the same.
+@mixin coarse-pointer {
+  @media (pointer: coarse) {
+    @content;
+  }
+}
+
+// Fine pointer (mouse/trackpad) — inverse of the above, for hover-dependent affordances
+@mixin fine-pointer {
+  @media (pointer: fine) {
+    @content;
+  }
+}
+
+// Landscape orientation at tablet width — useful when a component needs to react to
+// rotation specifically (e.g. re-flowing a two-column layout)
+@mixin landscape {
+  @media (orientation: landscape) {
+    @content;
+  }
+}
+
+@mixin portrait {
+  @media (orientation: portrait) {
+    @content;
+  }
+}

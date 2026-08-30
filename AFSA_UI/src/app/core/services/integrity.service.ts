@@ -18,7 +18,7 @@ import {
 
 @Injectable({ providedIn: 'root' })
 export class IntegrityService {
-  private readonly base = `${environment.localIntegrityHostUrl}/statement-validation/integrity-check`;
+  private readonly base = `${environment.integrityApiUrl}/statement-validation/integrity-check`;
 
   constructor(private readonly http: HttpClient) {}
 

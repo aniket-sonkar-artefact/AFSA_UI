@@ -1,3 +1,5 @@
+@use 'breakpoints' as bp;
+
 :host {
   --variance-accent: #8064A2;
   --variance-accent-hover: #6E548F;
@@ -111,6 +113,10 @@
   border-radius: 14px;
   background: var(--card);
   box-shadow: 0 2px 8px rgba(15, 23, 42, 0.03);
+
+  @include bp.tablet-down {
+    flex-wrap: wrap;
+  }
 }
 
 .variance-header-accent {
@@ -153,6 +159,12 @@
   border: 1px solid var(--border);
   border-radius: 11px;
   background: var(--card);
+
+  @include bp.tablet-down {
+    display: flex;
+    width: 100%;
+    flex-wrap: wrap;
+  }
 }
 
 .variance-tab-button {
@@ -167,6 +179,11 @@
   font-weight: 650;
   cursor: pointer;
   transition: color 180ms ease, background-color 180ms ease, transform 180ms ease;
+
+  @include bp.tablet-down {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
 
   &:hover {
     color: var(--variance-accent);
@@ -201,6 +218,21 @@
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 12px;
+
+  @include bp.tablet-down {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  @include bp.tablet {
+    /* Tablet (both orientations) has enough width to keep all 3 variance
+       cards on a single row — only handset needs to stack them. */
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
+  }
+
+  @include bp.handset {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }
 
 .variance-kpi {
@@ -236,6 +268,10 @@
   border: 1px solid var(--border);
   border-radius: 12px;
   background: var(--card);
+
+  @include bp.tablet-down {
+    flex-wrap: wrap;
+  }
 }
 
 .variance-filter {
@@ -299,6 +335,14 @@
   border: 1px solid var(--border);
   border-radius: 12px;
   background: var(--card);
+
+  @include bp.tablet-down {
+    /* Six fixed-percentage columns including a free-text "Analysis" column
+       get illegible once squeezed below desktop width — switch to a
+       natural-width, horizontally-scrollable table instead. */
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
 }
 
 .variance-table-title {
@@ -338,6 +382,11 @@
   width: 100%;
   border-collapse: collapse;
   table-layout: fixed;
+
+  @include bp.tablet-down {
+    table-layout: auto;
+    min-width: 760px;
+  }
 
   thead {
     background: var(--variance-table-head);
@@ -483,6 +532,10 @@
   grid-template-columns: minmax(0, 1fr) 350px;
   gap: 12px;
   align-items: stretch;
+
+  @include bp.tablet-down {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }
 
 .management-left-stack {
@@ -542,6 +595,10 @@
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 8px;
   margin-top: 11px;
+
+  @include bp.handset {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }
 
 .management-readiness-row {
@@ -597,6 +654,14 @@
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 8px;
   margin-top: 11px;
+
+  @include bp.tablet-down {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  @include bp.handset {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }
 
 .management-template-field {
@@ -892,6 +957,11 @@
 .management-history-collapse-inner {
   min-height: 0;
   overflow: hidden;
+
+  @include bp.handset {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
 }
 
 .management-history-row {
@@ -903,6 +973,10 @@
   border-bottom: 1px solid var(--border-light);
   background: var(--card);
   font-size: 8.5px;
+
+  @include bp.handset {
+    min-width: 480px;
+  }
 
   &:last-child {
     border-bottom: 0;
@@ -972,8 +1046,8 @@
 
 .variance-toast {
   position: fixed;
-  right: 28px;
-  bottom: 28px;
+  right: calc(28px + var(--safe-right));
+  bottom: calc(28px + var(--safe-bottom));
   z-index: 300;
   display: flex;
   align-items: center;
@@ -986,6 +1060,11 @@
   font-size: 11px;
   font-weight: 650;
   box-shadow: 0 8px 28px rgba(0, 0, 0, 0.24);
+
+  @include bp.handset {
+    left: calc(16px + var(--safe-left));
+    right: calc(16px + var(--safe-right));
+  }
 }
 
 .variance-toast-icon {

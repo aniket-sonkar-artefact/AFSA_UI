@@ -14,6 +14,7 @@ import {
   Finding,
   FindingStatus,
   IrregularitiesPage,
+  IrregularitiesSummary,
   MappingStatus,
   UploadProgressEvent,
 } from '../models/submission-review.model';
@@ -46,7 +47,7 @@ interface ApiFinding {
   flag: string;
   status: string;
   severityColor: 'red' | 'yellow';
-  colorLocation: 'current' | 'change';
+  colorLocation: 'currentPeriod' | 'change';
 }
 
 interface ApiIrregularitiesPage {
@@ -138,7 +139,7 @@ function mapFinding(row: ApiFinding): Finding {
 @Injectable({ providedIn: 'root' })
 export class SubmissionReviewService {
   private readonly financeBase = environment.affiliateSubmissionApiUrl;
-  private readonly coaBase = `${environment.localCoaHostUrl}/affiliate-review/coa-mapping`;
+  private readonly coaBase = `${environment.coaMappingApiUrl}/affiliate-review/coa-mapping`;
 
   constructor(private readonly http: HttpClient) {}
 
@@ -220,6 +221,16 @@ export class SubmissionReviewService {
           items: response.data.items.map(mapFinding),
         })),
       );
+  }
+
+  getIrregularitiesSummary(entityCode: string, periodKey = PERIOD_KEY): Observable<IrregularitiesSummary> {
+    const params = new HttpParams().set('period_key', periodKey);
+    return this.http
+      .get<ApiResponse<IrregularitiesSummary>>(
+        `${this.financeBase}/affiliate-submission-review/${encodeURIComponent(entityCode)}/irregularities-review/summary`,
+        { params },
+      )
+      .pipe(map((response) => response.data));
   }
 
   getCoaSummary(affiliate: string): Observable<CoaSummary> {

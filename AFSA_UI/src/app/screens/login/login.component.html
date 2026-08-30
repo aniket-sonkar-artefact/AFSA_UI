@@ -1,95 +1,161 @@
 <div class="login-shell" [class.expanded]="expanded()">
-  <!-- Background photo -->
-  <div class="bg-photo"></div>
-  <div class="bg-overlay"></div>
+    <!-- Background photo -->
+    <div class="bg-photo"></div>
+    <div class="bg-overlay"></div>
 
-  <!-- Left content: brand lockup + welcome copy -->
-  <div class="left-content">
-    <div class="brand-lockup">
-      <div class="frd-title">Transforming FC&amp;RD with AI</div>
-      <div class="logo-wrap">
-        <app-logo-badge [size]="expanded() ? 44 : 68" [borderRadius]="expanded() ? 12 : 19"></app-logo-badge>
-      </div>
-      <div class="solution-name">Advanced Financial Statement Agent</div>
-    </div>
+    <!-- Left content -->
+    <div class="left-content">
+        <div class="brand-lockup">
+            <div class="frd-title">Transforming FC&amp;RD with AI</div>
 
-    <div class="welcome-content">
-      <div class="pilot-badge">Q1 2026 &middot; FINANCE PILOT</div>
-      <h1 class="welcome-title">Welcome<br />Back.</h1>
-      <p class="welcome-desc">
-        Advanced Financial Statement Agent supports Finance teams in reviewing affiliate submissions,
-        monitoring IFRS compliance, analysing Group variances and validating financial statement integrity.
-      </p>
-    </div>
+            <div class="logo-wrap">
+                <app-logo-badge
+                    [size]="expanded() ? 44 : 68"
+                    [borderRadius]="expanded() ? 12 : 19"
+                ></app-logo-badge>
+            </div>
 
-    <div class="bottom-left-note">Controlled Finance Environment</div>
-  </div>
-
-  <!-- Login rail / expanding panel -->
-  <aside
-    class="login-rail"
-    (mouseenter)="onRailEnter()"
-    (mouseleave)="onRailLeave()"
-    (click)="onRailClick()"
-  >
-    <!-- Collapsed state -->
-    <div class="rail-collapsed">
-      <div class="rail-arrow">
-        <app-icon name="chevron-left" [size]="17" [strokeWidth]="2"></app-icon>
-      </div>
-      <div class="rail-label">Log in</div>
-    </div>
-
-    <!-- Expanded state -->
-    <div class="rail-expanded">
-      <div class="rail-expanded-inner">
-        <div class="rail-form">
-          <h1 class="login-heading">Log in</h1>
-
-          <div class="team-list">
-            @for (profile of profiles(); track profile.id) {
-              <button
-                type="button"
-                class="team-btn"
-                [class.active]="selectedId() === profile.id"
-                (click)="select(profile.id, $event)"
-              >
-                <div class="team-acronym" [class.long]="profile.initials.length > 4">
-                  {{ profile.initials }}
-                </div>
-                <div class="team-copy">
-                  <div class="team-name">{{ profile.name }}</div>
-                  <div class="team-desc">{{ profile.desc }}</div>
-                </div>
-                <div class="team-radio">
-                  @if (selectedId() === profile.id) {
-                    <app-icon name="check" [size]="13" [strokeWidth]="2.2"></app-icon>
-                  }
-                </div>
-              </button>
-            }
-          </div>
-
-          <div class="selection-status">
-            <span>{{ selectedProfile ? 'Selected: ' + selectedProfile.initials : 'No team selected' }}</span>
-            <span>AFSA Pilot Access</span>
-          </div>
-
-          <button
-            type="button"
-            class="login-btn"
-            [disabled]="!selectedProfile || submitting()"
-            (click)="continue($event)"
-          >
-            {{ submitting() ? 'Signing in\u2026' : 'Log in' }}
-            @if (selectedProfile && !submitting()) {
-              <app-icon name="arrow-right" [size]="16" [strokeWidth]="2"></app-icon>
-            }
-          </button>
+            <div class="solution-name">
+                Advanced Financial Statement Agent
+            </div>
         </div>
-      </div>
 
-      <div class="powered-by">Powered by Aramco</div>
+        <div class="env-note">Controlled Finance Environment</div>
+
+        <div class="welcome-content">
+            <div class="pilot-badge">Q1 2026 &middot; FINANCE PILOT</div>
+
+            <h1 class="welcome-title">
+                Welcome<br />
+                <span class="accent">back.</span>
+            </h1>
+
+            <p class="welcome-desc">
+                Advanced Financial Statement Agent supports Finance teams in
+                reviewing affiliate submissions, monitoring IFRS compliance,
+                analysing Group variances and validating financial statement
+                integrity.
+            </p>
+        </div>
     </div>
-  </aside>
+
+    <!-- Login rail -->
+    <aside
+        class="login-rail"
+        (mouseenter)="onRailEnter()"
+        (mouseleave)="onRailLeave()"
+        (click)="onRailClick()"
+    >
+        <!-- Collapsed state -->
+        <div class="rail-collapsed">
+            <div class="rail-arrow">
+                <app-icon
+                    name="chevron-left"
+                    [size]="17"
+                    [strokeWidth]="2"
+                ></app-icon>
+            </div>
+
+            <div class="rail-label">Log in</div>
+        </div>
+
+        <!-- Expanded state -->
+        <div class="rail-expanded">
+            <div class="rail-expanded-inner">
+                <div class="rail-form">
+
+                    <div class="rail-header">
+                        <div class="rail-header-text">
+                            <div class="rail-eyebrow">
+                                Secure Workspace
+                            </div>
+
+                            <h1 class="login-heading">
+                                Log in
+                            </h1>
+
+                            <p class="rail-subtitle">
+                                Select your account to continue
+                            </p>
+                        </div>
+                    </div>
+
+                    <!-- Account selection -->
+                    <div class="team-list">
+                        @for (account of accounts(); track account.id) {
+                            <button
+                                type="button"
+                                class="team-btn"
+                                [class.active]="selectedId() === account.id"
+                                (click)="selectAccount(account.id, $event)"
+                            >
+                                <div class="team-acronym">
+                                    {{ account.initials }}
+                                </div>
+
+                                <div class="team-copy">
+                                    <div class="team-name-row">
+                                        <div class="team-name">
+                                            {{ account.name }}
+                                        </div>
+
+                                        <span class="account-badge">
+                                            {{ account.tierLabel }}
+                                        </span>
+                                    </div>
+
+                                    <div class="team-desc">
+                                        {{ account.email }}
+                                    </div>
+                                </div>
+
+                                <div class="team-radio">
+                                    @if (selectedId() === account.id) {
+                                        <app-icon
+                                            name="check"
+                                            [size]="13"
+                                            [strokeWidth]="2.2"
+                                        ></app-icon>
+                                    }
+                                </div>
+                            </button>
+                        }
+                    </div>
+
+                    <div class="selection-status">
+                        <span>
+                            {{
+                                selectedAccount
+                                    ? 'Selected: ' + selectedAccount.name
+                                    : 'Select an account to continue'
+                            }}
+                        </span>
+                    </div>
+
+                    <button
+                        type="button"
+                        class="login-btn"
+                        [disabled]="!selectedAccount || submitting()"
+                        (click)="continue($event)"
+                    >
+                        {{
+                            submitting()
+                                ? 'Signing in…'
+                                : 'Sign In Using SSO'
+                        }}
+
+                        @if (!submitting()) {
+                            <app-icon
+                                name="arrow-right"
+                                [size]="16"
+                                [strokeWidth]="2"
+                            ></app-icon>
+                        }
+                    </button>
+                </div>
+            </div>
+
+            <div class="powered-by">Powered by Aramco</div>
+        </div>
+    </aside>
 </div>

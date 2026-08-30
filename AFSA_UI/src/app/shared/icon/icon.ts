@@ -24,7 +24,9 @@ export type IconName =
   | 'template'
   | 'download'
   | 'refresh'
-  | 'clock';
+  | 'clock'
+  | 'menu'
+  | 'x';
 
 @Component({
   selector: 'app-icon',
@@ -99,6 +101,15 @@ export type IconName =
         </ng-container>
         <ng-container *ngSwitchCase="'chevron-right'">
           <path d="M9 18l6-6-6-6" />
+        </ng-container>
+        <ng-container *ngSwitchCase="'menu'">
+          <line x1="3" y1="6" x2="21" y2="6" />
+          <line x1="3" y1="12" x2="21" y2="12" />
+          <line x1="3" y1="18" x2="21" y2="18" />
+        </ng-container>
+        <ng-container *ngSwitchCase="'x'">
+          <line x1="18" y1="6" x2="6" y2="18" />
+          <line x1="6" y1="6" x2="18" y2="18" />
         </ng-container>
         <ng-container *ngSwitchCase="'check'">
           <path d="M20 6L9 17l-5-5" />

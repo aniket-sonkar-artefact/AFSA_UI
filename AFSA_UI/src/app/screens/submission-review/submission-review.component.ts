@@ -2,6 +2,7 @@ import { Component, OnInit, computed, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
+import { forkJoin } from 'rxjs';
 import { IconComponent } from '../../shared/icon/icon';
 import { SkeletonComponent } from '../../shared/skeleton/skeleton.component';
 import { PaginationComponent } from '../../shared/pagination/pagination.component';
@@ -18,6 +19,7 @@ import {
   FinanceAffiliate,
   Finding,
   FindingStatus,
+  IrregularitiesSummary,
   UploadState,
 } from '../../core/models/submission-review.model';
 
@@ -58,6 +60,7 @@ export class SubmissionReviewComponent implements OnInit {
 
   readonly checklist = signal<ChecklistGroup[]>([]);
   readonly findings = signal<Finding[]>([]);
+  readonly irregularitiesSummary = signal<IrregularitiesSummary | null>(null);
   readonly coaRows = signal<CoaRow[]>([]);
   readonly coaSchema = signal<CoaSchema | null>(null);
   readonly coaSummary = signal<CoaSummary | null>(null);
@@ -123,13 +126,13 @@ export class SubmissionReviewComponent implements OnInit {
   });
 
   readonly irregularitiesStatCards = computed(() => {
-    const rows = this.findings();
-    const total = this.irregularitiesTotalCount();
-    const highPriority = rows.filter((r) => r.severityColor === 'red' && r.status !== 'Closed').length;
-    const investigating = rows.filter((r) => r.status === 'Investigate').length;
-    const closed = rows.filter((r) => r.status === 'Closed').length;
+    const summary = this.irregularitiesSummary();
+    const total = summary?.totalIrregularities ?? 0;
+    const highPriority = summary?.highPriorityOpen ?? 0;
+    const investigating = summary?.underInvestigation ?? 0;
+    const closed = summary?.closed ?? 0;
     return [
-      { label: 'Total Irregularities', value: total || rows.length, color: 'var(--submission-accent)', attention: false },
+      { label: 'Total Irregularities', value: total, color: 'var(--submission-accent)', attention: false },
       { label: 'High Priority Open', value: highPriority, color: 'var(--submission-danger)', attention: highPriority > 0 },
       { label: 'Under Investigation', value: investigating, color: 'var(--submission-info)', attention: false },
       { label: 'Closed', value: closed, color: 'var(--submission-success)', attention: false },
@@ -288,15 +291,23 @@ export class SubmissionReviewComponent implements OnInit {
     const affiliate = this.irregularitiesAffiliate();
     this.irregularitiesPage.set(page);
     this.irregularitiesLoading.set(true);
-    this.submissionReviewService.getFindings(affiliate, page).subscribe({
-      next: (result) => {
+
+    // Findings (table rows) and the summary card counts come from two
+    // separate endpoints — the summary is authoritative for the KPI cards
+    // regardless of which page of findings is currently on screen.
+    forkJoin({
+      findings: this.submissionReviewService.getFindings(affiliate, page),
+      summary: this.submissionReviewService.getIrregularitiesSummary(affiliate),
+    }).subscribe({
+      next: ({ findings, summary }) => {
         const overrides = this.findingStatusOverrides();
-        this.findings.set(result.items.map((row) => ({
+        this.findings.set(findings.items.map((row) => ({
           ...row,
           status: overrides[`${affiliate}:${row.accountCode}`] ?? row.status,
         })));
-        this.irregularitiesTotalPages.set(result.totalPages);
-        this.irregularitiesTotalCount.set(result.totalCount);
+        this.irregularitiesTotalPages.set(findings.totalPages);
+        this.irregularitiesTotalCount.set(findings.totalCount);
+        this.irregularitiesSummary.set(summary);
       },
       error: (err) => this.handleError(err, 'Could not load irregularities review.'),
       complete: () => {

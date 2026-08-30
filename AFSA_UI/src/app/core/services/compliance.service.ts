@@ -14,7 +14,9 @@ import {
 
 @Injectable({ providedIn: 'root' })
 export class ComplianceService {
-  private readonly base = `${environment.localIFRSHostUrl}/compliance-monitoring`;
+  private readonly base = `${environment.ifrsComplianceApiUrl}/compliance-monitoring`;
+
+  //private readonly base = `https://ifrs-compliance-api-746397763597.me-central1.run.app/api/v1/compliance-monitoring`;
 
   constructor(private readonly http: HttpClient) {}
 

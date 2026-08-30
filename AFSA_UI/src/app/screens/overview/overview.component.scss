@@ -1,3 +1,5 @@
+@use 'breakpoints' as bp;
+
 :host {
   --ov-danger: #DC2626;
   --ov-danger-soft: rgba(220, 38, 38, 0.08);
@@ -61,6 +63,26 @@
   grid-template-rows: 92px 220px 88px minmax(280px, auto);
   gap: 16px;
   min-height: calc(100vh - 126px);
+
+  @include bp.tablet-down {
+    /* The fixed row heights above are tuned to exactly fill one desktop viewport
+       with no scrolling. At tablet width, sections below wrap onto extra lines
+       (5-stage timeline, 4-col KPI grid, 2x2 routing grid all reflow), so fixed
+       heights would clip content. Let each section size to its own content and
+       let the page scroll naturally instead. */
+    grid-template-rows: auto;
+    min-height: auto;
+  }
+
+  @include bp.tablet {
+    /* Tablet (both orientations) goes back to a viewport-filling layout: the
+       header/status/KPI rows keep their natural (auto) height, and the last
+       row — the routing/navigation cards — expands to soak up whatever
+       vertical space is left, so the 4 nav cards can split it evenly instead
+       of being sized purely by their own content. */
+    grid-template-rows: auto auto auto minmax(240px, 1fr);
+    min-height: calc(100vh - 126px);
+  }
 }
 
 /* =====================================================
@@ -79,6 +101,12 @@
   border: 1px solid var(--border);
   border-radius: 14px;
   box-shadow: 0 2px 8px rgba(15, 23, 42, 0.035);
+
+  @include bp.tablet-down {
+    flex-wrap: wrap;
+    gap: 14px;
+    padding: 16px 18px;
+  }
 }
 
 .ov-header-accent {
@@ -146,6 +174,13 @@
   align-items: center;
   gap: 24px;
   flex-shrink: 0;
+
+  @include bp.tablet-down {
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 6px;
+    margin-left: auto;
+  }
 }
 
 .ov-issue-count {
@@ -236,6 +271,24 @@
   align-items: start;
   padding: 0 48px;
   margin-top: 42px;
+
+  @include bp.tablet-landscape {
+    padding: 0 20px;
+  }
+
+  @include bp.tablet-down {
+    /* 5 fixed-width, nowrap-labelled stages don't compress further without
+       becoming unreadable — let them scroll horizontally as a strip instead,
+       same pattern as a mobile stepper. */
+    grid-template-columns: repeat(5, minmax(108px, 1fr));
+    grid-auto-flow: column;
+    overflow-x: auto;
+    padding: 4px 4px 8px;
+    margin-top: 28px;
+    gap: 4px;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: thin;
+  }
 }
 
 .ov-stage-wrap {
@@ -344,6 +397,10 @@
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 14px;
+
+  @include bp.tablet-down {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 
 .ov-kpi {
@@ -426,6 +483,19 @@
   grid-template-columns: repeat(2, minmax(0, 1fr));
   grid-template-rows: repeat(2, minmax(0, 1fr));
   gap: 12px;
+
+  @include bp.tablet {
+    /* One card per row, each getting an equal share of whatever vertical
+       space is left in the page (see the .overview 1fr last row above),
+       and a single column so nothing ever needs to scroll sideways. */
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: repeat(4, minmax(0, 1fr));
+  }
+
+  @include bp.handset {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: none;
+  }
 }
 
 .ov-routing-card {

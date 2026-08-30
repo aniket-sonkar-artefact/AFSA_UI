@@ -1,21 +1,36 @@
 <div class="afsa-shell" [class.logging-out]="loggingOut()">
+  <!-- Backdrop, shown only behind the off-canvas drawer on handset/tablet-portrait -->
+  @if (isDrawerMode() && drawerOpen()) {
+    <div class="afsa-drawer-backdrop" (click)="closeDrawer()"></div>
+  }
+
   <!-- Sidebar -->
-  <aside class="afsa-sidebar" [class.collapsed]="collapsed()" [style.width.px]="sidebarWidth()">
+  <aside
+    class="afsa-sidebar"
+    [class.collapsed]="collapsed() && !isDrawerMode()"
+    [class.drawer-mode]="isDrawerMode()"
+    [class.drawer-open]="isDrawerMode() && drawerOpen()"
+    [style.width.px]="isDrawerMode() ? drawerWidth : sidebarWidth()"
+  >
     <div class="afsa-sidebar-brand">
       <div class="afsa-brand-lockup">
         <app-logo-badge [size]="30" [borderRadius]="8"></app-logo-badge>
-        @if (!collapsed()) {
+        @if (!collapsed() || isDrawerMode()) {
           <span class="afsa-brand-name">AFSA PLATFORM</span>
         }
       </div>
-      @if (!collapsed()) {
+      @if (isDrawerMode()) {
+        <button class="afsa-sidebar-toggle" title="Close menu" (click)="closeDrawer()">
+          <app-icon name="x" [size]="15" [strokeWidth]="2"></app-icon>
+        </button>
+      } @else if (!collapsed()) {
         <button class="afsa-sidebar-toggle" title="Collapse sidebar" (click)="toggleCollapsed()">
           <app-icon name="chevron-left" [size]="15" [strokeWidth]="2"></app-icon>
         </button>
       }
     </div>
 
-    @if (collapsed()) {
+    @if (collapsed() && !isDrawerMode()) {
       <div class="expand-wrap">
         <button class="afsa-sidebar-toggle" title="Expand sidebar" (click)="toggleCollapsed()">
           <app-icon name="chevron-right" [size]="15" [strokeWidth]="2"></app-icon>
@@ -24,7 +39,7 @@
     }
 
     <nav class="afsa-nav">
-      @if (!collapsed()) {
+      @if (showLabels()) {
         <div class="afsa-nav-label">Workspace</div>
       }
 
@@ -36,13 +51,13 @@
           #rla="routerLinkActive"
           [style.--item-accent]="item.accent"
           [style.box-shadow]="rla.isActive ? ('0 5px 14px ' + item.glow + ', 0 0 0 2px ' + item.glow) : 'none'"
-          [title]="collapsed() ? item.label : null"
+          [title]="!showLabels() ? item.label : null"
         >
           <span class="afsa-nav-selection" [style.background]="item.selectionBackground"></span>
           <span class="afsa-nav-icon">
             <app-icon [name]="item.icon"></app-icon>
           </span>
-          @if (!collapsed()) {
+          @if (showLabels()) {
             <span class="afsa-nav-text">{{ item.label }}</span>
           }
         </a>
@@ -52,7 +67,7 @@
     <div class="afsa-sidebar-user">
       <div class="afsa-user-row">
         <div class="afsa-avatar">{{ currentUser()?.initials || '' }}</div>
-        @if (!collapsed()) {
+        @if (showLabels()) {
           <div class="afsa-user-meta">
             <div class="afsa-user-name">{{ currentUser()?.name || 'Aniket Sonkar' }}</div>
             <div class="afsa-user-group" [title]="currentUser()?.roleLabel">{{ currentUser()?.roleLabel || 'Finance User' }}</div>
@@ -62,12 +77,12 @@
 
       <button class="afsa-signout" [disabled]="loggingOut()" title="Sign out" (click)="logout()">
         <app-icon name="log-out" [size]="14"></app-icon>
-        @if (!collapsed()) {
+        @if (showLabels()) {
           <span class="afsa-signout-text">{{ loggingOut() ? 'Signing out...' : 'Sign out' }}</span>
         }
       </button>
 
-      @if (!collapsed()) {
+      @if (showLabels()) {
         <div class="afsa-powered-by">Powered By Aramco - PoC Environment</div>
       }
     </div>
@@ -77,9 +92,14 @@
   <div class="afsa-main-shell" [style.margin-left.px]="sidebarWidth()" [style.width]="'calc(100% - ' + sidebarWidth() + 'px)'">
     <header class="afsa-topbar">
       <div class="afsa-context">
+        @if (isDrawerMode()) {
+          <button class="afsa-icon-button afsa-menu-trigger" title="Open menu" (click)="toggleDrawer()">
+            <app-icon name="menu" [size]="17"></app-icon>
+          </button>
+        }
         <span class="afsa-context-primary">Consolidated Group</span>
-        <span class="afsa-context-dot">&middot;</span>
-        <span class="afsa-context-secondary">Q1 2026</span>
+        <span class="afsa-context-dot afsa-context-dot-hideable">&middot;</span>
+        <span class="afsa-context-secondary afsa-context-secondary-hideable">Q1 2026</span>
         <span class="afsa-status-pill afsa-status-warning">In Review</span>
       </div>
 

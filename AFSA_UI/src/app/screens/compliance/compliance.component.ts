@@ -8,6 +8,7 @@ import { SkeletonComponent } from '../../shared/skeleton/skeleton.component';
 import { PaginationComponent } from '../../shared/pagination/pagination.component';
 import { IconComponent } from '../../shared/icon/icon';
 import { ComplianceService } from '../../core/services/compliance.service';
+import { ResponsiveService } from '../../core/services/responsive.service';
 import {
   ComplianceCheckResult,
   ComplianceNoteSummary,
@@ -100,6 +101,7 @@ export class ComplianceComponent implements OnInit {
   constructor(
     private readonly complianceService: ComplianceService,
     private readonly router: Router,
+    readonly responsive: ResponsiveService,
   ) {}
 
   ngOnInit(): void {

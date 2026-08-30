@@ -1,21 +1,54 @@
+@use 'breakpoints' as bp;
+
 :host {
   display: block;
   font-family: 'Maven Pro', sans-serif;
 }
 
-$collapsed-width: 96px;
-$expanded-width: 565px;
 $ease: cubic-bezier(0.22, 1, 0.36, 1);
+$accent: #84bd00;
 
 .login-shell {
+  --rail-collapsed: 96px;
+  --rail-expanded: 565px;
+
   position: fixed;
   inset: 0;
   width: 100vw;
   height: 100vh;
+  height: 100dvh; /* accounts for mobile browser chrome show/hide, keeps content off the notch-safe area */
   margin: 0;
   padding: 0;
   overflow: hidden;
   background: #040910;
+
+  @include bp.tablet-landscape {
+    --rail-expanded: clamp(400px, 46vw, 565px);
+  }
+
+  @include bp.tablet-portrait-down {
+    /* Stacked layout below (see the big compact-mode block at the end of this file):
+       the rail no longer slides over the hero, it becomes a normal, scrollable,
+       full-width card underneath it — so these vars stop being relevant here.
+       NOTE: this is deliberately tablet-portrait-down (≤899px), NOT tablet-down
+       (≤1279px) — tablet-landscape (900-1279px) has plenty of width for the normal
+       side-by-side hover-rail design and should keep it, not fall back to this. */
+    position: relative;
+    inset: auto;
+    width: 100%;
+    height: auto;
+    min-height: 100dvh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding-top: var(--safe-top);
+    padding-bottom: var(--safe-bottom);
+    padding-left: var(--safe-left);
+    padding-right: var(--safe-right);
+  }
 }
 
 /* =====================================================
@@ -65,12 +98,13 @@ $ease: cubic-bezier(0.22, 1, 0.36, 1);
   top: 0;
   left: 0;
   bottom: 0;
-  right: $collapsed-width;
-  transition: right 650ms $ease;
+  right: var(--rail-collapsed);
+  transition: right 780ms $ease;
   pointer-events: none;
+  will-change: right;
 
   .login-shell.expanded & {
-    right: $expanded-width;
+    right: var(--rail-expanded);
   }
 }
 
@@ -84,9 +118,9 @@ $ease: cubic-bezier(0.22, 1, 0.36, 1);
   align-items: center;
   text-align: center;
   transition:
-    left 650ms $ease,
-    top 650ms $ease,
-    transform 650ms $ease;
+    left 780ms $ease,
+    top 780ms $ease,
+    transform 780ms $ease;
   z-index: 5;
 
   .login-shell.expanded & {
@@ -102,7 +136,7 @@ $ease: cubic-bezier(0.22, 1, 0.36, 1);
   position: relative;
   margin-bottom: 90px;
   color: #fff;
-  font-size: 58px;
+  font-size: clamp(34px, 4.4vw, 58px);
   line-height: 0.95;
   font-weight: 700;
   letter-spacing: -0.045em;
@@ -112,8 +146,8 @@ $ease: cubic-bezier(0.22, 1, 0.36, 1);
   transform: translateY(0);
   pointer-events: none;
   transition:
-    opacity 180ms ease,
-    transform 350ms ease;
+    opacity 320ms ease,
+    transform 420ms $ease;
 
   .login-shell.expanded & {
     position: absolute;
@@ -121,6 +155,9 @@ $ease: cubic-bezier(0.22, 1, 0.36, 1);
     margin-bottom: 0;
     opacity: 0;
     transform: translateY(-16px);
+    transition:
+      opacity 220ms ease,
+      transform 320ms $ease;
   }
 }
 
@@ -141,7 +178,7 @@ $ease: cubic-bezier(0.22, 1, 0.36, 1);
 .solution-name {
   margin-left: 0;
   color: #fff;
-  font-size: 32px;
+  font-size: clamp(22px, 2.6vw, 32px);
   line-height: 1.1;
   font-weight: 700;
   letter-spacing: -0.035em;
@@ -163,7 +200,7 @@ $ease: cubic-bezier(0.22, 1, 0.36, 1);
   left: 8%;
   top: 50%;
   transform: translateY(-25%) translateX(-30px);
-  max-width: 590px;
+  max-width: min(590px, 62%);
   opacity: 0;
   visibility: hidden;
   transition:
@@ -201,6 +238,10 @@ $ease: cubic-bezier(0.22, 1, 0.36, 1);
   font-weight: 700;
   letter-spacing: -0.055em;
   text-shadow: 0 3px 24px rgba(0, 0, 0, 0.25);
+
+  .accent {
+    color: $accent;
+  }
 }
 
 .welcome-desc {
@@ -213,7 +254,13 @@ $ease: cubic-bezier(0.22, 1, 0.36, 1);
   text-shadow: 0 2px 12px rgba(0, 0, 0, 0.2);
 }
 
-.bottom-left-note {
+/* "Controlled Finance Environment" note. Sits at the bottom-left on desktop
+   (see .login-shell.expanded & below); reflows to sit above the welcome
+   title as a small eyebrow label in compact mode (see the compact block
+   at the end of this file, which reorders it via flex `order` rather than
+   moving it in the DOM — that keeps this absolute positioning untouched
+   for desktop/tablet-landscape). */
+.env-note {
   position: absolute;
   left: 8%;
   bottom: 40px;
@@ -241,24 +288,87 @@ $ease: cubic-bezier(0.22, 1, 0.36, 1);
   top: 18px;
   right: 18px;
   bottom: 18px;
-  width: $collapsed-width;
-  background: #f7f7f8;
+  width: var(--rail-collapsed);
+  background: rgba(8, 14, 22, 0.06);
+  backdrop-filter: blur(18px) saturate(140%);
+  -webkit-backdrop-filter: blur(18px) saturate(140%);
+  border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 32px;
   overflow: hidden;
-  box-shadow: 0 10px 35px rgba(0, 0, 0, 0.17);
+  box-shadow: 0 10px 35px rgba(0, 0, 0, 0.12);
   cursor: pointer;
+  will-change: width, background;
   transition:
-    width 650ms $ease,
-    border-radius 520ms ease,
-    box-shadow 500ms ease;
+    width 780ms $ease,
+    background 500ms ease,
+    backdrop-filter 500ms ease,
+    border-radius 620ms $ease,
+    box-shadow 620ms $ease;
   z-index: 20;
 
   .login-shell.expanded & {
-    width: $expanded-width;
+    width: var(--rail-expanded);
+    background: rgba(8, 14, 22, 0.09);
+    backdrop-filter: blur(24px) saturate(140%);
+    -webkit-backdrop-filter: blur(24px) saturate(140%);
     border-radius: 38px;
-    box-shadow: 0 22px 55px rgba(0, 0, 0, 0.22);
+    box-shadow: 0 22px 55px rgba(0, 0, 0, 0.32);
     cursor: default;
   }
+}
+
+.rail-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 18px;
+  margin-left: -6px;
+  padding: 4px 8px;
+  border: none;
+  border-radius: 8px;
+  background: none;
+  color: rgba(255, 255, 255, 0.55);
+  font-family: 'Maven Pro', sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: color 180ms ease, background 180ms ease;
+
+  &:hover {
+    color: #fff;
+    background: rgba(255, 255, 255, 0.08);
+  }
+}
+
+.rail-subtitle {
+  margin: 8px 0 0;
+  color: rgba(255, 255, 255, 0.55);
+  font-size: 13px;
+  font-weight: 400;
+}
+
+.team-name-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 5px;
+
+  .team-name {
+    margin-bottom: 0;
+  }
+}
+
+.account-badge {
+  flex-shrink: 0;
+  padding: 2px 9px;
+  border-radius: 999px;
+  background: rgba(53, 224, 181, 0.14);
+  color: $accent;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
 }
 
 .rail-collapsed {
@@ -273,13 +383,16 @@ $ease: cubic-bezier(0.22, 1, 0.36, 1);
   transform: translateX(0);
   pointer-events: auto;
   transition:
-    opacity 150ms ease,
-    transform 250ms ease;
+    opacity 260ms ease,
+    transform 380ms $ease;
 
   .login-shell.expanded & {
     opacity: 0;
     transform: translateX(10px);
     pointer-events: none;
+    transition:
+      opacity 220ms ease,
+      transform 320ms $ease;
   }
 }
 
@@ -296,7 +409,7 @@ $ease: cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .rail-label {
-  color: #111827;
+  color: #fff;
   font-size: 13px;
   font-weight: 700;
   white-space: nowrap;
@@ -312,8 +425,12 @@ $ease: cubic-bezier(0.22, 1, 0.36, 1);
   transform: translateX(42px);
   pointer-events: none;
   transition:
-    opacity 380ms ease 170ms,
-    transform 570ms $ease;
+    opacity 420ms ease 260ms,
+    transform 640ms $ease 40ms;
+
+  @include bp.tablet-landscape {
+    padding: 44px 34px 24px;
+  }
 
   .login-shell.expanded & {
     opacity: 1;
@@ -327,17 +444,66 @@ $ease: cubic-bezier(0.22, 1, 0.36, 1);
   display: flex;
   align-items: center;
   justify-content: center;
+  min-height: 0; /* lets .rail-form (and .team-list within it) actually shrink and scroll */
 }
 
 .rail-form {
   width: 100%;
   max-width: 455px;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  max-height: 100%;
+}
+
+.rail-header,
+.selection-status,
+.login-btn {
+  flex-shrink: 0; /* these stay put; only the list gives up space */
+}
+
+/* Card header: "Secure Workspace" eyebrow + "Log in" heading, with a shield
+   icon on the right — shown at every breakpoint now that the glass card is
+   the universal design (see the compact block for the tighter spacing it
+   uses in the stacked layout). */
+.rail-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 32px;
+}
+
+.rail-header-text {
+  min-width: 0;
+}
+
+.rail-eyebrow {
+  margin-bottom: 6px;
+  color: $accent;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.rail-shield {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  flex-shrink: 0;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  color: $accent;
 }
 
 .login-heading {
-  margin: 0 0 44px;
-  color: #0f172a;
-  font-size: 47px;
+  margin: 0;
+  color: #fff;
+  font-size: clamp(30px, 3.4vw, 47px);
   line-height: 1;
   font-weight: 700;
   letter-spacing: -0.045em;
@@ -351,6 +517,34 @@ $ease: cubic-bezier(0.22, 1, 0.36, 1);
   display: flex;
   flex-direction: column;
   gap: 14px;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding-right: 6px;   /* room for the scrollbar so items don't shift */
+  margin-right: -6px;   /* ...and pull it back so alignment matches before */
+
+  /* Firefox */
+  scrollbar-width: thin;
+  scrollbar-color: rgba(53, 224, 181, 0.4) rgba(255, 255, 255, 0.05);
+
+  /* Chrome/Safari/Edge */
+  &::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.04);
+    border-radius: 999px;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: rgba(53, 224, 181, 0.35);
+    border-radius: 999px;
+
+    &:hover {
+      background: rgba(53, 224, 181, 0.55);
+    }
+  }
 }
 
 .team-btn {
@@ -360,8 +554,8 @@ $ease: cubic-bezier(0.22, 1, 0.36, 1);
   gap: 15px;
   padding: 17px;
   border-radius: 16px;
-  border: 1px solid #d2d9e3;
-  background: #ecedef;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.05);
   box-shadow: none;
   cursor: pointer;
   text-align: left;
@@ -374,10 +568,17 @@ $ease: cubic-bezier(0.22, 1, 0.36, 1);
     transform 170ms ease;
 
   &.active {
-    border: 1.5px solid #0033a0;
-    background: #eff4ff;
-    box-shadow: 0 0 0 3px rgba(0, 51, 160, 0.055);
+    border: 1.5px solid $accent;
+    background: rgba(53, 224, 181, 0.12);
+    box-shadow: 0 0 0 3px rgba(53, 224, 181, 0.1);
     transform: translateY(-1px);
+  }
+
+  &:hover:not(.active) {
+    background: rgba(255, 255, 255, 0.09);
+    border-color: rgba(255, 255, 255, 0.22);
+    transform: translateY(-1px);
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.18);
   }
 }
 
@@ -389,9 +590,9 @@ $ease: cubic-bezier(0.22, 1, 0.36, 1);
   align-items: center;
   justify-content: center;
   border-radius: 11px;
-  border: 1px solid #d3dae5;
-  background: #fff;
-  color: #0033a0;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: rgba(255, 255, 255, 0.08);
+  color: $accent;
   font-size: 11px;
   font-weight: 700;
   transition: all 180ms ease;
@@ -401,9 +602,9 @@ $ease: cubic-bezier(0.22, 1, 0.36, 1);
   }
 
   .team-btn.active & {
-    border: 1px solid #0033a0;
-    background: #0033a0;
-    color: #fff;
+    border: 1px solid $accent;
+    background: $accent;
+    color: #04110d;
   }
 }
 
@@ -414,14 +615,14 @@ $ease: cubic-bezier(0.22, 1, 0.36, 1);
 
 .team-name {
   margin-bottom: 5px;
-  color: #101827;
+  color: #fff;
   font-size: 14px;
   line-height: 1.35;
   font-weight: 700;
 }
 
 .team-desc {
-  color: #737d8f;
+  color: rgba(255, 255, 255, 0.6);
   font-size: 12px;
   line-height: 1.55;
   font-weight: 400;
@@ -435,14 +636,15 @@ $ease: cubic-bezier(0.22, 1, 0.36, 1);
   align-items: center;
   justify-content: center;
   border-radius: 50%;
-  border: 1.5px solid #bfc8d6;
-  background: #fff;
+  border: 1.5px solid rgba(255, 255, 255, 0.35);
+  background: transparent;
   color: #fff;
   transition: all 180ms ease;
 
   .team-btn.active & {
-    border: 1px solid #0033a0;
-    background: #0033a0;
+    border: 1px solid $accent;
+    background: $accent;
+    color: #04110d;
   }
 }
 
@@ -453,9 +655,17 @@ $ease: cubic-bezier(0.22, 1, 0.36, 1);
   display: flex;
   align-items: center;
   justify-content: space-between;
-  color: #8490a3;
+  color: rgba(255, 255, 255, 0.55);
   font-size: 12px;
   font-weight: 500;
+}
+
+.status-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: $accent;
+  font-weight: 700;
 }
 
 /* =====================================================
@@ -471,8 +681,8 @@ $ease: cubic-bezier(0.22, 1, 0.36, 1);
   gap: 9px;
   border: none;
   border-radius: 12px;
-  background: #d6d6d7;
-  color: #969eac;
+  background: rgba(255, 255, 255, 0.16);
+  color: rgba(255, 255, 255, 0.55);
   font-family: 'Maven Pro', sans-serif;
   font-size: 15px;
   font-weight: 700;
@@ -484,22 +694,254 @@ $ease: cubic-bezier(0.22, 1, 0.36, 1);
     transform 180ms ease;
 
   &:not(:disabled) {
-    background: #11161d;
-    color: #fff;
+    background: #fff;
+    color: #0f172a;
     cursor: pointer;
-    box-shadow: 0 8px 22px rgba(15, 23, 42, 0.13);
+    box-shadow: 0 10px 26px rgba(0, 0, 0, 0.3);
 
     &:hover {
+      background: #84bd00;
+      color: #fff;
       transform: translateY(-2px);
-      box-shadow: 0 12px 28px rgba(15, 23, 42, 0.17);
+      box-shadow: 0 14px 32px rgba(0, 163, 224, 0.35);
     }
   }
 }
 
 .powered-by {
   text-align: center;
-  color: #8b95a5;
+  color: rgba(255, 255, 255, 0.45);
   font-size: 11px;
   font-weight: 600;
   letter-spacing: 0.025em;
+}
+
+/* =====================================================
+   COMPACT LAYOUT — tablet-portrait & handset (≤899px)
+   The desktop design is a hover-to-reveal side rail sliding over a full-bleed
+   hero. Neither part works here: there's no hover on touch, and a 565px rail
+   plus hero text doesn't fit in 600-899px of width. Below this breakpoint we
+   drop the sliding/absolute-position choreography entirely and lay the page
+   out as a normal, scrollable, single column: compact hero band on top,
+   login card underneath, always visible (the `forceExpanded` component
+   logic already keeps `.expanded` permanently applied at this width, so the
+   selectors below inherit the expanded-state values from the rules above —
+   this block only overrides the things that need a genuinely different
+   arrangement, not just a smaller version of the same one).
+
+   The glass-card theme itself (translucent background, teal accent, white
+   text) is now the default at every breakpoint — see the base rules above.
+   This block only overrides what's genuinely different about the compact
+   arrangement: the stacked (not sliding) layout, left-aligned hero copy,
+   tighter spacing/sizing for the smaller viewport, and — new — a capped
+   card height so a long account list scrolls internally instead of
+   growing the card (and the whole page) indefinitely.
+====================================================== */
+@include bp.tablet-portrait-down {
+  .bg-photo,
+  .bg-overlay {
+    position: fixed;
+  }
+
+  .left-content {
+    position: static;
+    inset: auto;
+    right: auto;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    flex-shrink: 0;
+    width: 100%;
+    max-width: 640px;
+    margin: 0 auto;
+    padding: calc(28px + var(--safe-top)) 24px 20px;
+    pointer-events: auto;
+  }
+
+  .brand-lockup {
+    position: static;
+    left: auto;
+    top: auto;
+    transform: none;
+    flex-direction: row;
+    text-align: left;
+    gap: 10px;
+    margin-bottom: 18px;
+    order: 1;
+  }
+
+  .frd-title {
+    display: none; /* the full hero headline doesn't fit the compact hero band; solution-name below carries the branding */
+  }
+
+  .logo-wrap {
+    margin-bottom: 0;
+    transform: scale(1);
+  }
+
+  .solution-name {
+    margin-left: 10px;
+    font-size: 15px;
+    letter-spacing: -0.015em;
+  }
+
+  .env-note {
+    position: static;
+    left: auto;
+    bottom: auto;
+    text-align: left;
+    opacity: 1;
+    transform: none;
+    order: 3;
+    margin: 24px 0 0;
+    color: rgba(255, 255, 255, 0.52);
+    font-size: 11px;
+    font-weight: 500;
+  }
+
+  .welcome-content {
+    position: static;
+    left: auto;
+    top: auto;
+    transform: none;
+    max-width: 480px;
+    opacity: 1;
+    visibility: visible;
+    text-align: left;
+    margin-top: 14px;
+    order: 2;
+  }
+
+  .welcome-title {
+    font-size: clamp(30px, 6vw, 42px);
+  }
+
+  .welcome-desc {
+    margin: 14px 0 0;
+    font-size: 13.5px;
+    line-height: 1.65;
+  }
+
+  .login-rail {
+    position: static;
+    inset: auto;
+    top: auto;
+    right: auto;
+    bottom: auto;
+    width: 100%;
+    max-width: 640px;
+    height: auto;
+    max-height: min(72vh, 620px); /* ceiling so the account list has something to scroll within */
+    display: flex;
+    flex-direction: column;
+    margin: 24px auto;
+    border-radius: 24px;
+    cursor: default;
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.32);
+  }
+
+  .rail-collapsed {
+    display: none; /* no collapsed strip in compact mode — the card is always open */
+  }
+
+  .rail-expanded {
+    position: static;
+    opacity: 1;
+    transform: none;
+    pointer-events: auto;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    flex: 1;
+    padding: 30px 22px calc(26px + var(--safe-bottom));
+  }
+
+  .rail-expanded-inner {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    flex: 1;
+  }
+
+  .rail-form {
+    max-width: none;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    flex: 1;
+  }
+
+  .rail-header {
+    margin-bottom: 22px;
+  }
+
+  .login-heading {
+    font-size: clamp(24px, 5vw, 30px);
+  }
+
+  .team-list {
+    gap: 10px;
+    min-height: 0;
+    flex: 1;
+    overflow-y: auto;
+    overflow-x: hidden;
+  }
+
+  .team-btn {
+    padding: 14px;
+  }
+
+  .login-btn {
+    height: var(--tap-target-min, 44px);
+  }
+
+  /* ---------------------------------------------------
+     .login-shell.expanded is permanently applied in this
+     mode (forceExpanded), so the desktop rules nested as
+     ".login-shell.expanded &" above — 3 classes of
+     specificity — always outrank the plain single-class
+     overrides just above this comment, no matter their
+     source order. Re-declaring them here at matching
+     specificity (and later in the source) is what actually
+     makes the compact values win, instead of the desktop
+     transition values leaking through and dragging
+     .welcome-content up into .brand-lockup — this also
+     covers .team-list's gap, which would otherwise be
+     shadowed the same way.
+  --------------------------------------------------- */
+  .login-shell.expanded {
+    .logo-wrap {
+      transform: scale(1);
+    }
+
+    .solution-name {
+      margin-left: 10px;
+      font-size: 20px;
+    }
+
+    .welcome-content {
+      transform: none;
+    }
+
+    .login-rail {
+      width: 100%;
+      border-radius: 24px;
+      box-shadow: 0 12px 40px rgba(0, 0, 0, 0.32);
+      max-height: min(72vh, 620px);
+    }
+
+    .team-list {
+      gap: 10px;
+    }
+  }
+}
+
+@include bp.handset {
+  .login-rail {
+    border-radius: 20px;
+  }
+
+  .rail-expanded {
+    padding: 24px 16px calc(22px + var(--safe-bottom));
+  }
 }

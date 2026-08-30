@@ -12,10 +12,10 @@ import {
 const REPORTS: ReportRow[] = [
   { id: 'completeness', title: 'Completeness Checklist', capability: 'Affiliate Submission Review', meta: 'Group \u00b7 Q1 2026', reportType: 'completeness_checklist' },
   { id: 'irregularities', title: 'Irregularities Report', capability: 'Affiliate Submission Review', meta: 'Group \u00b7 Q1 2026', reportType: 'irregularities_report' },
-  { id: 'coa', title: 'CoA Mapping Report', capability: 'Affiliate Submission Review', meta: 'Group \u00b7 Q1 2026', reportType: 'coa_mapping_report' },
-  { id: 'ifrs', title: 'IFRS Requirements Compliance Report', capability: 'Compliance Monitoring & Benchmarking', meta: 'Group \u00b7 Q1 2026', reportType: 'ifrs_requirements_compliance' },
+  { id: 'coa', title: 'CoA Mapping Report', capability: 'Affiliate Submission Review', meta: 'Group \u00b7 Q1 2026', reportType: 'coa_mapping' },
+  { id: 'ifrs', title: 'IFRS Requirements Compliance Report', capability: 'Compliance Monitoring & Benchmarking', meta: 'Group \u00b7 Q1 2026', reportType: 'ifrs_compliance' },
   { id: 'variance', title: 'Variance Analysis Report', capability: 'Management Reports & Variance Analysis', meta: 'Group Consolidated \u00b7 Q1 2026', reportType: 'group_variance_analysis' },
-  { id: 'integrity', title: 'Footings and Cross-References Exception Report', capability: 'Financial Statement Integrity Check', meta: 'Group \u00b7 Q1 2026', reportType: 'footings_cross_references_exception' },
+  { id: 'integrity', title: 'Integrity Report', capability: 'Financial Statement Integrity Check', meta: 'Group \u00b7 Q1 2026', reportType: 'integrity_check' },
 ];
 
 /** How often to poll GET /api/v1/reports/{generation_id} while a job runs. */

@@ -1,3 +1,5 @@
+@use 'breakpoints' as bp;
+
 :host {
   --submission-accent: #1F497D;
   --submission-accent-hover: #183B66;
@@ -124,6 +126,14 @@
   border: 1px solid var(--border);
   border-radius: 14px;
   box-shadow: 0 2px 8px rgba(15, 23, 42, 0.03);
+
+  @include bp.tablet-down {
+    /* header-controls below has flex-shrink: 0, so without a wrap here the
+       row could overflow its card rather than reflow at narrower widths. */
+    flex-wrap: wrap;
+    align-items: flex-start;
+    gap: 18px;
+  }
 }
 
 .sr-header-accent {
@@ -164,6 +174,12 @@
   align-items: flex-end;
   gap: 20px;
   flex-shrink: 0;
+
+  @include bp.tablet-down {
+    flex-wrap: wrap;
+    justify-content: flex-start;
+    width: 100%;
+  }
 }
 
 .sr-meta-block {
@@ -234,6 +250,10 @@
   align-items: center;
   justify-content: space-between;
   gap: 18px;
+
+  @include bp.tablet-down {
+    flex-wrap: wrap;
+  }
 }
 
 .sr-tabs-shell {
@@ -243,6 +263,12 @@
   border: 1px solid var(--border);
   border-radius: 11px;
   background: var(--card);
+
+  @include bp.tablet-down {
+    display: flex;
+    width: 100%;
+    flex-wrap: wrap;
+  }
 }
 
 .sr-tab-button {
@@ -262,6 +288,11 @@
     box-shadow 220ms ease,
     transform 220ms cubic-bezier(0.22, 1, 0.36, 1);
 
+  @include bp.tablet-down {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+
   &:hover {
     color: var(--submission-accent);
     background: var(--submission-accent-soft);
@@ -279,6 +310,10 @@
   color: var(--text-muted);
   font-size: 9.5px;
   white-space: nowrap;
+
+  @include bp.tablet-down {
+    white-space: normal;
+  }
 }
 
 /* =====================================================
@@ -296,6 +331,10 @@
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 12px;
+
+  @include bp.tablet-down {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 
 .sr-kpi {
@@ -914,6 +953,7 @@
 .sr-table-scroll {
   width: 100%;
   overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 .sr-pagination-row {
@@ -928,21 +968,14 @@
   display: block;
 }
 
-@media (max-width: 1050px) {
-  .sr-header {
-    align-items: flex-start;
-    gap: 18px;
-  }
-
-  .sr-header-controls {
-    flex-wrap: wrap;
-    justify-content: flex-end;
-  }
-
+@include bp.tablet-down {
   /* Only force a minimum table width (and therefore a horizontal
      scrollbar inside .sr-table-scroll) once the viewport is genuinely
      too narrow to fit the fixed-layout columns comfortably. Above this
-     breakpoint the table simply shrinks to the container width. */
+     breakpoint the table simply shrinks to the container width.
+     (Header/tabs wrap rules now live on their own selectors above, using
+     the same bp.tablet-down breakpoint, instead of a separate ad-hoc
+     1050px cutoff — keeps every reflow on this screen in sync.) */
   .sr-table-scroll .sr-table {
     min-width: 760px;
   }

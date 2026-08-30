@@ -47,6 +47,22 @@
 
   --skeleton-base: #E7ECF3;
   --skeleton-shine: #F5F8FC;
+
+  /* Safe-area insets: resolve to 0 on devices/contexts without a notch/Dynamic Island/
+     home-indicator, and to the real inset amount on ones that have it (iPhone notch,
+     Dynamic Island, iPad/iPhone home indicator, Android cutouts). Requires
+     viewport-fit=cover in index.html's viewport meta, which is already set.
+     These only have a nonzero value when the app runs full-screen (PWA installed to
+     home screen, or wrapped in a native WebView) — a normal browser tab already keeps
+     content clear of the notch via its own chrome, so this is a safe no-op there. */
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-right: env(safe-area-inset-right, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-left: env(safe-area-inset-left, 0px);
+
+  /* Minimum comfortable touch target per WCAG 2.5.5 / Apple HIG, applied on
+     coarse-pointer (touch) inputs — see .tap-target utility further down. */
+  --tap-target-min: 44px;
 }
 
 html[data-theme='dark'] {
@@ -742,3 +758,124 @@ button:focus-visible {
   outline: 2px solid rgba(0, 51, 160, 0.22);
   outline-offset: 2px;
 }
+
+/* =====================================================================
+   Responsive shell — tablet/handset behavior
+   Breakpoint numbers below MUST stay in sync with src/styles/_breakpoints.scss
+   and src/app/core/services/responsive.service.ts (BREAKPOINTS constant):
+     handset          : max-width 599px
+     tablet-portrait   : 600px – 899px
+   ===================================================================== */
+
+/* Safe-area padding on the fixed shell chrome so content never sits under
+   a notch / Dynamic Island / home-indicator when running full-screen
+   (PWA / native WebView). No-op in a normal browser tab. */
+.afsa-sidebar {
+  padding-top: var(--safe-top);
+  padding-left: var(--safe-left);
+  padding-bottom: var(--safe-bottom);
+}
+
+.afsa-topbar {
+  padding-top: calc(var(--safe-top));
+  padding-left: calc(30px + var(--safe-left));
+  padding-right: calc(30px + var(--safe-right));
+}
+
+.afsa-page {
+  padding-bottom: calc(36px + var(--safe-bottom));
+}
+
+/* Off-canvas drawer sidebar (handset + tablet-portrait): overlays content
+   instead of pushing it, hidden off-screen until opened. */
+.afsa-sidebar.drawer-mode {
+  transform: translateX(-100%);
+  z-index: 70;
+  box-shadow: none;
+  transition: transform 220ms ease;
+}
+
+.afsa-sidebar.drawer-mode.drawer-open {
+  transform: translateX(0);
+  box-shadow: 6px 0 28px rgba(15, 23, 42, 0.18);
+}
+
+.afsa-drawer-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  background: rgba(15, 23, 42, 0.40);
+  -webkit-backdrop-filter: blur(1px);
+  backdrop-filter: blur(1px);
+  animation: afsa-backdrop-in 180ms ease;
+}
+
+@keyframes afsa-backdrop-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.afsa-menu-trigger {
+  display: none;
+  flex-shrink: 0;
+}
+
+/* Tablet-portrait and handset: sidebar becomes a drawer, main content goes
+   full-width, hamburger trigger appears in the topbar. */
+@media (max-width: 899px) {
+  .afsa-menu-trigger {
+    display: inline-flex;
+  }
+
+  .afsa-topbar {
+    padding-left: calc(18px + var(--safe-left));
+    padding-right: calc(18px + var(--safe-right));
+    gap: 10px;
+  }
+
+  .afsa-context {
+    gap: 8px;
+    min-width: 0;
+  }
+
+  .afsa-context-primary {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .afsa-page {
+    padding: 18px 18px calc(28px + var(--safe-bottom));
+  }
+}
+
+/* Handset only: trim further, hide secondary context text to make room */
+@media (max-width: 599px) {
+  .afsa-context-dot-hideable,
+  .afsa-context-secondary-hideable {
+    display: none;
+  }
+
+  .afsa-page {
+    padding: 14px 14px calc(24px + var(--safe-bottom));
+  }
+}
+
+/* Coarse-pointer (touch) targets: bump up interactive element hit areas
+   regardless of screen size, per WCAG 2.5.5 / Apple HIG guidance. */
+@media (pointer: coarse) {
+  .afsa-icon-button,
+  .afsa-sidebar-toggle {
+    width: var(--tap-target-min);
+    height: var(--tap-target-min);
+  }
+
+  .afsa-nav-item {
+    min-height: var(--tap-target-min);
+  }
+
+  .afsa-button {
+    min-height: var(--tap-target-min);
+  }
+}
+

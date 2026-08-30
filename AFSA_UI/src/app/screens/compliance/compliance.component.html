@@ -104,6 +104,18 @@
             <app-skeleton width="40%" height="10px" radius="4px"></app-skeleton>
           </div>
         }
+      } @else if (responsive.isTablet()) {
+        <!-- Tablet only: the note list collapses into a dropdown so the
+             workspace doesn't need a tall, separately-scrolling note rail. -->
+        <select
+          class="compliance-note-select"
+          [ngModel]="selectedNoteId()"
+          (ngModelChange)="selectNote($event)"
+        >
+          @for (n of notes(); track n.noteId) {
+            <option [value]="n.noteId">{{ n.title }} &middot; {{ n.noteCode }}</option>
+          }
+        </select>
       } @else {
         @for (n of notes(); track n.noteId) {
           <button

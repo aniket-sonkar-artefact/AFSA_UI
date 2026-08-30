@@ -21,7 +21,7 @@ export interface Finding {
   change: string;
   flag: string;
   severityColor: 'red' | 'yellow';
-  colorLocation: 'current' | 'change';
+  colorLocation: 'currentPeriod' | 'change';
   status: FindingStatus;
 }
 
@@ -32,6 +32,13 @@ export interface IrregularitiesPage {
   totalCount: number;
   resultCount: number;
   totalPages: number;
+}
+
+export interface IrregularitiesSummary {
+  totalIrregularities: number;
+  highPriorityOpen: number;
+  underInvestigation: number;
+  closed: number;
 }
 
 export interface ChecklistItem {
