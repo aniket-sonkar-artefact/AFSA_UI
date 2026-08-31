@@ -1,6 +1,7 @@
 import { Component, OnInit, computed, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { HttpErrorResponse } from '@angular/common/http';
 import { Router } from '@angular/router';
 import { forkJoin } from 'rxjs';
 import { IconComponent } from '../../shared/icon/icon';
@@ -32,6 +33,42 @@ const TAB_LABEL: Record<MainTab, string> = {
 };
 
 const PERIOD_LABEL = 'Q1 2026';
+
+const TRIAL_BALANCE_NOT_READY_FALLBACK =
+  'Irregularities review requires a complete Trial Balance submission for this period.';
+
+interface IrregularitiesBlockedState {
+  blocked: boolean;
+  message: string;
+}
+
+const IRREGULARITIES_NOT_BLOCKED: IrregularitiesBlockedState = { blocked: false, message: '' };
+
+/** Shape of the API's error envelope body, e.g.:
+ *  { success: false, data: null, message: "...", errors: [{ code, field, message }] } */
+interface ApiErrorBody {
+  success: boolean;
+  message?: string;
+  errors?: { code: string; field?: string | null; message: string }[];
+}
+
+function getApiErrorCode(err: unknown): string | null {
+  if (err instanceof HttpErrorResponse) {
+    const body = err.error as ApiErrorBody | undefined;
+    return body?.errors?.[0]?.code ?? null;
+  }
+  return null;
+}
+
+// The user-facing text lives on the envelope's top-level "message" field
+// (not errors[0].message, which tends to hold internal/diagnostic detail).
+function getApiErrorMessage(err: unknown, fallback: string): string {
+  if (err instanceof HttpErrorResponse) {
+    const body = err.error as ApiErrorBody | undefined;
+    if (body?.message) return body.message;
+  }
+  return fallback;
+}
 
 @Component({
   selector: 'app-submission-review',
@@ -78,6 +115,9 @@ export class SubmissionReviewComponent implements OnInit {
   readonly irregularitiesPage = signal(1);
   readonly irregularitiesTotalPages = signal(1);
   readonly irregularitiesTotalCount = signal(0);
+  // Set when the API returns TRIAL_BALANCE_NOT_READY for the selected
+  // affiliate — replaces the KPI cards + table with a disabled-state message.
+  readonly irregularitiesBlocked = signal<IrregularitiesBlockedState>(IRREGULARITIES_NOT_BLOCKED);
   readonly coaPage = signal(1);
   readonly coaTotalPages = signal(1);
 
@@ -291,6 +331,7 @@ export class SubmissionReviewComponent implements OnInit {
     const affiliate = this.irregularitiesAffiliate();
     this.irregularitiesPage.set(page);
     this.irregularitiesLoading.set(true);
+    this.irregularitiesBlocked.set(IRREGULARITIES_NOT_BLOCKED);
 
     // Findings (table rows) and the summary card counts come from two
     // separate endpoints — the summary is authoritative for the KPI cards
@@ -308,11 +349,25 @@ export class SubmissionReviewComponent implements OnInit {
         this.irregularitiesTotalPages.set(findings.totalPages);
         this.irregularitiesTotalCount.set(findings.totalCount);
         this.irregularitiesSummary.set(summary);
-      },
-      error: (err) => this.handleError(err, 'Could not load irregularities review.'),
-      complete: () => {
         this.irregularitiesLoading.set(false);
         this.irregularitiesLoadedFor.add(affiliate);
+      },
+      error: (err) => {
+        // forkJoin never fires `complete` after `error`, so loading/cache
+        // state has to be settled here too — otherwise the skeleton would
+        // stay on screen for any irregularities error, not just this one.
+        this.irregularitiesLoading.set(false);
+        this.irregularitiesLoadedFor.add(affiliate);
+
+        if (getApiErrorCode(err) === 'TRIAL_BALANCE_NOT_READY') {
+          this.irregularitiesBlocked.set({
+            blocked: true,
+            message: getApiErrorMessage(err, TRIAL_BALANCE_NOT_READY_FALLBACK),
+          });
+          return;
+        }
+
+        this.handleError(err, 'Could not load irregularities review.');
       },
     });
   }

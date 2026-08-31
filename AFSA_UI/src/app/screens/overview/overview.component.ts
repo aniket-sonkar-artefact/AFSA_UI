@@ -61,6 +61,121 @@ const CAPABILITY_CARDS: CapabilityCard[] = [
   },
 ];
 
+// -----------------------------------------------------------------------
+// STATIC OVERVIEW DATA
+// -----------------------------------------------------------------------
+// The overview cards were originally driven by live API calls (see the
+// commented-out forkJoin in ngOnInit below). For now they're populated
+// with this static seed data instead — the shapes match exactly what the
+// API calls used to return, so switching back later is just a matter of
+// uncommenting the forkJoin block and deleting this block (or vice versa).
+// -----------------------------------------------------------------------
+const STATIC_FINDINGS_A: Finding[] = [
+  {
+    accountCode: '4010',
+    account: 'Trade Receivables',
+    currentPeriod: '12,450,000',
+    priorPeriod: '9,820,000',
+    change: '+26.8%',
+    flag: 'Significant variance vs prior period',
+    severityColor: 'red',
+    colorLocation: 'change',
+    status: 'Open',
+  },
+  {
+    accountCode: '5210',
+    account: 'Inventory Reserve',
+    currentPeriod: '1,120,000',
+    priorPeriod: '1,180,000',
+    change: '-5.1%',
+    flag: 'Within tolerance',
+    severityColor: 'yellow',
+    colorLocation: 'change',
+    status: 'Closed',
+  },
+];
+
+const STATIC_FINDINGS_B: Finding[] = [
+  {
+    accountCode: '6040',
+    account: 'Accrued Liabilities',
+    currentPeriod: '3,340,000',
+    priorPeriod: '2,050,000',
+    change: '+62.9%',
+    flag: 'Requires investigation',
+    severityColor: 'red',
+    colorLocation: 'change',
+    status: 'Investigate',
+  },
+  {
+    accountCode: '7015',
+    account: 'Other Operating Expense',
+    currentPeriod: '860,000',
+    priorPeriod: '905,000',
+    change: '-5.0%',
+    flag: 'Within tolerance',
+    severityColor: 'yellow',
+    colorLocation: 'change',
+    status: 'Closed',
+  },
+];
+
+const STATIC_COA_A: CoaRow[] = [
+  {
+    rowId: 'sabic-0001',
+    code: '2210',
+    description: 'Deferred Tax Liability',
+    currentGroupNode: null,
+    selectedMapping: 'Unmapped',
+    mappingStatus: 'Low Confidence',
+    rationale: 'No strong match found against Group CoA taxonomy.',
+    canConfirm: false,
+    confirmed: false,
+    pendingSelection: null,
+  },
+  {
+    rowId: 'sabic-0002',
+    code: '1105',
+    description: 'Cash and Cash Equivalents',
+    currentGroupNode: 'GRP-1100',
+    selectedMapping: 'Cash & Equivalents',
+    mappingStatus: 'High Confidence',
+    rationale: 'Exact match on account description and code range.',
+    canConfirm: false,
+    confirmed: true,
+    pendingSelection: 'GRP-1100',
+  },
+];
+
+const STATIC_COA_B: CoaRow[] = [
+  {
+    rowId: 'rabigh-0001',
+    code: '3305',
+    description: 'Intercompany Balances',
+    currentGroupNode: null,
+    selectedMapping: 'Unmapped',
+    mappingStatus: 'Unmapped',
+    rationale: 'Account not yet present in the Group CoA taxonomy.',
+    canConfirm: false,
+    confirmed: false,
+    pendingSelection: null,
+  },
+  {
+    rowId: 'rabigh-0002',
+    code: '4001',
+    description: 'Revenue from Contracts',
+    currentGroupNode: 'GRP-4000',
+    selectedMapping: 'Revenue',
+    mappingStatus: 'High Confidence',
+    rationale: 'Exact match on account description and code range.',
+    canConfirm: false,
+    confirmed: true,
+    pendingSelection: 'GRP-4000',
+  },
+];
+
+const STATIC_INTEGRITY_FLAGGED = 3;
+
 @Component({
   selector: 'app-overview',
   standalone: true,
@@ -162,19 +277,28 @@ export class OverviewComponent implements OnInit {
   ) {}
 
   ngOnInit(): void {
-    forkJoin({
-      findingsA: this.submissionReviewService.getFindings('2010', 1).pipe(map((result) => result.items)),
-      findingsB: this.submissionReviewService.getFindings('2380', 1).pipe(map((result) => result.items)),
-      coaA: this.submissionReviewService.getCoaRows('sabic', 1).pipe(map((result) => result.items)),
-      coaB: this.submissionReviewService.getCoaRows('rabigh', 1).pipe(map((result) => result.items)),
-      integritySummary: this.integrityService.getSummary(),
-    }).subscribe(({ findingsA, findingsB, coaA, coaB, integritySummary }) => {
-      this.findingsA.set(findingsA);
-      this.findingsB.set(findingsB);
-      this.coaA.set(coaA);
-      this.coaB.set(coaB);
-      this.integrityFlagged.set(integritySummary.totalFlagged);
-    });
+    // Static for now — see STATIC_* constants above. To switch back to the
+    // live API, delete this block and uncomment the forkJoin block below.
+    this.findingsA.set(STATIC_FINDINGS_A);
+    this.findingsB.set(STATIC_FINDINGS_B);
+    this.coaA.set(STATIC_COA_A);
+    this.coaB.set(STATIC_COA_B);
+    this.integrityFlagged.set(STATIC_INTEGRITY_FLAGGED);
+
+    // ---- Live API version (disabled) ----
+    // forkJoin({
+    //   findingsA: this.submissionReviewService.getFindings('2010', 1).pipe(map((result) => result.items)),
+    //   findingsB: this.submissionReviewService.getFindings('2380', 1).pipe(map((result) => result.items)),
+    //   coaA: this.submissionReviewService.getCoaRows('sabic', 1).pipe(map((result) => result.items)),
+    //   coaB: this.submissionReviewService.getCoaRows('rabigh', 1).pipe(map((result) => result.items)),
+    //   integritySummary: this.integrityService.getSummary(),
+    // }).subscribe(({ findingsA, findingsB, coaA, coaB, integritySummary }) => {
+    //   this.findingsA.set(findingsA);
+    //   this.findingsB.set(findingsB);
+    //   this.coaA.set(coaA);
+    //   this.coaB.set(coaB);
+    //   this.integrityFlagged.set(integritySummary.totalFlagged);
+    // });
   }
 
   capabilityStatus(card: CapabilityCard): string {

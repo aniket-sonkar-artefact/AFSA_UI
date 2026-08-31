@@ -173,6 +173,14 @@
       @if (irregularitiesLoading()) {
         <div class="sr-kpi-grid">@for (i of [1, 2, 3, 4]; track i) {<div class="sr-kpi sr-kpi-skeleton"><app-skeleton width="42px" height="27px" radius="5px"></app-skeleton><app-skeleton width="105px" height="9px" radius="4px"></app-skeleton></div>}</div>
         <section class="sr-table-card sr-skeleton-card"><div class="sr-group-header"><app-skeleton width="180px" height="11px" radius="4px"></app-skeleton><app-skeleton width="85px" height="9px" radius="4px"></app-skeleton></div><table class="sr-table"><colgroup><col class="ir-code"><col class="ir-account"><col class="ir-value"><col class="ir-value"><col class="ir-change"><col class="ir-flag"><col class="ir-status"></colgroup><thead><tr><th>Account Code</th><th>Account</th><th>Current Period</th><th>Prior Period</th><th>Change</th><th>Flag</th><th>Status</th></tr></thead><tbody>@for (row of [1,2,3,4,5,6,7,8]; track row) {<tr><td><app-skeleton width="52px" height="10px" radius="4px"></app-skeleton></td><td><app-skeleton width="150px" height="11px" radius="4px"></app-skeleton></td><td><app-skeleton width="70px" height="10px" radius="4px"></app-skeleton></td><td><app-skeleton width="70px" height="10px" radius="4px"></app-skeleton></td><td><app-skeleton width="45px" height="10px" radius="4px"></app-skeleton></td><td><app-skeleton width="170px" height="10px" radius="4px"></app-skeleton></td><td><app-skeleton width="75px" height="27px" radius="7px"></app-skeleton></td></tr>}</tbody></table></section>
+      } @else if (irregularitiesBlocked().blocked) {
+        <div class="sr-irregularities-blocked" role="alert">
+          <span class="sr-irregularities-blocked-icon"><app-icon name="alert-triangle" [size]="18" [strokeWidth]="2"></app-icon></span>
+          <div class="sr-irregularities-blocked-copy">
+            <div class="sr-irregularities-blocked-title">Irregularities Review unavailable</div>
+            <div class="sr-irregularities-blocked-message">{{ irregularitiesBlocked().message }}</div>
+          </div>
+        </div>
       } @else {
         <div class="sr-kpi-grid">
           @for (s of irregularitiesStatCards(); track s.label) {

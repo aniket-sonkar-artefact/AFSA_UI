@@ -907,6 +907,35 @@
   cursor: pointer;
 }
 
+.sr-irregularities-blocked {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 24px;
+  border: 1px solid var(--submission-warning-border);
+  border-radius: 12px;
+  background: var(--submission-warning-soft);
+}
+
+.sr-irregularities-blocked-icon {
+  display: inline-flex;
+  flex-shrink: 0;
+  color: var(--submission-warning);
+}
+
+.sr-irregularities-blocked-title {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: 4px;
+}
+
+.sr-irregularities-blocked-message {
+  font-size: 11px;
+  line-height: 1.5;
+  color: var(--text-muted);
+}
+
 .sr-table-completeness,
 .sr-table-irregularities,
 .sr-table-coa {
