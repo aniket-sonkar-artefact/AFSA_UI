@@ -320,11 +320,11 @@
 
 .integrity-kpi {
   position: relative;
-  min-height: 72px;
+  min-height: 100px;
   display: flex;
   flex-direction: column;
   justify-content: center;
-  padding: 12px 15px;
+  padding: 18px 18px;
   border: 1px solid color-mix(in srgb, var(--kpi-accent, var(--border)) 35%, var(--border));
   border-top: 3px solid var(--kpi-accent, var(--border));
   border-radius: 10px;
