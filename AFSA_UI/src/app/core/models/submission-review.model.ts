@@ -1,6 +1,7 @@
 export type FindingStatus = 'Open' | 'Investigate' | 'Closed';
 
-export type MappingStatus = 'High Confidence' | 'Low Confidence' | 'Unmapped';
+export type MappingStatus = 'High Confidence' | 'Low Confidence' | 'Unmapped' | string;
+export type ReviewStatus = 'Confirmed' | 'Resolved' | 'Pending' | string;
 
 export interface FinanceAffiliate {
   entityCode: string;
@@ -66,9 +67,13 @@ export interface CoaRow {
   rowId: string;
   code: string;
   description: string;
+  monthValue: string;
+  qtdValue: string;
+  ytdValue: string;
   currentGroupNode: string | null;
   selectedMapping: string;
-  mappingStatus: MappingStatus;
+  mappingConfidence: MappingStatus;
+  status: ReviewStatus;
   rationale: string;
   canConfirm: boolean;
   confirmed: boolean;
@@ -94,31 +99,47 @@ export interface CoaSummary {
     reviewStatus: string;
     reviewer: string;
     highConfidenceThreshold: number;
+    units?: string;
   };
   counts: {
     accountsReviewed: number;
-    mappingsConfirmed: number;
+    highConfidence: number;
     lowConfidencePending: number;
     unmappedPending: number;
-    highConfidence: number;
+    confirmed: number;
+    resolved: number;
+    pending: number;
+    mappingsConfirmed: number;
     flagged: number;
   };
 }
 
+export interface CoaSchemaColumn {
+  key: string;
+  label: string;
+  type: string;
+  optionsFrom?: string;
+  valueKey?: string;
+  placeholder?: string;
+  actionLabel?: string;
+  enabledKey?: string;
+}
+
+export interface CoaSchemaVocabulary<T extends string = string> {
+  value: T;
+  label: string;
+  tone: 'success' | 'warning' | 'danger' | 'info';
+}
+
 export interface CoaSchema {
-  tableColumns: Array<{
-    key: string;
-    label: string;
-    type: string;
-    optionsFrom?: string;
-    valueKey?: string;
-    placeholder?: string;
-    actionLabel?: string;
-    enabledKey?: string;
-  }>;
-  mappingStatuses: Array<{ value: MappingStatus; label: string; tone: 'success' | 'warning' | 'danger' }>;
+  tableColumns: CoaSchemaColumn[];
+  mappingConfidences: CoaSchemaVocabulary<MappingStatus>[];
+  reviewStatuses: CoaSchemaVocabulary<ReviewStatus>[];
+  units: string;
+  period: string;
   groupNodes: CoaGroupNode[];
   groupNodeCount: number;
+  nodesSource?: string;
   highConfidenceThreshold: number;
 }
 

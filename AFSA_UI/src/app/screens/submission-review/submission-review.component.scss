@@ -579,6 +579,14 @@
   color: var(--text-muted);
 }
 
+/* CoA amount cells/headers follow the API schema's amount type. The API
+   already formats these values, so alignment is the only client-side concern. */
+.sr-table-coa th.amount-header,
+.sr-table-coa td.amount-cell {
+  text-align: right;
+}
+
+
 .sr-flag-cell {
   display: flex;
   align-items: center;
@@ -718,9 +726,14 @@
 ====================================================== */
 
 .sr-mapping-value {
-  color: var(--text-primary);
-  font-size: 10.5px;
-  font-weight: 650;
+  display: inline-block;
+  max-width: 190px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--submission-text);
 }
 
 .sr-mapping-static {
@@ -1008,4 +1021,124 @@
   .sr-table-scroll .sr-table {
     min-width: 760px;
   }
+}
+
+/* =====================================================
+   COA OVERVIEW CARD (single consolidated KPI)
+====================================================== */
+
+.sr-overview-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  padding: 16px 20px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--card);
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.025);
+  flex-wrap: wrap;
+
+  @include bp.tablet-down {
+    gap: 16px;
+  }
+}
+
+.sr-overview-primary {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.sr-overview-total-value {
+  font-size: 27px;
+  line-height: 1;
+  font-weight: 750;
+  letter-spacing: -0.03em;
+  color: var(--submission-accent);
+}
+
+.sr-overview-total-label {
+  color: var(--text-muted);
+  font-size: 10px;
+  font-weight: 500;
+}
+
+.sr-overview-confirmed {
+  margin-top: 5px;
+  color: var(--submission-success);
+  font-size: 9.5px;
+  font-weight: 700;
+}
+
+.sr-overview-breakdown {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  flex-wrap: wrap;
+}
+
+.sr-overview-stat {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.sr-overview-stat-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.sr-overview-stat-value {
+  font-size: 17px;
+  font-weight: 750;
+  letter-spacing: -0.02em;
+}
+
+.sr-overview-stat-label {
+  color: var(--text-muted);
+  font-size: 9.5px;
+  font-weight: 600;
+}
+
+/* =====================================================
+   COA TABLE — new columns
+====================================================== */
+
+.coa-account { width: 8%; }
+.coa-description { width: 12%; }
+.coa-month { width: 7%; }
+.coa-qtd { width: 7%; }
+.coa-ytd { width: 7%; }
+.coa-mapping { width: 15%; }
+.coa-confidence { width: 9%; }
+.coa-status { width: 9%; }
+.coa-rationale { width: 14%; }
+.coa-action { width: 12%; }
+
+.sr-table-coa {
+  min-width: 1400px; // wide table now — always horizontal-scrolls on smaller screens
+}
+
+.sr-rationale-text {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  color: var(--text-secondary);
+  font-size: 9.5px;
+  line-height: 1.45;
+}
+
+.sr-mapping-value {
+  display: inline-block;
+  max-width: 190px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--submission-text);
 }

@@ -22,10 +22,6 @@
 
       <div class="compliance-header-meta">
         <div>
-          <div class="compliance-meta-label">Priority Requirements</div>
-          <div class="compliance-meta-value">{{ priorityRequirementsCount() }}</div>
-        </div>
-        <div>
           <div class="compliance-meta-label">Period</div>
           <div class="compliance-meta-value">{{ formattedPeriod() }}</div>
         </div>
@@ -42,7 +38,7 @@
   ==================================================== -->
   <section class="compliance-kpi-grid">
     @if (loadingNotes()) {
-      @for (i of [1, 2, 3, 4]; track i) {
+      @for (i of [1, 2, 3]; track i) {
         <div class="compliance-kpi">
           <app-skeleton width="34px" height="22px" radius="4px"></app-skeleton>
           <div style="height:8px"></div>
@@ -52,35 +48,24 @@
     } @else {
       <div class="compliance-kpi">
         <div class="compliance-kpi-value" style="color: var(--compliance-accent)">{{ notes().length }}</div>
-        <div class="compliance-kpi-label">Notes in Scope</div>
+        <div class="compliance-kpi-label">IFRS Notes Checked</div>
       </div>
 
       <div class="compliance-kpi">
-        <div class="compliance-kpi-value" style="color: var(--compliance-success)">{{ checksCompleted() }}</div>
-        <div class="compliance-kpi-label">Checks Completed</div>
-      </div>
-
-      <div class="compliance-kpi" [class.compliance-kpi-attention]="checksPending() > 0">
-        <div class="compliance-kpi-value" style="color: var(--compliance-warning)">{{ checksPending() }}</div>
-        <div class="compliance-kpi-label">
-          Checks Pending
-          @if (checksPending() > 0) {
-            <span class="compliance-attention-pill">
-              <span class="compliance-attention-dot"></span>
-              Action needed
-            </span>
-          }
-        </div>
+        <div class="compliance-kpi-value" style="color: var(--compliance-success)">{{ compliantNotesCount() }}</div>
+        <div class="compliance-kpi-label">Compliant Notes</div>
       </div>
 
       <div class="compliance-kpi">
         <div
           class="compliance-kpi-value"
-          [style.color]="currentConfidence() !== null ? confidenceColor() : 'var(--compliance-neutral)'"
+          [style.color]="
+            averageComplianceScore() >= 85 ? 'var(--compliance-success)' : averageComplianceScore() >= 70 ? 'var(--compliance-warning)' : 'var(--compliance-danger)'
+          "
         >
-          {{ currentConfidence() !== null ? currentConfidence() + '%' : '\u2014' }}
+          {{ averageComplianceScore() }}%
         </div>
-        <div class="compliance-kpi-label">Current Confidence</div>
+        <div class="compliance-kpi-label">Average Compliance Score</div>
       </div>
     }
   </section>
@@ -249,15 +234,15 @@
         </div>
 
         <div class="compliance-card compliance-detail-enter">
-          <div class="compliance-section-header">Disclosure Narrative (Editable)</div>
+          <div class="compliance-section-header">Disclosure Narrative</div>
           <div class="compliance-narrative-wrap">
             <textarea
               class="compliance-narrative"
               rows="6"
-              [ngModel]="narrativeDraft()"
-              (ngModelChange)="onNarrativeChange($event)"
+              readonly
+              [value]="narrativeDraft()"
             ></textarea>
-            <div class="compliance-narrative-help">Edit the narrative above, then run a compliance check.</div>
+            <div class="compliance-narrative-help">This narrative is sourced from the disclosure records and can't be edited here.</div>
           </div>
         </div>
       }
@@ -271,8 +256,8 @@
           Compliance Check
         </div>
 
-        <button type="button" class="compliance-run-button" [disabled]="checkRunning()" (click)="runCheck()">
-          @if (checkRunning()) {
+        @if (checkRunning()) {
+          <div class="compliance-check-running">
             <span class="ai-thinking">
               <span class="ai-sparkle">✦</span>
               <span>{{ aiStatus() }}</span>
@@ -280,11 +265,8 @@
                 <span>.</span><span>.</span><span>.</span>
               </span>
             </span>
-          } @else {
-            <span class="ai-icon">✦</span>
-            {{ checkResult() ? 'Run Check Again' : 'Run Compliance Check' }}
-          }
-        </button>
+          </div>
+        }
 
         @if (checkError()) {
           <div class="error-banner inline">{{ checkError() }}</div>
@@ -329,8 +311,8 @@
           </div>
         }
 
-        @if (!checkRunning() && !checkResult()) {
-          <p class="compliance-check-hint">Run a compliance check to assess this disclosure against the note's requirements.</p>
+        @if (!checkRunning() && !checkResult() && !checkError()) {
+          <p class="compliance-check-hint">Waiting for the compliance check to run automatically&hellip;</p>
         }
       </aside>
     }
@@ -347,4 +329,3 @@
     </div>
   }
 </div>
-

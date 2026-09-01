@@ -222,56 +222,145 @@
 
   <!-- COA MAPPING -->
   @if (tab() === 'coa') {
-    <div class="sr-tab-content">
-      @if (coaLoading()) {
-        <div class="sr-kpi-grid">@for (i of [1,2,3,4]; track i) {<div class="sr-kpi sr-kpi-skeleton"><app-skeleton width="42px" height="27px" radius="5px"></app-skeleton><app-skeleton width="105px" height="9px" radius="4px"></app-skeleton></div>}</div>
-        <section class="sr-table-card sr-skeleton-card"><div class="sr-group-header"><app-skeleton width="160px" height="11px" radius="4px"></app-skeleton><app-skeleton width="80px" height="9px" radius="4px"></app-skeleton></div><table class="sr-table"><colgroup><col class="coa-account"><col class="coa-description"><col class="coa-mapping"><col class="coa-status"><col class="coa-action"></colgroup><thead><tr><th>Affiliate Account</th><th>Description</th><th>Current Group Mapping</th><th>Mapping Status</th><th>Action</th></tr></thead><tbody>@for (row of [1,2,3,4,5,6,7,8]; track row) {<tr><td><app-skeleton width="55px" height="10px" radius="4px"></app-skeleton></td><td><app-skeleton width="150px" height="11px" radius="4px"></app-skeleton></td><td><app-skeleton width="170px" height="28px" radius="7px"></app-skeleton></td><td><app-skeleton width="90px" height="20px" radius="999px"></app-skeleton></td><td><app-skeleton width="88px" height="27px" radius="7px"></app-skeleton></td></tr>}</tbody></table></section>
-      } @else {
-        <div class="sr-kpi-grid">
-          @for (s of coaStatCards(); track s.label) {<div class="sr-kpi" [class.attention]="s.attention"><div class="sr-kpi-top"><div><div class="sr-kpi-value" [style.color]="s.color">{{ s.value }}</div><div class="sr-kpi-label">{{ s.label }}</div></div>@if (s.attention) {<div class="sr-kpi-alert"><span class="sr-kpi-alert-dot"></span>Attention</div>}</div></div>}
+  <div class="sr-tab-content">
+    @if (coaLoading()) {
+      <div class="sr-overview-card sr-skeleton-card">
+        <app-skeleton width="90px" height="27px" radius="5px"></app-skeleton>
+        <app-skeleton width="280px" height="27px" radius="5px"></app-skeleton>
+      </div>
+      <section class="sr-table-card sr-skeleton-card">
+        <div class="sr-group-header"><app-skeleton width="160px" height="11px" radius="4px"></app-skeleton><app-skeleton width="80px" height="9px" radius="4px"></app-skeleton></div>
+        <div class="sr-table-scroll">
+          <table class="sr-table sr-table-coa">
+            <colgroup><col class="coa-account"><col class="coa-description"><col class="coa-month"><col class="coa-qtd"><col class="coa-ytd"><col class="coa-mapping"><col class="coa-confidence"><col class="coa-status"><col class="coa-rationale"><col class="coa-action"></colgroup>
+            <thead><tr><th>Affiliate Account</th><th>Description</th><th>Month</th><th>QTD</th><th>YTD</th><th>Current Group Mapping</th><th>Mapping Confidence</th><th>Mapping Status</th><th>Rationale</th><th>Action</th></tr></thead>
+            <tbody>
+              @for (row of [1,2,3,4,5,6,7,8]; track row) {
+                <tr>
+                  <td><app-skeleton width="55px" height="10px" radius="4px"></app-skeleton></td>
+                  <td><app-skeleton width="130px" height="11px" radius="4px"></app-skeleton></td>
+                  <td><app-skeleton width="60px" height="10px" radius="4px"></app-skeleton></td>
+                  <td><app-skeleton width="60px" height="10px" radius="4px"></app-skeleton></td>
+                  <td><app-skeleton width="60px" height="10px" radius="4px"></app-skeleton></td>
+                  <td><app-skeleton width="150px" height="28px" radius="7px"></app-skeleton></td>
+                  <td><app-skeleton width="80px" height="20px" radius="999px"></app-skeleton></td>
+                  <td><app-skeleton width="80px" height="20px" radius="999px"></app-skeleton></td>
+                  <td><app-skeleton width="120px" height="10px" radius="4px"></app-skeleton></td>
+                  <td><app-skeleton width="88px" height="27px" radius="7px"></app-skeleton></td>
+                </tr>
+              }
+            </tbody>
+          </table>
         </div>
+      </section>
+    } @else {
+      @let overview = coaOverviewCard();
+      <div class="sr-overview-card">
+        <div class="sr-overview-primary">
+          <div class="sr-overview-total-value">{{ overview.total }}</div>
+          <div class="sr-overview-total-label">Accounts Reviewed</div>
+        </div>
+        <div class="sr-overview-breakdown">
+          @for (b of overview.breakdown; track b.label) {
+            <div class="sr-overview-stat">
+              <span class="sr-overview-stat-dot" [style.background]="b.color"></span>
+              <div>
+                <div class="sr-overview-stat-value" [style.color]="b.color">{{ b.value }}</div>
+                <div class="sr-overview-stat-label">{{ b.label }}</div>
+              </div>
+            </div>
+          }
+        </div>
+      </div>
 
-        @if (coaHasBlockers()) {<div class="sr-warning-banner">Mapping review cannot be completed: confirm all Low Confidence and Unmapped accounts before proceeding.</div>}
+      @if (coaHasBlockers()) {<div class="sr-warning-banner">Mapping review cannot be completed: confirm all Low Confidence and Unmapped accounts before proceeding.</div>}
 
-        <section class="sr-table-card">
-          <div class="sr-group-header"><div class="sr-group-header-left"><div class="sr-group-marker"></div><span>Group CoA Mapping</span></div><span class="sr-group-count">{{ coaSummary()?.counts?.accountsReviewed ?? 0 }} accounts</span></div>
-          <div class="sr-table-scroll">
-            <table class="sr-table sr-table-coa">
-              <colgroup><col class="coa-account"><col class="coa-description"><col class="coa-mapping"><col class="coa-status"><col class="coa-action"></colgroup>
-              <thead><tr><th>Affiliate Account</th><th>Description</th><th>Current Group Mapping</th><th>Mapping Status</th><th>Action</th></tr></thead>
-              <tbody>
-                @for (row of coaRows(); track row.rowId; let i = $index) {
-                  <tr>
-                    <td><span class="sr-account-code">{{ row.code }}</span></td>
-                    <td><span class="sr-item-name">{{ row.description }}</span></td>
-                    <td>
-                      @if (row.mappingStatus === 'High Confidence') {
-                        <span class="sr-mapping-static">{{ row.selectedMapping }}</span>
-                      } @else {
-                        <select class="sr-mapping-select" [class.unmapped]="row.mappingStatus === 'Unmapped'" [class.low-conf]="row.mappingStatus === 'Low Confidence'" [ngModel]="row.pendingSelection ?? ''" (ngModelChange)="onCoaMappingChange(i, $event)">
-                          <option value="">Select Group Account</option>
-                          @for (node of groupNodes(); track node.code) {<option [value]="node.code">{{ node.label }}</option>}
-                        </select>
-                      }
-                    </td>
-                    <td><span class="sr-status-chip" [style.color]="mappingStatusChip(row.mappingStatus).color" [style.background]="mappingStatusChip(row.mappingStatus).background" [style.border]="'1px solid ' + mappingStatusChip(row.mappingStatus).border">{{ row.mappingStatus }}</span></td>
-                    <td>
-                      @if (row.confirmed) {
-                        <span class="sr-confirmed"><app-icon name="check" [size]="13" [strokeWidth]="2.1"></app-icon>Confirmed</span>
-                      } @else {
-                        <button type="button" class="sr-confirm-button" [disabled]="row.mappingStatus === 'High Confidence' || !row.canConfirm" (click)="confirmCoaMapping(i)">Confirm Mapping</button>
-                      }
-                    </td>
-                  </tr>
+      <section class="sr-table-card">
+        <div class="sr-group-header"><div class="sr-group-header-left"><div class="sr-group-marker"></div><span>Group CoA Mapping</span></div><span class="sr-group-count">{{ coaSummary()?.counts?.accountsReviewed ?? 0 }} accounts</span></div>
+        <div class="sr-table-scroll">
+          <table class="sr-table sr-table-coa">
+            <colgroup>
+              @for (column of coaTableColumns(); track column.key) {
+                <col [class]="coaColumnClass(column.key)">
+              }
+            </colgroup>
+            <thead>
+              <tr>
+                @for (column of coaTableColumns(); track column.key) {
+                  <th [class.amount-header]="column.type === 'amount'">{{ coaColumnLabel(column) }}</th>
                 }
-              </tbody>
-            </table>
-          </div>
-          <div class="sr-pagination-row"><app-pagination [currentPage]="coaPage()" [totalPages]="coaTotalPages()" (pageChange)="onCoaPageChange($event)"></app-pagination></div>
-        </section>
-      }
-
-      <div class="sr-continue-row"><button type="button" class="sr-continue-button" (click)="goToCompliance()"><span>Continue to Compliance Monitoring</span><span class="sr-continue-arrow"><app-icon name="arrow-right" [size]="14" [strokeWidth]="2"></app-icon></span></button></div>
-    </div>
-  }
+              </tr>
+            </thead>
+            <tbody>
+              @for (row of coaRows(); track row.rowId; let i = $index) {
+                <tr>
+                  @for (column of coaTableColumns(); track column.key) {
+                    @switch (column.key) {
+                      @case ('affiliateAccount') {
+                        <td><span class="sr-account-code">{{ row.code }}</span></td>
+                      }
+                      @case ('description') {
+                        <td><span class="sr-item-name">{{ row.description }}</span></td>
+                      }
+                      @case ('monthValue') {
+                        <td class="amount-cell"><span class="sr-number sr-number-muted">{{ row.monthValue }}</span></td>
+                      }
+                      @case ('qtdValue') {
+                        <td class="amount-cell"><span class="sr-number">{{ row.qtdValue }}</span></td>
+                      }
+                      @case ('ytdValue') {
+                        <td class="amount-cell"><span class="sr-number sr-number-muted">{{ row.ytdValue }}</span></td>
+                      }
+                      @case ('currentGroupMapping') {
+                        <td>
+                          @if (row.mappingConfidence === 'High Confidence') {
+                            <span class="sr-mapping-static">{{ mappingLabel(row) }}</span>
+                          } @else {
+                            <select class="sr-mapping-select" [class.unmapped]="row.mappingConfidence === 'Unmapped'" [class.low-conf]="row.mappingConfidence === 'Low Confidence'" [ngModel]="row.pendingSelection ?? ''" (ngModelChange)="onCoaMappingChange(i, $event)">
+                              <option value="">{{ column.placeholder ?? 'Select Group Account' }}</option>
+                              @for (node of groupNodes(); track node.code) {
+                                <option [value]="node.code">{{ node.label }}</option>
+                              }
+                            </select>
+                          }
+                        </td>
+                      }
+                      @case ('mappingConfidence') {
+                        <td><span class="sr-status-chip" [style.color]="mappingConfidenceStyle(row.mappingConfidence).color" [style.background]="mappingConfidenceStyle(row.mappingConfidence).background" [style.border]="'1px solid ' + mappingConfidenceStyle(row.mappingConfidence).border">{{ row.mappingConfidence }}</span></td>
+                      }
+                      @case ('status') {
+                        <td><span class="sr-status-chip" [style.color]="reviewStatusStyle(row.status).color" [style.background]="reviewStatusStyle(row.status).background" [style.border]="'1px solid ' + reviewStatusStyle(row.status).border">{{ row.status }}</span></td>
+                      }
+                      @case ('rationale') {
+                        <td>
+                          @if (row.rationale) { <span class="sr-rationale-text" [title]="row.rationale">{{ row.rationale }}</span> }
+                          @else { <span class="sr-cell-faint">—</span> }
+                        </td>
+                      }
+                      @case ('canConfirm') {
+                        <td>
+                          @if (row.confirmed) {
+                            <span class="sr-confirmed">-</span>
+                          } @else {
+                            <button type="button" class="sr-confirm-button" [disabled]="!row.canConfirm" (click)="confirmCoaMapping(i)">{{ column.actionLabel ?? 'Confirm Mapping' }}</button>
+                          }
+                        </td>
+                      }
+                      @default {
+                        <td><span class="sr-cell-faint">—</span></td>
+                      }
+                    }
+                  }
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+        <div class="sr-pagination-row"><app-pagination [currentPage]="coaPage()" [totalPages]="coaTotalPages()" (pageChange)="onCoaPageChange($event)"></app-pagination></div>
+      </section>
+    }
+    
+    <div class="sr-continue-row"><button type="button" class="sr-continue-button" (click)="goToCompliance()"><span>Continue to Compliance Monitoring</span><span class="sr-continue-arrow"><app-icon name="arrow-right" [size]="14" [strokeWidth]="2"></app-icon></span></button></div>
+  </div>
+}
 </div>

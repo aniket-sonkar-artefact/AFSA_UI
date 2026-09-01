@@ -17,6 +17,9 @@ export interface ComplianceNoteSummary {
 export interface ComplianceNotesResponse {
   period: string;
   priorityRequirementsCount: number;
+  ifrsNotesCheckedCount: number;
+  compliantNotesCount: number;
+  averageComplianceScore: number;
   notes: ComplianceNoteSummary[];
 }
 

@@ -1,12 +1,11 @@
 import { Component, OnInit, computed, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
-import { forkJoin } from 'rxjs';
-import { map } from 'rxjs/operators';
+import { forkJoin, of } from 'rxjs';
+import { catchError, map } from 'rxjs/operators';
 import { IconComponent, IconName } from '../../shared/icon/icon';
 import { SubmissionReviewService } from '../../core/services/submission-review.service';
 import { IntegrityService } from '../../core/services/integrity.service';
-import { CoaAffiliate, CoaRow, Finding } from '../../core/models/submission-review.model';
 
 interface CapabilityCard {
   title: string;
@@ -28,6 +27,13 @@ interface Kpi {
   label: string;
   color: string;
   attention: boolean;
+}
+
+interface OverviewAffiliateData {
+  entityCode: string;
+  entityName: string;
+  irregularities: number;
+  coaPending: number;
 }
 
 const CAPABILITY_CARDS: CapabilityCard[] = [
@@ -61,121 +67,6 @@ const CAPABILITY_CARDS: CapabilityCard[] = [
   },
 ];
 
-// -----------------------------------------------------------------------
-// STATIC OVERVIEW DATA
-// -----------------------------------------------------------------------
-// The overview cards were originally driven by live API calls (see the
-// commented-out forkJoin in ngOnInit below). For now they're populated
-// with this static seed data instead — the shapes match exactly what the
-// API calls used to return, so switching back later is just a matter of
-// uncommenting the forkJoin block and deleting this block (or vice versa).
-// -----------------------------------------------------------------------
-const STATIC_FINDINGS_A: Finding[] = [
-  {
-    accountCode: '4010',
-    account: 'Trade Receivables',
-    currentPeriod: '12,450,000',
-    priorPeriod: '9,820,000',
-    change: '+26.8%',
-    flag: 'Significant variance vs prior period',
-    severityColor: 'red',
-    colorLocation: 'change',
-    status: 'Open',
-  },
-  {
-    accountCode: '5210',
-    account: 'Inventory Reserve',
-    currentPeriod: '1,120,000',
-    priorPeriod: '1,180,000',
-    change: '-5.1%',
-    flag: 'Within tolerance',
-    severityColor: 'yellow',
-    colorLocation: 'change',
-    status: 'Closed',
-  },
-];
-
-const STATIC_FINDINGS_B: Finding[] = [
-  {
-    accountCode: '6040',
-    account: 'Accrued Liabilities',
-    currentPeriod: '3,340,000',
-    priorPeriod: '2,050,000',
-    change: '+62.9%',
-    flag: 'Requires investigation',
-    severityColor: 'red',
-    colorLocation: 'change',
-    status: 'Investigate',
-  },
-  {
-    accountCode: '7015',
-    account: 'Other Operating Expense',
-    currentPeriod: '860,000',
-    priorPeriod: '905,000',
-    change: '-5.0%',
-    flag: 'Within tolerance',
-    severityColor: 'yellow',
-    colorLocation: 'change',
-    status: 'Closed',
-  },
-];
-
-const STATIC_COA_A: CoaRow[] = [
-  {
-    rowId: 'sabic-0001',
-    code: '2210',
-    description: 'Deferred Tax Liability',
-    currentGroupNode: null,
-    selectedMapping: 'Unmapped',
-    mappingStatus: 'Low Confidence',
-    rationale: 'No strong match found against Group CoA taxonomy.',
-    canConfirm: false,
-    confirmed: false,
-    pendingSelection: null,
-  },
-  {
-    rowId: 'sabic-0002',
-    code: '1105',
-    description: 'Cash and Cash Equivalents',
-    currentGroupNode: 'GRP-1100',
-    selectedMapping: 'Cash & Equivalents',
-    mappingStatus: 'High Confidence',
-    rationale: 'Exact match on account description and code range.',
-    canConfirm: false,
-    confirmed: true,
-    pendingSelection: 'GRP-1100',
-  },
-];
-
-const STATIC_COA_B: CoaRow[] = [
-  {
-    rowId: 'rabigh-0001',
-    code: '3305',
-    description: 'Intercompany Balances',
-    currentGroupNode: null,
-    selectedMapping: 'Unmapped',
-    mappingStatus: 'Unmapped',
-    rationale: 'Account not yet present in the Group CoA taxonomy.',
-    canConfirm: false,
-    confirmed: false,
-    pendingSelection: null,
-  },
-  {
-    rowId: 'rabigh-0002',
-    code: '4001',
-    description: 'Revenue from Contracts',
-    currentGroupNode: 'GRP-4000',
-    selectedMapping: 'Revenue',
-    mappingStatus: 'High Confidence',
-    rationale: 'Exact match on account description and code range.',
-    canConfirm: false,
-    confirmed: true,
-    pendingSelection: 'GRP-4000',
-  },
-];
-
-const STATIC_INTEGRITY_FLAGGED = 3;
-
 @Component({
   selector: 'app-overview',
   standalone: true,
@@ -186,31 +77,40 @@ const STATIC_INTEGRITY_FLAGGED = 3;
 export class OverviewComponent implements OnInit {
   readonly capabilityCards = CAPABILITY_CARDS;
 
-  private readonly findingsA = signal<Finding[]>([]);
-  private readonly findingsB = signal<Finding[]>([]);
-  private readonly coaA = signal<CoaRow[]>([]);
-  private readonly coaB = signal<CoaRow[]>([]);
+  private readonly overviewData = signal<OverviewAffiliateData[]>([]);
   private readonly integrityFlagged = signal(0);
 
-  readonly affiliatesInReview = 2;
+  readonly loading = signal(true);
+  readonly error = signal<string | null>(null);
+
+  readonly affiliatesInReview = computed(
+    () => this.overviewData().length,
+  );
 
   readonly irregularitiesRequiringReview = computed(
     () =>
-      this.findingsA().filter((f) => f.status !== 'Closed').length +
-      this.findingsB().filter((f) => f.status !== 'Closed').length,
+      this.overviewData().reduce(
+        (total, affiliate) => total + affiliate.irregularities,
+        0,
+      ),
   );
 
   readonly coaMappingsRequiringAttention = computed(
     () =>
-      [...this.coaA(), ...this.coaB()].filter(
-        (r) => !r.confirmed && (r.mappingStatus === 'Low Confidence' || r.mappingStatus === 'Unmapped'),
-      ).length,
+      this.overviewData().reduce(
+        (total, affiliate) => total + affiliate.coaPending,
+        0,
+      ),
   );
 
-  readonly integrityExceptionsOpen = computed(() => this.integrityFlagged());
+  readonly integrityExceptionsOpen = computed(
+    () => this.integrityFlagged(),
+  );
 
   readonly affiliateItemsRequiringAttention = computed(
-    () => this.irregularitiesRequiringReview() + this.coaMappingsRequiringAttention(),
+    () =>
+      this.irregularitiesRequiringReview() +
+      this.coaMappingsRequiringAttention(),
   );
 
   readonly totalIssues = computed(
@@ -224,8 +124,14 @@ export class OverviewComponent implements OnInit {
     const irregularities = this.irregularitiesRequiringReview();
     const coaAttention = this.coaMappingsRequiringAttention();
     const integrityOpen = this.integrityExceptionsOpen();
+
     return [
-      { value: String(this.affiliatesInReview), label: 'Affiliates in Review', color: '#0033A0', attention: false },
+      {
+        value: String(this.affiliatesInReview()),
+        label: 'Affiliates in Review',
+        color: '#0033A0',
+        attention: false,
+      },
       {
         value: String(irregularities),
         label: 'Irregularities Requiring Review',
@@ -251,15 +157,31 @@ export class OverviewComponent implements OnInit {
     {
       label: 'Affiliate Review',
       route: '/submission',
-      status: this.affiliateItemsRequiringAttention() > 0 ? 'In Review' : 'Ready',
+      status:
+        this.affiliateItemsRequiringAttention() > 0
+          ? 'In Review'
+          : 'Ready',
       accent: '#1F497D',
     },
-    { label: 'Compliance', route: '/ifrs', status: 'Ready', accent: '#C0504D' },
-    { label: 'Variance Analysis', route: '/variance', status: 'Ready', accent: '#8064A2' },
+    {
+      label: 'Compliance',
+      route: '/ifrs',
+      status: 'Ready',
+      accent: '#C0504D',
+    },
+    {
+      label: 'Variance Analysis',
+      route: '/variance',
+      status: 'Ready',
+      accent: '#8064A2',
+    },
     {
       label: 'Integrity Check',
       route: '/integrity',
-      status: this.integrityExceptionsOpen() > 0 ? 'Requires Attention' : 'Ready',
+      status:
+        this.integrityExceptionsOpen() > 0
+          ? 'Requires Attention'
+          : 'Ready',
       accent: '#4BACC6',
     },
     {
@@ -277,45 +199,131 @@ export class OverviewComponent implements OnInit {
   ) {}
 
   ngOnInit(): void {
-    // Static for now — see STATIC_* constants above. To switch back to the
-    // live API, delete this block and uncomment the forkJoin block below.
-    this.findingsA.set(STATIC_FINDINGS_A);
-    this.findingsB.set(STATIC_FINDINGS_B);
-    this.coaA.set(STATIC_COA_A);
-    this.coaB.set(STATIC_COA_B);
-    this.integrityFlagged.set(STATIC_INTEGRITY_FLAGGED);
+    this.loadOverview();
+  }
 
-    // ---- Live API version (disabled) ----
-    // forkJoin({
-    //   findingsA: this.submissionReviewService.getFindings('2010', 1).pipe(map((result) => result.items)),
-    //   findingsB: this.submissionReviewService.getFindings('2380', 1).pipe(map((result) => result.items)),
-    //   coaA: this.submissionReviewService.getCoaRows('sabic', 1).pipe(map((result) => result.items)),
-    //   coaB: this.submissionReviewService.getCoaRows('rabigh', 1).pipe(map((result) => result.items)),
-    //   integritySummary: this.integrityService.getSummary(),
-    // }).subscribe(({ findingsA, findingsB, coaA, coaB, integritySummary }) => {
-    //   this.findingsA.set(findingsA);
-    //   this.findingsB.set(findingsB);
-    //   this.coaA.set(coaA);
-    //   this.coaB.set(coaB);
-    //   this.integrityFlagged.set(integritySummary.totalFlagged);
-    // });
+  private loadOverview(): void {
+    this.loading.set(true);
+    this.error.set(null);
+
+    this.submissionReviewService
+      .getFinanceAffiliates()
+      .pipe(
+        catchError((error) => {
+          console.error('Failed to load affiliates', error);
+          this.error.set('Unable to load affiliate review data.');
+          return of([]);
+        }),
+      )
+      .subscribe((affiliates) => {
+        if (!affiliates.length) {
+          this.overviewData.set([]);
+          this.loadIntegritySummary();
+          return;
+        }
+
+        const affiliateRequests = affiliates.map((affiliate) =>
+          forkJoin({
+            irregularities: this.submissionReviewService
+              .getIrregularitiesSummary(affiliate.entityCode)
+              .pipe(
+                catchError((error) => {
+                  console.error(
+                    `Failed to load irregularities for ${affiliate.entityCode}`,
+                    error,
+                  );
+
+                  return of({
+                    totalIrregularities: 0,
+                    highPriorityOpen: 0,
+                    underInvestigation: 0,
+                    closed: 0,
+                  });
+                }),
+              ),
+
+            coa: this.submissionReviewService
+              .getCoaSummary(affiliate.entityCode)
+              .pipe(
+                catchError((error) => {
+                  console.error(
+                    `Failed to load CoA summary for ${affiliate.entityCode}`,
+                    error,
+                  );
+
+                  return of(null);
+                }),
+              ),
+          }).pipe(
+            map(({ irregularities, coa }) => ({
+              entityCode: affiliate.entityCode,
+              entityName: affiliate.entityName,
+              irregularities:
+                irregularities.totalIrregularities -
+                irregularities.closed,
+              coaPending:
+                (coa?.counts.lowConfidencePending ?? 0) +
+                (coa?.counts.unmappedPending ?? 0),
+            })),
+          ),
+        );
+
+        forkJoin(affiliateRequests).subscribe({
+          next: (results) => {
+            this.overviewData.set(results);
+            this.loadIntegritySummary();
+          },
+          error: (error) => {
+            console.error('Failed to load overview data', error);
+            this.error.set('Unable to load overview data.');
+            this.loadIntegritySummary();
+          },
+        });
+      });
+  }
+
+  private loadIntegritySummary(): void {
+    this.integrityService
+      .getSummary()
+      .pipe(
+        catchError((error) => {
+          console.error('Failed to load integrity summary', error);
+          return of(null);
+        }),
+      )
+      .subscribe((summary) => {
+        this.integrityFlagged.set(summary?.totalFlagged ?? 0);
+        this.loading.set(false);
+      });
   }
 
   capabilityStatus(card: CapabilityCard): string {
     if (card.route === '/submission') {
       const n = this.affiliateItemsRequiringAttention();
-      return n > 0 ? `${n} items requiring review` : 'Review clear';
+      return n > 0
+        ? `${n} items requiring review`
+        : 'Review clear';
     }
-    if (card.route === '/ifrs') return 'Compliance review ready';
-    if (card.route === '/variance') return 'Variance analysis ready';
+
+    if (card.route === '/ifrs') {
+      return 'Compliance review ready';
+    }
+
+    if (card.route === '/variance') {
+      return 'Variance analysis ready';
+    }
+
     if (card.route === '/integrity') {
       const n = this.integrityExceptionsOpen();
-      return n > 0 ? `${n} exceptions open` : 'Integrity clear';
+      return n > 0
+        ? `${n} exceptions open`
+        : 'Integrity clear';
     }
+
     return '';
   }
 
-  navigate(route: string) {
+  navigate(route: string): void {
     this.router.navigate([route]);
   }
 }

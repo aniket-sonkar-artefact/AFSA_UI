@@ -124,7 +124,6 @@ export class SubmissionReviewComponent implements OnInit {
   readonly collapsedGroups = signal<Record<string, boolean>>({});
   readonly uploads = signal<Record<string, UploadState>>({});
   readonly findingStatusOverrides = signal<Record<string, FindingStatus>>({});
-  readonly confirmedCoaRows = signal<Set<string>>(new Set());
 
   // -----------------------------------------------------------------------
   // Tab load cache: tracks which affiliate's data has already been fetched
@@ -165,6 +164,19 @@ export class SubmissionReviewComponent implements OnInit {
     ];
   });
 
+  getGroupNodeLabel(groupNodeCode: string | null): string {
+    if (!groupNodeCode) {
+      return '—';
+    }
+
+    const node = this.groupNodes().find((item) => item.code === groupNodeCode);
+    return node?.label ?? groupNodeCode;
+  }
+
+  mappingLabel(row: any): string {
+    return this.groupNodes().find(n => n.code === row.pendingSelection)?.label ?? row.pendingSelection ?? '—';
+  }
+
   readonly irregularitiesStatCards = computed(() => {
     const summary = this.irregularitiesSummary();
     const total = summary?.totalIrregularities ?? 0;
@@ -179,20 +191,36 @@ export class SubmissionReviewComponent implements OnInit {
     ];
   });
 
-  readonly coaStatCards = computed(() => {
+
+  readonly coaOverviewCard = computed(() => {
     const counts = this.coaSummary()?.counts;
-    const confirmed = (counts?.mappingsConfirmed ?? 0) + this.confirmedCoaRows().size;
-    return [
-      { label: 'Accounts Reviewed', value: counts?.accountsReviewed ?? 0, color: 'var(--submission-accent)', attention: false },
-      { label: 'Mappings Confirmed', value: confirmed, color: 'var(--submission-success)', attention: false },
-      { label: 'Low Confidence Pending', value: counts?.lowConfidencePending ?? 0, color: 'var(--submission-warning)', attention: false },
-      { label: 'Unmapped Pending', value: counts?.unmappedPending ?? 0, color: 'var(--submission-danger)', attention: (counts?.unmappedPending ?? 0) > 0 },
-    ];
+    const total = counts?.accountsReviewed ?? 0;
+    const high = counts?.highConfidence ?? 0;
+    const low = counts?.lowConfidencePending ?? 0;
+    const unmapped = counts?.unmappedPending ?? 0;
+
+    return {
+      total,
+      breakdown: [
+        { label: 'High Confidence', value: high, color: 'var(--submission-success)' },
+        { label: 'Low Confidence', value: low, color: 'var(--submission-warning)' },
+        { label: 'Unmapped', value: unmapped, color: 'var(--submission-danger)' },
+      ],
+    };
   });
 
+  readonly coaTableColumns = computed(() => this.coaSchema()?.tableColumns ?? []);
+  readonly coaUnits = computed(() => this.coaSchema()?.units ?? this.coaSummary()?.session.units ?? '');
+  readonly coaPeriod = computed(() => this.coaSchema()?.period ?? this.coaSummary()?.session.periodLabel ?? PERIOD_LABEL);
+
+  private coaConfidenceVocabulary = computed(() => this.coaSchema()?.mappingConfidences ?? []);
+  private coaReviewStatusVocabulary = computed(() => this.coaSchema()?.reviewStatuses ?? []);
+
   readonly coaHasBlockers = computed(() => {
-    const counts = this.coaSummary()?.counts;
-    return (counts?.lowConfidencePending ?? 0) + (counts?.unmappedPending ?? 0) > 0;
+    // The completion banner is driven by review status, not confidence.
+    // lowConfidencePending remains the model's original classification and
+    // does not decrease when a reviewer resolves a row.
+    return (this.coaSummary()?.counts?.pending ?? 0) > 0;
   });
 
   readonly groupNodes = computed<CoaGroupNode[]>(() => this.coaSchema()?.groupNodes ?? []);
@@ -204,7 +232,17 @@ export class SubmissionReviewComponent implements OnInit {
   ) {}
 
   ngOnInit(): void {
+    // Schema is configuration for the CoA table, so fetch it once when the
+    // screen starts rather than coupling it to a particular affiliate.
+    this.loadCoaSchema();
     this.loadAffiliateLists();
+  }
+
+  private loadCoaSchema(): void {
+    this.submissionReviewService.getCoaSchema().subscribe({
+      next: (schema) => this.coaSchema.set(schema),
+      error: (err) => this.handleError(err, 'Could not load CoA mapping schema.'),
+    });
   }
 
   private loadAffiliateLists(): void {
@@ -246,7 +284,6 @@ export class SubmissionReviewComponent implements OnInit {
     if (this.tab() === 'coa') {
       this.coaAffiliate.set(value);
       this.coaPage.set(1);
-      this.confirmedCoaRows.set(new Set());
       this.loadCoa();
       return;
     }
@@ -379,47 +416,54 @@ export class SubmissionReviewComponent implements OnInit {
     this.coaLoading.set(true);
     this.error.set(null);
 
-    let schema$ = this.coaSchema();
-    const schemaObservable = schema$ ? null : this.submissionReviewService.getCoaSchema();
+    this.submissionReviewService.getCoaSummary(affiliate).subscribe({
+      next: (summary) => this.coaSummary.set(summary),
+      error: (err) => this.handleError(err, 'Could not load CoA mapping summary.'),
+    });
 
-    const finish = (schema: CoaSchema | null) => {
-      if (schema) this.coaSchema.set(schema);
-      this.submissionReviewService.getCoaSummary(affiliate).subscribe({
-        next: (summary) => this.coaSummary.set(summary),
-        error: (err) => this.handleError(err, 'Could not load CoA mapping summary.'),
-      });
-      this.submissionReviewService.getCoaRows(affiliate, page).subscribe({
-        next: (result) => {
-          // Default every row to "no pending change yet" regardless of what
-          // the backend sends for pendingSelection/canConfirm, so Confirm
-          // Mapping starts disabled until the user actually edits the
-          // dropdown away from the current backend-provided mapping.
-          this.coaRows.set(result.items.map((row) => ({
-            ...row,
-            pendingSelection: row.currentGroupNode ?? '',
-            canConfirm: false,
-          })));
-          this.coaTotalPages.set(result.totalPages);
-        },
-        error: (err) => this.handleError(err, 'Could not load CoA mapping rows.'),
-        complete: () => {
-          this.coaLoading.set(false);
-          this.coaLoadedFor.add(affiliate);
-        },
-      });
+    this.submissionReviewService.getCoaRows(affiliate, page).subscribe({
+      next: (result) => {
+        // Keep the server ordering. The API already returns rows ordered by
+        // QTD magnitude and pagination preserves that order.
+        this.coaRows.set(result.items.map((row) => ({
+          ...row,
+          // canConfirm is authoritative from /mappings. In particular,
+          // High/Low confidence rows can be confirmed; Unmapped stays disabled
+          // until a Group node is selected.
+          pendingSelection: row.currentGroupNode,
+          canConfirm: row.canConfirm,
+        })));
+        this.coaTotalPages.set(result.totalPages);
+      },
+      error: (err) => this.handleError(err, 'Could not load CoA mapping rows.'),
+      complete: () => {
+        this.coaLoading.set(false);
+        this.coaLoadedFor.add(affiliate);
+      },
+    });
+  }
+
+  coaColumnClass(key: string): string {
+    const classes: Record<string, string> = {
+      affiliateAccount: 'coa-account',
+      description: 'coa-description',
+      monthValue: 'coa-month',
+      qtdValue: 'coa-qtd',
+      ytdValue: 'coa-ytd',
+      currentGroupMapping: 'coa-mapping',
+      mappingConfidence: 'coa-confidence',
+      status: 'coa-status',
+      rationale: 'coa-rationale',
+      canConfirm: 'coa-action',
     };
+    return classes[key] ?? '';
+  }
 
-    if (schemaObservable) {
-      schemaObservable.subscribe({
-        next: (schema) => finish(schema),
-        error: (err) => {
-          this.handleError(err, 'Could not load CoA mapping schema.');
-          this.coaLoading.set(false);
-        },
-      });
-    } else {
-      finish(schema$);
+  coaColumnLabel(column: { key: string; label: string; type: string }): string {
+    if (column.type === 'amount' && this.coaUnits()) {
+      return `${column.label} (${this.coaUnits()})`;
     }
+    return column.label;
   }
 
   /* ---------- Style helpers ---------- */
@@ -440,10 +484,21 @@ export class SubmissionReviewComponent implements OnInit {
     return { color: 'var(--submission-success)', background: 'var(--submission-success-soft)', border: 'var(--submission-success-border)' };
   }
 
-  mappingStatusChip(status: string) {
-    if (status === 'High Confidence') return { color: 'var(--submission-success)', background: 'var(--submission-success-soft)', border: 'var(--submission-success-border)' };
-    if (status === 'Low Confidence') return { color: 'var(--submission-warning)', background: 'var(--submission-warning-soft)', border: 'var(--submission-warning-border)' };
+  private toneStyle(tone: 'success' | 'warning' | 'danger' | 'info') {
+    if (tone === 'success') return { color: 'var(--submission-success)', background: 'var(--submission-success-soft)', border: 'var(--submission-success-border)' };
+    if (tone === 'warning') return { color: 'var(--submission-warning)', background: 'var(--submission-warning-soft)', border: 'var(--submission-warning-border)' };
+    if (tone === 'info') return { color: 'var(--submission-info)', background: 'var(--submission-info-soft)', border: 'var(--submission-info-border)' };
     return { color: 'var(--submission-danger)', background: 'var(--submission-danger-soft)', border: 'var(--submission-danger-border)' };
+  }
+
+  mappingConfidenceStyle(status: string) {
+    const vocabulary = this.coaConfidenceVocabulary().find((item) => item.value === status);
+    return this.toneStyle(vocabulary?.tone ?? 'danger');
+  }
+
+  reviewStatusStyle(status: string) {
+    const vocabulary = this.coaReviewStatusVocabulary().find((item) => item.value === status);
+    return this.toneStyle(vocabulary?.tone ?? 'warning');
   }
 
   // Driven directly by the API's severityColor now ('red' | 'yellow')
@@ -487,38 +542,43 @@ export class SubmissionReviewComponent implements OnInit {
   confirmCoaMapping(index: number): void {
     const row = this.coaRows()[index];
     const groupNode = row?.pendingSelection;
-    if (!row || !groupNode || groupNode === row.currentGroupNode) return;
+    if (!row || !groupNode) return;
 
     this.coaRows.update((rows) => rows.map((r, i) => i === index ? { ...r, canConfirm: false } : r));
 
     this.submissionReviewService.confirmCoaMapping(this.coaAffiliate(), row.rowId, groupNode).subscribe({
       next: (result) => {
         const returned = result.row;
-        const confirmed = returned.mappingStatus === 'High Confidence';
-        if (confirmed) {
-          this.confirmedCoaRows.update((ids) => {
-            const next = new Set(ids);
-            next.add(returned.rowId);
-            return next;
-          });
-        }
-
+        const confirmed = returned.status === 'Confirmed';
         this.coaRows.update((rows) => rows.map((r) => r.rowId === returned.rowId
           ? {
               ...r,
               currentGroupNode: returned.currentGroupNode,
               selectedMapping: returned.currentGroupMapping,
-              mappingStatus: returned.mappingStatus,
+              mappingConfidence: returned.mappingConfidence,
+              status: returned.status,
+              monthValue: returned.monthValue,
+              qtdValue: returned.qtdValue,
+              ytdValue: returned.ytdValue,
               rationale: returned.rationale,
-              canConfirm: false,
+              canConfirm: returned.canConfirm,
               confirmed,
               pendingSelection: returned.currentGroupNode,
             }
           : r));
 
-        this.coaSummary.update((summary) => summary
-          ? { ...summary, counts: result.counts }
-          : summary);
+        if (result.counts) {
+          this.coaSummary.update((summary) => summary
+            ? { ...summary, counts: result.counts! }
+            : summary);
+        } else {
+          // The API may return null counts when its cached run has expired.
+          // Refresh summary instead of rendering null card values.
+          this.submissionReviewService.getCoaSummary(this.coaAffiliate()).subscribe({
+            next: (summary) => this.coaSummary.set(summary),
+            error: (err) => this.handleError(err, 'Could not refresh CoA mapping summary.'),
+          });
+        }
       },
       error: (err) => this.handleError(err, 'Could not confirm the CoA mapping.'),
     });

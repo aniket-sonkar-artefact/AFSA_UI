@@ -30,7 +30,6 @@ export class ComplianceComponent implements OnInit {
   readonly loadingNotes = signal(true);
   readonly notesError = signal<string | null>(null);
   readonly period = signal('');
-  readonly priorityRequirementsCount = signal(0);
   readonly notes = signal<ComplianceNoteSummary[]>([]);
   readonly selectedNoteId = signal<string | null>(null);
 
@@ -74,9 +73,9 @@ export class ComplianceComponent implements OnInit {
   readonly notMetResults = computed(() => this.checkResult()?.results.filter((r) => !r.isMet) ?? []);
 
   // ---- KPI row (derived from existing state — no new API calls) ----
-  readonly checksCompleted = computed(() => Object.keys(this.checkResultsByNote()).length);
-  readonly checksPending = computed(() => Math.max(this.notes().length - this.checksCompleted(), 0));
-  readonly currentConfidence = computed(() => this.checkResult()?.complianceConfidence ?? null);
+  readonly ifrsNotesCheckedCount = signal(0);
+  readonly compliantNotesCount = signal(0);
+  readonly averageComplianceScore = signal(0);
 
   aiStatus = signal('Analyzing disclosure');
 
@@ -126,8 +125,11 @@ export class ComplianceComponent implements OnInit {
         if (!res) return;
 
         this.period.set(res.period);
-        this.priorityRequirementsCount.set(res.priorityRequirementsCount);
         this.notes.set(res.notes);
+
+        this.ifrsNotesCheckedCount.set(res.ifrsNotesCheckedCount);
+        this.compliantNotesCount.set(res.compliantNotesCount);
+        this.averageComplianceScore.set(res.averageComplianceScore);
 
         const first = res.notes[0];
         if (first) this.selectNote(first.noteId);
@@ -190,6 +192,12 @@ export class ComplianceComponent implements OnInit {
               this.pageByTable.set(firstTable.id, 1);
             }
             this.narrativeDraft.set(result.narrative.narrative);
+
+            // Auto-run the compliance check once the narrative is in, but
+            // don't re-run it if this note has already been checked.
+            if (!this.checkResultsByNote()[noteId]) {
+              this.runCheck();
+            }
           });
       });
   }
@@ -230,10 +238,6 @@ export class ComplianceComponent implements OnInit {
         this.tableData.set(data);
         this.pageByTable.set(tableId, page);
       });
-  }
-
-  onNarrativeChange(value: string) {
-    this.narrativeDraft.set(value);
   }
 
   runCheck() {

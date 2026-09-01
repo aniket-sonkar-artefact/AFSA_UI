@@ -79,28 +79,6 @@
   }
 }
 
-@keyframes compliancePendingPulse {
-  0%, 100% {
-    box-shadow: 0 0 0 0 rgba(181, 71, 8, 0);
-  }
-  50% {
-    box-shadow: 0 0 0 3px rgba(181, 71, 8, 0.045), 0 0 13px rgba(181, 71, 8, 0.07);
-  }
-}
-
-:host-context(html[data-theme='dark']) .compliance-kpi-attention {
-  animation-name: compliancePendingPulseDark;
-}
-
-@keyframes compliancePendingPulseDark {
-  0%, 100% {
-    box-shadow: 0 0 0 0 rgba(240, 179, 94, 0);
-  }
-  50% {
-    box-shadow: 0 0 0 2px rgba(240, 179, 94, 0.035), 0 0 11px rgba(240, 179, 94, 0.06);
-  }
-}
-
 .compliance-page {
   display: flex;
   flex-direction: column;
@@ -203,11 +181,17 @@
 
 .compliance-kpi-grid {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 12px;
 
   @include bp.tablet-down {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 12px;
+
+    @include bp.tablet-down {
+      gap: 8px;
+    }
   }
 }
 
@@ -222,6 +206,10 @@
   background: var(--card);
   box-shadow: 0 2px 8px rgba(15, 23, 42, 0.025);
   transition: transform 180ms ease, border-color 180ms ease, box-shadow 180ms ease;
+
+  @include bp.tablet-down {
+    padding: 10px 12px;
+  }
 
   &:hover {
     transform: translateY(-2px);
@@ -242,33 +230,6 @@
   gap: 8px;
   color: var(--text-muted);
   font-size: 9.5px;
-}
-
-.compliance-kpi-attention {
-  border-color: var(--compliance-warning-border);
-  animation: compliancePendingPulse 3s ease-in-out infinite;
-}
-
-.compliance-attention-pill {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  padding: 3px 7px;
-  border-radius: 999px;
-  background: var(--compliance-warning-soft);
-  color: var(--compliance-warning);
-  font-size: 7.5px;
-  font-weight: 700;
-  letter-spacing: 0.045em;
-  text-transform: uppercase;
-}
-
-.compliance-attention-dot {
-  width: 5px;
-  height: 5px;
-  border-radius: 50%;
-  background: currentColor;
-  animation: compliancePulse 1.6s ease-in-out infinite;
 }
 
 /* =====================================================
@@ -571,18 +532,13 @@
   border: 1px solid var(--border);
   border-radius: 8px;
   outline: none;
-  resize: vertical;
+  resize: none;
   background: var(--surface);
   color: var(--text-primary);
   font-family: 'Maven Pro', sans-serif;
   font-size: 11px;
   line-height: 1.65;
-  transition: border-color 180ms ease, box-shadow 180ms ease;
-
-  &:focus {
-    border-color: var(--compliance-accent);
-    box-shadow: 0 0 0 3px var(--compliance-accent-soft);
-  }
+  cursor: default;
 }
 
 .compliance-narrative-help {
@@ -646,39 +602,23 @@
   text-transform: uppercase;
 }
 
-.compliance-run-button {
+/* Static (non-interactive) indicator shown while the check runs automatically,
+   replaces the old "Run Compliance Check" button. */
+.compliance-check-running {
   width: 100%;
   min-height: 40px;
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 8px;
-  border: 0;
   border-radius: 9px;
-  background: var(--compliance-accent);
-  color: #FFFFFF;
-  font-family: 'Maven Pro', sans-serif;
+  background: var(--compliance-accent-soft);
+  color: var(--compliance-accent);
   font-size: 10.5px;
   font-weight: 700;
-  cursor: pointer;
-  box-shadow: 0 4px 12px rgba(192, 80, 77, 0.16);
-  transition: transform 180ms ease, background-color 180ms ease, box-shadow 180ms ease;
-
-  &:hover:not(:disabled) {
-    transform: translateY(-1px);
-    background: var(--compliance-accent-hover);
-    box-shadow: 0 6px 15px rgba(192, 80, 77, 0.2);
-  }
-
-  &:disabled {
-    cursor: default;
-    background: var(--surface);
-    color: var(--text-faint);
-    box-shadow: none;
-  }
 }
 
-/* ---- AI icon / thinking-state (preserved as-is, restyled to fit new button) ---- */
+/* ---- AI icon / thinking-state ---- */
 
 .ai-thinking {
   display: inline-flex;
@@ -958,20 +898,19 @@
     background: rgba(244, 123, 129, 0.08);
   }
 
-  .compliance-run-button,
+  .compliance-check-running {
+    background: rgba(228, 122, 119, 0.1);
+    color: #E98C89;
+  }
+
   .compliance-continue-button {
     background: #D76F6C;
     color: #FFFFFF;
     box-shadow: 0 5px 14px rgba(0, 0, 0, 0.18);
 
-    &:hover:not(:disabled) {
+    &:hover {
       background: #E47A77;
     }
-  }
-
-  .compliance-run-button:disabled {
-    background: #1B2C42;
-    color: #718499;
   }
 
   .compliance-generate-report-button {
@@ -989,7 +928,6 @@
 ====================================================== */
 
 .compliance-note-button:focus-visible,
-.compliance-run-button:focus-visible,
 .compliance-continue-button:focus-visible,
 .compliance-table-tab-btn:focus-visible {
   outline: 2px solid var(--compliance-accent);
@@ -998,8 +936,6 @@
 
 @media (prefers-reduced-motion: reduce) {
   .compliance-detail-enter,
-  .compliance-kpi-attention,
-  .compliance-attention-dot,
   .ai-sparkle,
   .ai-icon,
   .thinking-dots span {
@@ -1007,7 +943,6 @@
   }
 
   .compliance-note-button,
-  .compliance-run-button,
   .compliance-continue-button,
   .compliance-continue-arrow {
     transition: none !important;
