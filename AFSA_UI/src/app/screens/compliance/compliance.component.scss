@@ -196,23 +196,36 @@
 }
 
 .compliance-kpi {
+  position: relative;
   min-height: 76px;
   display: flex;
   flex-direction: column;
   justify-content: center;
   padding: 12px 17px;
-  border: 1px solid var(--border);
+  border: 1px solid color-mix(in srgb, var(--kpi-accent, var(--border)) 35%, var(--border));
+  border-top: 3px solid var(--kpi-accent, var(--border));
   border-radius: 12px;
   background: var(--card);
   box-shadow: 0 2px 8px rgba(15, 23, 42, 0.025);
+  overflow: hidden;
   transition: transform 180ms ease, border-color 180ms ease, box-shadow 180ms ease;
 
   @include bp.tablet-down {
     padding: 10px 12px;
   }
 
+  &::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(to bottom right, transparent 40%, color-mix(in srgb, var(--kpi-accent, transparent) 7%, transparent) 100%);
+    pointer-events: none;
+  }
+
   &:hover {
-    transform: translateY(-2px);
+    transform: translateY(-3px);
+    border-color: var(--kpi-accent, var(--border));
+    box-shadow: 0 8px 20px -6px color-mix(in srgb, var(--kpi-accent, #000) 35%, transparent);
   }
 }
 
@@ -818,12 +831,16 @@
 
 :host-context(html[data-theme='dark']) {
   .compliance-header,
-  .compliance-kpi,
   .compliance-note-nav,
   .compliance-card,
   .compliance-check-panel {
     background: #152438;
     border-color: #30445C;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.014);
+  }
+
+  .compliance-kpi {
+    background: #152438;
     box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.014);
   }
 

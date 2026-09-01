@@ -46,17 +46,22 @@
         </div>
       }
     } @else {
-      <div class="compliance-kpi">
+      <div class="compliance-kpi" [style.--kpi-accent]="'var(--compliance-accent)'">
         <div class="compliance-kpi-value" style="color: var(--compliance-accent)">{{ notes().length }}</div>
         <div class="compliance-kpi-label">IFRS Notes Checked</div>
       </div>
 
-      <div class="compliance-kpi">
+      <div class="compliance-kpi" [style.--kpi-accent]="'var(--compliance-success)'">
         <div class="compliance-kpi-value" style="color: var(--compliance-success)">{{ compliantNotesCount() }}</div>
         <div class="compliance-kpi-label">Compliant Notes</div>
       </div>
 
-      <div class="compliance-kpi">
+      <div
+        class="compliance-kpi"
+        [style.--kpi-accent]="
+          averageComplianceScore() >= 85 ? 'var(--compliance-success)' : averageComplianceScore() >= 70 ? 'var(--compliance-warning)' : 'var(--compliance-danger)'
+        "
+      >
         <div
           class="compliance-kpi-value"
           [style.color]="

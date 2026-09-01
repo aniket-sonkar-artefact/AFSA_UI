@@ -129,7 +129,7 @@ export class LoginComponent implements OnInit {
         this.authService.setCurrentUser(user);
         this.submitting.set(false);
 
-        this.router.navigate(['/overview']);
+        this.router.navigate(['/home']);
       },
       error: (error) => {
         console.error('Login failed', error);

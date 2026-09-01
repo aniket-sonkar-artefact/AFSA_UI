@@ -1,118 +1,258 @@
 <div class="overview">
-  <!-- Executive header -->
-  <section class="ov-header">
-    <div class="ov-header-accent"></div>
-    <div class="ov-header-glow"></div>
+  <!-- ===================================================
+       GROUP FINANCIAL PERFORMANCE OVERVIEW
+  ==================================================== -->
+  <section class="ov-perf-header">
+    <div class="ov-perf-accent"></div>
+    <div>
+      <div class="ov-kicker">Group Performance</div>
+      <h1 class="ov-perf-title">Group Financial Performance Overview</h1>
+      <div class="ov-perf-subtitle">Aramco Group Health at a Glance &middot; Q1 2026 &middot; Group Consolidated</div>
+    </div>
+    <span class="ov-live-pill">
+      <span class="ov-live-dot"></span>
+      Live &middot; Updated 4 min ago
+    </span>
+  </section>
 
-    <div class="ov-header-left">
-      <div class="ov-eyebrow">Executive Overview &middot; Consolidated Group</div>
-      <h1 class="ov-title">Q1 2026 Financial Statement Review</h1>
-      <div class="ov-header-meta">
-        <span>Aniket Sonkar</span>
-        <span class="dot">&middot;</span>
-        <span>Financial Controls &amp; Reporting</span>
-        <span class="dot">&middot;</span>
-        <span>Last updated: Today, 09:42</span>
+  <section class="ov-metric-grid">
+    @if (loading()) {
+      @for (i of [1,2,3,4]; track i) {
+        <div class="ov-metric-card">
+          <div class="ov-metric-top">
+            <app-skeleton width="36px" height="36px" radius="10px"></app-skeleton>
+            <app-skeleton width="56px" height="18px" radius="999px"></app-skeleton>
+          </div>
+          <app-skeleton width="70%" height="26px" radius="4px"></app-skeleton>
+          <div style="margin-top:6px">
+            <app-skeleton width="50%" height="11px" radius="4px"></app-skeleton>
+          </div>
+        </div>
+      }
+    } @else {
+      @for (metric of performanceMetrics; track metric.label) {
+        <div class="ov-metric-card" [style.--metric-accent]="metric.accent">
+          <div class="ov-metric-top">
+            <div
+              class="ov-metric-icon"
+              [style.background]="'radial-gradient(circle, ' + metric.accent + '30 0%, ' + metric.accent + '12 65%, transparent 100%)'"
+              [style.color]="metric.accent"
+            >
+              <app-icon [name]="metric.icon" [size]="16" [strokeWidth]="1.8"></app-icon>
+            </div>
+            <span class="ov-metric-yoy">
+              <app-icon name="trending-up" [size]="11" [strokeWidth]="2.2"></app-icon>
+              {{ metric.yoy }}
+            </span>
+          </div>
+          <div class="ov-metric-label">{{ metric.label | uppercase }}</div>
+          <div class="ov-metric-value">{{ metric.value }}</div>
+          <div class="ov-metric-unit">{{ metric.unit }}</div>
+
+          <svg class="ov-sparkline" viewBox="0 0 100 34" preserveAspectRatio="none">
+            <defs>
+              <linearGradient [attr.id]="'ov-spark-fill-' + $index" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" [attr.stop-color]="metric.accent" stop-opacity="0.28" />
+                <stop offset="100%" [attr.stop-color]="metric.accent" stop-opacity="0" />
+              </linearGradient>
+            </defs>
+            <polygon [attr.points]="metric.sparklinePoints + ' 100,34 0,34'" [attr.fill]="'url(#ov-spark-fill-' + $index + ')'" />
+            <polyline [attr.points]="metric.sparklinePoints" [attr.stroke]="metric.accent" fill="none" stroke-width="2.4" />
+          </svg>
+        </div>
+      }
+    }
+  </section>
+
+  <!-- ===================================================
+       AFFILIATE PERFORMANCE + VIEW GROUP FINANCIAL STATEMENTS
+  ==================================================== -->
+  <section class="ov-affiliate-row">
+    <div class="ov-affiliate-card">
+      <div class="ov-affiliate-header">
+        <span class="ov-affiliate-marker"></span>
+        AFFILIATE PERFORMANCE &middot; Q1 2026
       </div>
+
+      @if (loading()) {
+        @for (i of [1,2]; track i) {
+          <div class="ov-affiliate-row-skel">
+            <app-skeleton width="40px" height="40px" radius="10px"></app-skeleton>
+            <div style="flex:1">
+              <app-skeleton width="40%" height="14px" radius="4px"></app-skeleton>
+              <div style="margin-top:8px"><app-skeleton width="100%" height="6px" radius="4px"></app-skeleton></div>
+            </div>
+          </div>
+        }
+      } @else {
+        @for (affiliate of affiliatePerformance; track affiliate.code) {
+          <div class="ov-affiliate-entry">
+            <div class="ov-affiliate-top">
+              <div class="ov-affiliate-left">
+                <div class="ov-affiliate-logo" [style.background]="affiliate.accent + '1A'" [style.color]="affiliate.accent">
+                  {{ affiliate.code }}
+                </div>
+                <div>
+                  <div class="ov-affiliate-name">{{ affiliate.name }}</div>
+                  <div class="ov-affiliate-sector">{{ affiliate.sector }}</div>
+                </div>
+              </div>
+              <div class="ov-affiliate-figures">
+                <div class="ov-affiliate-revenue">{{ affiliate.revenue }}</div>
+                <div class="ov-affiliate-yoy">{{ affiliate.yoy }}</div>
+              </div>
+            </div>
+
+            <div class="ov-affiliate-track">
+              <div
+                class="ov-affiliate-fill"
+                [style.width.%]="affiliate.pctOfGroupRevenue"
+                [style.background]="affiliate.accent"
+              ></div>
+            </div>
+            <div class="ov-affiliate-pct-label">{{ affiliate.pctOfGroupRevenue }}% of group revenue</div>
+          </div>
+        }
+      }
     </div>
 
-    <div class="ov-header-right">
-      <div class="ov-issue-count">
-        <div class="ov-issue-number" [class.danger]="totalIssues() > 0" [class.success]="totalIssues() === 0">
-          {{ totalIssues() }}
-        </div>
-        <div class="ov-issue-label">items requiring attention</div>
+    <button type="button" class="ov-statements-cta" (click)="goToStatements()">
+      <div class="ov-statements-icon">
+        <app-icon name="file-text" [size]="18" [strokeWidth]="1.7"></app-icon>
       </div>
-      <span class="ov-progress-pill">
-        <span class="ov-progress-dot"></span>
-        In Progress
+      <div class="ov-statements-title">View Group Financial Statements</div>
+      <div class="ov-statements-sub">Income Statement &middot; Balance Sheet &middot; Cash Flow &middot; Variance Analysis &mdash; Q1 2026</div>
+      <span class="ov-statements-open">
+        Open
+        <app-icon name="arrow-right" [size]="13" [strokeWidth]="2.1"></app-icon>
       </span>
+    </button>
+  </section>
+
+  <!-- ===================================================
+       FINANCIAL REPORTING PROCESS OVERVIEW
+  ==================================================== -->
+  <section class="ov-process-header">
+    <div class="ov-process-accent"></div>
+    <div>
+      <div class="ov-kicker">Financial Reporting Process</div>
+      <h2 class="ov-process-title">Financial Reporting Process Overview</h2>
+      <div class="ov-process-subtitle">Current position across the full financial reporting lifecycle &middot; Q1 2026</div>
+    </div>
+
+    <div class="ov-legend">
+      <span class="ov-legend-item"><span class="ov-legend-dot ov-legend-complete"></span>Complete</span>
+      <span class="ov-legend-item"><span class="ov-legend-dot ov-legend-progress"></span>In Progress</span>
+      <span class="ov-legend-item"><span class="ov-legend-dot ov-legend-attention"></span>Attention</span>
+      <span class="ov-legend-item"><span class="ov-legend-dot ov-legend-pending"></span>Pending</span>
     </div>
   </section>
 
-  <!-- Review Status timeline -->
-  <section class="ov-status">
-    <div class="ov-status-head">
-      <div>
-        <div class="ov-status-title">Review Status</div>
-        <div class="ov-status-sub">Current position across the financial statement review</div>
-      </div>
-      <div class="ov-status-period">Q1 2026</div>
-    </div>
-
-    <div class="ov-stage-row">
-      @for (stage of processStages(); track stage.label; let last = $last) {
-        <div class="ov-stage-wrap">
+  <section class="ov-stepper-card">
+    <div class="ov-stepper-row">
+      @for (stage of reportingStages(); track stage.label; let last = $last) {
+        <div class="ov-stepper-wrap">
           @if (!last) {
-            <div class="ov-stage-line"></div>
+            <div class="ov-stepper-line"></div>
           }
           <button
             type="button"
-            class="ov-stage"
-            [class.attention]="stage.status === 'Requires Attention'"
-            [class.ready]="stage.status === 'Ready'"
-            [class.in-review]="stage.status === 'In Review'"
-            [style.--stage-accent]="stage.accent"
+            class="ov-stepper-node"
+            [class.locked]="stage.status === 'coming-soon'"
+            [disabled]="stage.status === 'coming-soon'"
             (click)="navigate(stage.route)"
           >
-            <div class="ov-stage-dot">
-              @if (stage.status === 'Ready') {
-                <app-icon name="check" [size]="12" [strokeWidth]="2.2"></app-icon>
-              } @else if (stage.status === 'Requires Attention') {
-                <app-icon name="alert-triangle" [size]="12" [strokeWidth]="2"></app-icon>
-              } @else {
-                <span class="ov-stage-bullet"></span>
+            <div
+              class="ov-stepper-dot"
+              [class.ov-stepper-dot-filled]="stage.status === 'complete'"
+              [style.border-color]="stage.status === 'coming-soon' ? null : stage.accent"
+              [style.color]="stage.status === 'coming-soon' ? null : stage.accent"
+              [style.background]="stage.status === 'complete' ? stage.accent : null"
+            >
+              @switch (stage.status) {
+                @case ('complete') { <app-icon name="check" [size]="13" [strokeWidth]="2.4"></app-icon> }
+                @case ('attention') { <app-icon name="alert-triangle" [size]="13" [strokeWidth]="2"></app-icon> }
+                @case ('coming-soon') { <app-icon name="lock" [size]="12" [strokeWidth]="2"></app-icon> }
+                @default { <span class="ov-stepper-bullet"></span> }
               }
             </div>
-            <div class="ov-stage-label">{{ stage.label }}</div>
-            <div class="ov-stage-status">{{ stage.status }}</div>
+            <div class="ov-stepper-label">{{ stage.label }}</div>
+            <div class="ov-stepper-status" [style.color]="stage.status === 'coming-soon' ? null : stage.accent">
+              @switch (stage.status) {
+                @case ('coming-soon') { Coming Soon }
+                @case ('in-progress') { In Progress }
+                @case ('complete') { Complete }
+                @case ('attention') { Requires Attention }
+                @case ('pending') { Pending }
+              }
+            </div>
           </button>
         </div>
       }
     </div>
   </section>
 
-  <!-- KPI row -->
-  <section class="ov-kpi-row">
-    @for (kpi of kpis(); track kpi.label) {
-      <div class="ov-kpi" [class.attention]="kpi.attention">
-        <div class="ov-kpi-top">
-          <div>
-            <div class="ov-kpi-value" [style.color]="kpi.color">{{ kpi.value }}</div>
-            <div class="ov-kpi-label">{{ kpi.label }}</div>
+  <!-- ===================================================
+       STATUS CARDS
+  ==================================================== -->
+  <section class="ov-status-grid">
+    @if (loading()) {
+      @for (i of [1,2,3,4]; track i) {
+        <div class="ov-status-card">
+          <app-skeleton width="32px" height="32px" radius="8px"></app-skeleton>
+          <div style="margin-top:14px"><app-skeleton width="70%" height="14px" radius="4px"></app-skeleton></div>
+          <div style="margin-top:12px"><app-skeleton width="40%" height="26px" radius="4px"></app-skeleton></div>
+          <div style="margin-top:12px"><app-skeleton width="100%" height="6px" radius="4px"></app-skeleton></div>
+        </div>
+      }
+    } @else {
+      @for (card of statusCards(); track card.label) {
+        <button
+          type="button"
+          class="ov-status-card"
+          [class.ov-status-attention]="card.status === 'attention'"
+          [style.--card-accent]="card.accent"
+          (click)="navigate(card.route)"
+        >
+          <div class="ov-status-top">
+            <div class="ov-status-icon" [style.background]="card.accent + '1A'" [style.color]="card.accent">
+              @switch (card.status) {
+                @case ('complete') { <app-icon name="check" [size]="15" [strokeWidth]="2.2"></app-icon> }
+                @case ('attention') { <app-icon name="alert-triangle" [size]="15" [strokeWidth]="2"></app-icon> }
+                @case ('pending') { <app-icon name="clock" [size]="15" [strokeWidth]="1.9"></app-icon> }
+                @default { <app-icon name="refresh" [size]="15" [strokeWidth]="1.9"></app-icon> }
+              }
+            </div>
+            <span class="ov-status-pill" [style.background]="card.accent + '1A'" [style.color]="card.accent">{{ card.statusLabel }}</span>
           </div>
-          @if (kpi.attention) {
-            <div class="ov-kpi-attention-badge">
-              <span class="ov-kpi-attention-dot"></span>
-              Attention
+
+          <div class="ov-status-title">{{ card.label }}</div>
+          <div class="ov-status-percent" [style.color]="card.accent">{{ card.percent }}%</div>
+
+          <div class="ov-status-track">
+            <div class="ov-status-fill" [style.width.%]="card.percent" [style.background]="card.accent"></div>
+          </div>
+
+          <div class="ov-status-meta">
+            @if (card.elapsed) {
+              <span [class.ov-status-over]="card.overSla">
+                <app-icon name="clock" [size]="11" [strokeWidth]="1.9"></app-icon>
+                {{ card.elapsed }} / SLA {{ card.sla }}
+                @if (card.overSla) { &mdash; over }
+              </span>
+            } @else {
+              <span><app-icon name="clock" [size]="11" [strokeWidth]="1.9"></app-icon> SLA: {{ card.sla }}</span>
+            }
+          </div>
+
+          @if (card.pendingSteps > 0) {
+            <div class="ov-status-pending-row">
+              {{ card.pendingSteps }} pending step{{ card.pendingSteps !== 1 ? 's' : '' }}
+              <app-icon name="chevron-down" [size]="13" [strokeWidth]="2"></app-icon>
             </div>
           }
-        </div>
-      </div>
-    }
-  </section>
-
-  <!-- Routing cards -->
-  <section class="ov-routing-grid">
-    @for (card of capabilityCards; track card.title) {
-      <button type="button" class="ov-routing-card" [style.--card-accent]="card.accent" (click)="navigate(card.route)">
-        <div class="ov-routing-accent"></div>
-        <div class="ov-routing-top">
-          <div class="ov-routing-left">
-            <div class="ov-routing-icon">
-              <app-icon [name]="card.icon" [size]="17" [strokeWidth]="1.8"></app-icon>
-            </div>
-            <div class="ov-routing-copy">
-              <div class="ov-routing-title">{{ card.title }}</div>
-              <div class="ov-routing-status">{{ capabilityStatus(card) }}</div>
-            </div>
-          </div>
-          <div class="ov-routing-arrow">
-            <app-icon name="arrow-right" [size]="15" [strokeWidth]="2"></app-icon>
-          </div>
-        </div>
-        <div class="ov-routing-desc">{{ card.desc }}</div>
-      </button>
+        </button>
+      }
     }
   </section>
 </div>

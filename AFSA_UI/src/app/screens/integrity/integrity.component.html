@@ -80,21 +80,25 @@
             </div>
           }
         } @else {
-          <div class="integrity-kpi">
+          <div class="integrity-kpi" [style.--kpi-accent]="'var(--integrity-primary)'">
             <div class="integrity-kpi-value primary">{{ xrefCounts().checked }}</div>
             <div class="integrity-kpi-label">{{ xrefSchema()?.countCards?.[0]?.label || 'Checked' }}</div>
           </div>
-          <div class="integrity-kpi">
+          <div class="integrity-kpi" [style.--kpi-accent]="'var(--integrity-success)'">
             <div class="integrity-kpi-value success">{{ xrefCounts().passed }}</div>
             <div class="integrity-kpi-label">{{ xrefSchema()?.countCards?.[1]?.label || 'Valid' }}</div>
           </div>
-          <div class="integrity-kpi" [class.attention]="xrefCounts().flagged > 0">
+          <div
+            class="integrity-kpi"
+            [class.attention]="xrefCounts().flagged > 0"
+            [style.--kpi-accent]="xrefCounts().flagged > 0 ? 'var(--integrity-danger)' : 'var(--integrity-success)'"
+          >
             <div class="integrity-kpi-value" [ngClass]="xrefCounts().flagged > 0 ? 'danger' : 'success'">
               {{ xrefCounts().flagged }}
             </div>
             <div class="integrity-kpi-label">{{ xrefSchema()?.countCards?.[2]?.label || 'Flagged' }}</div>
           </div>
-          <div class="integrity-kpi">
+          <div class="integrity-kpi" [style.--kpi-accent]="'var(--text-secondary)'">
             <div class="integrity-kpi-value neutral">{{ xrefCounts().completed }}</div>
             <div class="integrity-kpi-label">{{ xrefSchema()?.countCards?.[3]?.label || 'Completed' }}</div>
           </div>
@@ -248,21 +252,25 @@
             </div>
           }
         } @else {
-          <div class="integrity-kpi">
+          <div class="integrity-kpi" [style.--kpi-accent]="'var(--integrity-primary)'">
             <div class="integrity-kpi-value primary">{{ footingCounts().checked }}</div>
             <div class="integrity-kpi-label">{{ footingSchema()?.countCards?.[0]?.label || 'Checked' }}</div>
           </div>
-          <div class="integrity-kpi">
+          <div class="integrity-kpi" [style.--kpi-accent]="'var(--integrity-success)'">
             <div class="integrity-kpi-value success">{{ footingCounts().passed }}</div>
             <div class="integrity-kpi-label">{{ footingSchema()?.countCards?.[1]?.label || 'Passed' }}</div>
           </div>
-          <div class="integrity-kpi" [class.attention]="footingCounts().flagged > 0">
+          <div
+            class="integrity-kpi"
+            [class.attention]="footingCounts().flagged > 0"
+            [style.--kpi-accent]="footingCounts().flagged > 0 ? 'var(--integrity-danger)' : 'var(--integrity-success)'"
+          >
             <div class="integrity-kpi-value" [ngClass]="footingCounts().flagged > 0 ? 'danger' : 'success'">
               {{ footingCounts().flagged }}
             </div>
             <div class="integrity-kpi-label">{{ footingSchema()?.countCards?.[2]?.label || 'Flagged' }}</div>
           </div>
-          <div class="integrity-kpi">
+          <div class="integrity-kpi" [style.--kpi-accent]="'var(--text-secondary)'">
             <div class="integrity-kpi-value neutral">{{ footingCounts().completed }}</div>
             <div class="integrity-kpi-label">{{ footingSchema()?.countCards?.[3]?.label || 'Completed' }}</div>
           </div>

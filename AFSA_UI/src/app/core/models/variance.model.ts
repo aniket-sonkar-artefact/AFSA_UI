@@ -74,7 +74,3 @@ export interface ReadinessItem {
   label: string;
   detail: string;
 }
-
-
-
-

@@ -26,7 +26,18 @@ export type IconName =
   | 'refresh'
   | 'clock'
   | 'menu'
-  | 'x';
+  | 'x'
+  | 'dollar'
+  | 'trending-up'
+  | 'lock'
+  | 'image'
+  | 'camera'
+  | 'layers'
+  | 'expand'
+  | 'translate'
+  | 'scale'
+  | 'trending-down'
+  | 'user';
 
 @Component({
   selector: 'app-icon',
@@ -155,6 +166,51 @@ export type IconName =
         <ng-container *ngSwitchCase="'clock'">
           <circle cx="12" cy="12" r="9" />
           <path d="M12 7v5l3 2" />
+        </ng-container>
+        <ng-container *ngSwitchCase="'dollar'">
+          <circle cx="12" cy="12" r="9" />
+          <path d="M12 6.5v11M15 9.2c0-1.2-1.34-2.2-3-2.2s-3 .9-3 2.2 1.34 2 3 2 3 .8 3 2-1.34 2.2-3 2.2-3-1-3-2.2" />
+        </ng-container>
+        <ng-container *ngSwitchCase="'trending-up'">
+          <path d="M3 17l6-6 4 4 8-8" />
+          <path d="M15 6h6v6" />
+        </ng-container>
+        <ng-container *ngSwitchCase="'lock'">
+          <rect x="4" y="11" width="16" height="10" rx="2" />
+          <path d="M8 11V7a4 4 0 0 1 8 0v4" />
+        </ng-container>
+        <ng-container *ngSwitchCase="'image'">
+          <rect x="3" y="4" width="18" height="16" rx="2" />
+          <circle cx="9" cy="10" r="1.6" />
+          <path d="M5 18l5-5 3 3 3-3.5L20 18" />
+        </ng-container>
+        <ng-container *ngSwitchCase="'camera'">
+          <path d="M4 8h3l1.5-2h7L17 8h3a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1z" />
+          <circle cx="12" cy="13.5" r="3.5" />
+        </ng-container>
+        <ng-container *ngSwitchCase="'layers'">
+          <path d="M12 3l9 5-9 5-9-5 9-5z" />
+          <path d="M3 13l9 5 9-5" />
+        </ng-container>
+        <ng-container *ngSwitchCase="'expand'">
+          <path d="M8 3H4v4M16 3h4v4M8 21H4v-4M16 21h4v-4" />
+        </ng-container>
+        <ng-container *ngSwitchCase="'translate'">
+          <circle cx="12" cy="12" r="9" />
+          <path d="M3 12h18M12 3a13 13 0 0 1 0 18M12 3a13 13 0 0 0 0 18" />
+        </ng-container>
+        <ng-container *ngSwitchCase="'scale'">
+          <path d="M12 3v18M7 21h10" />
+          <path d="M5 7l-3 6a3 3 0 0 0 6 0l-3-6zM19 7l-3 6a3 3 0 0 0 6 0l-3-6z" />
+          <path d="M4 7h16M12 3l-7 4M12 3l7 4" />
+        </ng-container>
+        <ng-container *ngSwitchCase="'trending-down'">
+          <path d="M3 7l6 6 4-4 8 8" />
+          <path d="M15 18h6v-6" />
+        </ng-container>
+        <ng-container *ngSwitchCase="'user'">
+          <circle cx="12" cy="8" r="4" />
+          <path d="M4 21c0-4.4 3.6-7 8-7s8 2.6 8 7" />
         </ng-container>
       </ng-container>
     </svg>

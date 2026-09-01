@@ -13,12 +13,13 @@ interface NavItem {
   accent: string;
   selectionBackground: string;
   glow: string;
+  disabled?: boolean;
 }
 
 const NAV_ITEMS: NavItem[] = [
   {
-    path: '/overview',
-    label: 'Overview',
+    path: '/home',
+    label: 'Home',
     icon: 'home',
     accent: '#00A3E0',
     selectionBackground: 'linear-gradient(135deg, #84BD00 0%, #00A3E0 100%)',
@@ -26,11 +27,40 @@ const NAV_ITEMS: NavItem[] = [
   },
   {
     path: '/submission',
-    label: 'Affiliate Submission Review',
+    label: 'Affiliate Submission Reviewer',
     icon: 'file-text',
     accent: '#1F497D',
     selectionBackground: '#1F497D',
     glow: 'rgba(31, 73, 125, 0.22)',
+  },
+  {
+    // Not yet built -- shown greyed out / unclickable to match the approved
+    // sidebar, which previews the full future workspace roadmap.
+    path: '',
+    label: 'Preliminary Results Solution',
+    icon: 'trending-up',
+    accent: '#64748B',
+    selectionBackground: '#64748B',
+    glow: 'rgba(100, 116, 139, 0.2)',
+    disabled: true,
+  },
+  {
+    path: '',
+    label: 'Intercompany Elimination & Reconciliation',
+    icon: 'layers',
+    accent: '#64748B',
+    selectionBackground: '#64748B',
+    glow: 'rgba(100, 116, 139, 0.2)',
+    disabled: true,
+  },
+  {
+    path: '',
+    label: 'Cash Flow Statement Analysis & Review',
+    icon: 'dollar',
+    accent: '#64748B',
+    selectionBackground: '#64748B',
+    glow: 'rgba(100, 116, 139, 0.2)',
+    disabled: true,
   },
   {
     path: '/ifrs',
@@ -41,8 +71,8 @@ const NAV_ITEMS: NavItem[] = [
     glow: 'rgba(192, 80, 77, 0.22)',
   },
   {
-    path: '/variance',
-    label: 'Management Reports & Variance Analysis',
+    path: '/mgmtreport',
+    label: 'Management Report Generator',
     icon: 'bar-chart',
     accent: '#8064A2',
     selectionBackground: '#8064A2',
@@ -50,11 +80,20 @@ const NAV_ITEMS: NavItem[] = [
   },
   {
     path: '/integrity',
-    label: 'Financial Statement Integrity Check',
+    label: 'Financial Statement Integrity and Formatting',
     icon: 'shield',
     accent: '#4BACC6',
     selectionBackground: '#4BACC6',
     glow: 'rgba(75, 172, 198, 0.24)',
+  },
+  {
+    path: '',
+    label: 'FS Translation & Terminology Management',
+    icon: 'translate',
+    accent: '#64748B',
+    selectionBackground: '#64748B',
+    glow: 'rgba(100, 116, 139, 0.2)',
+    disabled: true,
   },
   {
     path: '/reports',

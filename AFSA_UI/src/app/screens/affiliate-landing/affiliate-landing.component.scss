@@ -1,0 +1,480 @@
+@use 'breakpoints' as bp;
+
+.al-page {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 4px 2px 32px;
+  animation: al-fade-in 0.28s ease both;
+}
+
+@keyframes al-fade-in {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* ---------- header ---------- */
+
+.al-header {
+  position: relative;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 18px 22px;
+  overflow: hidden;
+}
+
+.al-header-accent {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  background: var(--navy, #1F497D);
+}
+
+.al-kicker {
+  font-size: 11px;
+  font-weight: 750;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--navy, #1F497D);
+  margin-bottom: 6px;
+}
+
+.al-title {
+  font-size: 22px;
+  font-weight: 750;
+  color: var(--text-primary);
+  margin: 0 0 6px;
+  letter-spacing: -0.01em;
+}
+
+.al-subtitle {
+  font-size: 12.5px;
+  color: var(--text-muted);
+}
+
+/* ---------- overall metric cards ---------- */
+
+.al-metric-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+
+  @include bp.tablet-down {
+    grid-template-columns: 1fr;
+  }
+}
+
+.al-metric-card {
+  position: relative;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-top: 3px solid var(--metric-accent, var(--border));
+  border-radius: 12px;
+  padding: 16px 18px;
+  overflow: hidden;
+  transition: border-color 0.18s ease, box-shadow 0.18s ease, transform 0.18s ease;
+
+  &:hover {
+    border-color: var(--metric-accent, var(--border));
+    box-shadow: var(--shadow-md);
+    box-shadow: 0 8px 20px -6px color-mix(in srgb, var(--metric-accent, #000) 35%, transparent);
+    transform: translateY(-3px);
+  }
+
+  &::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(to bottom right, transparent 40%, color-mix(in srgb, var(--metric-accent, transparent) 8%, transparent) 100%);
+    pointer-events: none;
+  }
+}
+
+.al-metric-label {
+  position: relative;
+  font-size: 12px;
+  font-weight: 650;
+  color: var(--text-secondary);
+}
+
+.al-metric-value {
+  position: relative;
+  font-size: 27px;
+  font-weight: 750;
+  margin-top: 6px;
+}
+
+.al-metric-detail {
+  position: relative;
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-top: 4px;
+}
+
+.al-metric-track {
+  position: relative;
+  height: 5px;
+  border-radius: 999px;
+  background: var(--surface-2, var(--border));
+  overflow: hidden;
+  margin-top: 12px;
+}
+
+.al-metric-fill {
+  height: 100%;
+  border-radius: 999px;
+  transition: width 0.5s ease;
+}
+
+/* ---------- affiliates table card ---------- */
+
+.al-table-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  overflow: visible;
+}
+
+.al-table-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 18px 20px 14px;
+}
+
+.al-table-title {
+  font-size: 15px;
+  font-weight: 750;
+  color: var(--text-primary);
+}
+
+.al-table-subtitle {
+  font-size: 11.5px;
+  color: var(--text-muted);
+  margin-top: 3px;
+}
+
+.al-count-pill {
+  font-size: 11px;
+  font-weight: 650;
+  color: var(--text-secondary);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 5px 12px;
+  white-space: nowrap;
+}
+
+.al-table {
+  width: 100%;
+  border-collapse: collapse;
+
+  th {
+    text-align: left;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    padding: 10px 20px;
+    border-top: 1px solid var(--border-light, var(--border));
+    border-bottom: 1px solid var(--border-light, var(--border));
+  }
+
+  td {
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--border-light, var(--border));
+    vertical-align: middle;
+  }
+
+  tr:last-child td {
+    border-bottom: none;
+  }
+}
+
+.al-row {
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+
+  &:hover {
+    background: var(--surface);
+  }
+
+  &:hover .al-row-cta {
+    background: var(--navy, #1F497D);
+    border-color: var(--navy, #1F497D);
+    color: #fff;
+  }
+}
+
+.al-affiliate-cell {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  cursor: default;
+}
+
+.al-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: var(--navy-soft, rgba(31, 73, 125, 0.12));
+  color: var(--navy, #1F497D);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 750;
+  font-size: 12px;
+  flex-shrink: 0;
+}
+
+.al-affiliate-name {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.al-affiliate-period {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
+.al-cell-metric {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 140px;
+}
+
+.al-cell-top {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.al-cell-percent {
+  font-size: 15px;
+  font-weight: 750;
+}
+
+.al-cell-green { color: var(--green, #00843D); }
+.al-cell-red { color: var(--red, #C0504D); }
+
+.al-cell-fraction {
+  font-size: 10.5px;
+  color: var(--text-faint, var(--text-muted));
+}
+
+.al-cell-track {
+  height: 5px;
+  border-radius: 999px;
+  background: var(--surface-2, var(--border));
+  overflow: hidden;
+}
+
+.al-cell-fill {
+  height: 100%;
+  border-radius: 999px;
+  transition: width 0.5s ease;
+}
+
+.al-fill-green { background: var(--green, #00843D); }
+.al-fill-red { background: var(--red, #C0504D); }
+
+.al-row-cta {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text-secondary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+
+  &:hover {
+    background: var(--navy, #1F497D);
+    border-color: var(--navy, #1F497D);
+    color: #fff;
+  }
+}
+
+/* ---------- point-of-contact hover popover ---------- */
+
+.al-contact-popover {
+  position: absolute;
+  top: calc(100% + 10px);
+  left: 0;
+  width: 300px;
+  z-index: 30;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  box-shadow: var(--shadow-md);
+  padding: 16px;
+  animation: al-popover-in 0.16s ease both;
+}
+
+@keyframes al-popover-in {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.al-contact-kicker {
+  font-size: 10px;
+  font-weight: 750;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--navy, #1F497D);
+  margin-bottom: 10px;
+}
+
+.al-contact-person {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.al-contact-avatar {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: var(--surface);
+  border: 1px dashed var(--border);
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.al-contact-name {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.al-contact-role {
+  font-size: 11px;
+  color: var(--text-secondary);
+  margin-top: 2px;
+}
+
+.al-contact-company {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.al-contact-divider {
+  height: 1px;
+  background: var(--border-light, var(--border));
+  margin: 12px 0;
+}
+
+.al-contact-fields {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.al-contact-field-label {
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin-bottom: 3px;
+}
+
+.al-contact-field-value {
+  font-size: 11.5px;
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+.al-contact-pending {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 12px;
+  background: var(--amber-soft, rgba(181, 101, 29, 0.1));
+  border: 1px solid rgba(181, 101, 29, 0.25);
+  border-radius: 10px;
+  padding: 10px 12px;
+}
+
+.al-contact-pending-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: #B5651D;
+}
+
+.al-contact-pending-breakdown {
+  font-size: 10px;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
+.al-contact-pending-count {
+  font-size: 20px;
+  font-weight: 750;
+  color: #B5651D;
+}
+
+/* ---------- table skeleton ---------- */
+
+.al-table-skel {
+  display: flex;
+  flex-direction: column;
+}
+
+.al-skel-row {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr 1fr;
+  gap: 20px;
+  align-items: center;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border-light, var(--border));
+
+  &:last-child {
+    border-bottom: none;
+  }
+}
+
+.al-skel-affiliate {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+/* ---------- error ---------- */
+
+.al-error {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: var(--red-soft, rgba(192, 80, 77, 0.1));
+  color: var(--red, #C0504D);
+  border-radius: 0 0 12px 12px;
+  padding: 12px 20px;
+  font-size: 13px;
+
+  button {
+    border: none;
+    background: var(--red, #C0504D);
+    color: #fff;
+    padding: 6px 12px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 12px;
+  }
+}

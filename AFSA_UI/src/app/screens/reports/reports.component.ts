@@ -2,6 +2,7 @@ import { Component, OnInit, computed, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { IconComponent } from '../../shared/icon/icon';
+import { SkeletonComponent } from '../../shared/skeleton/skeleton.component';
 import { ReportsService, targetPeriodFromMeta } from '../../core/services/reports.service';
 import { ReportCapability, ReportRow } from '../../core/models/reports.model';
 
@@ -58,7 +59,7 @@ interface GroupVars {
 @Component({
   selector: 'app-reports',
   standalone: true,
-  imports: [CommonModule, FormsModule, IconComponent],
+  imports: [CommonModule, FormsModule, IconComponent, SkeletonComponent],
   templateUrl: './reports.component.html',
   styleUrl: './reports.component.scss',
 })
@@ -67,6 +68,7 @@ export class ReportsComponent implements OnInit {
   readonly filterOptions: FilterValue[] = ['All', ...CAPABILITIES];
 
   readonly allReports = signal<ReportRow[]>([]);
+  readonly loading = signal(true);
   readonly search = signal('');
   readonly activeFilter = signal<FilterValue>('All');
   readonly collapsedGroups = signal<Set<ReportCapability>>(new Set());
@@ -100,7 +102,16 @@ export class ReportsComponent implements OnInit {
   constructor(private readonly reportsService: ReportsService) {}
 
   ngOnInit(): void {
-    this.reportsService.getReports().subscribe((reports) => this.allReports.set(reports));
+    this.loading.set(true);
+    this.reportsService.getReports().subscribe({
+      next: (reports) => {
+        this.allReports.set(reports);
+        this.loading.set(false);
+      },
+      error: () => {
+        this.loading.set(false);
+      },
+    });
   }
 
   setFilter(filter: FilterValue) {

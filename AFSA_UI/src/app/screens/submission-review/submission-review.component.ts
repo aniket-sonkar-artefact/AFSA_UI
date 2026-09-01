@@ -1,9 +1,10 @@
-import { Component, OnInit, computed, signal } from '@angular/core';
+import { Component, OnInit, computed, effect, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { HttpErrorResponse } from '@angular/common/http';
-import { Router } from '@angular/router';
-import { forkJoin } from 'rxjs';
+import { ActivatedRoute, Router } from '@angular/router';
+import { forkJoin, of } from 'rxjs';
+import { delay } from 'rxjs/operators';
 import { IconComponent } from '../../shared/icon/icon';
 import { SkeletonComponent } from '../../shared/skeleton/skeleton.component';
 import { PaginationComponent } from '../../shared/pagination/pagination.component';
@@ -43,6 +44,40 @@ interface IrregularitiesBlockedState {
 }
 
 const IRREGULARITIES_NOT_BLOCKED: IrregularitiesBlockedState = { blocked: false, message: '' };
+
+/** NOTE ON THIS HEADER CONTACT/PENDING-ITEMS BLOCK
+ * ---------------------------------------------------------
+ * No backing endpoint exists yet for the affiliate's point-of-contact
+ * details or a cross-tab "total pending items" count, so both are
+ * mock data (deterministically seeded from the affiliate name, so the
+ * same affiliate always shows the same mock contact rather than a
+ * random one on every load). Wrapped in a simulated delay so the header
+ * skeleton has something real to demonstrate; wire a real endpoint into
+ * `loadHeaderInfo()` when one exists -- nothing else in the component
+ * needs to change. */
+interface AffiliateContactInfo {
+  name: string;
+  role: string;
+  company: string;
+  email: string;
+  phone: string;
+}
+
+function mockContactFor(affiliateName: string): AffiliateContactInfo {
+  const slug = affiliateName.toLowerCase().replace(/[^a-z0-9]+/g, '');
+  return {
+    name: `${affiliateName} Representative`,
+    role: 'Finance Submission Point of Contact',
+    company: affiliateName,
+    email: `xxx.xxx@${slug || 'affiliate'}.com`,
+    phone: '+966 5X XXX XXXX',
+  };
+}
+
+function mockPendingCountFor(affiliateName: string): number {
+  const sum = affiliateName.split('').reduce((acc, ch) => acc + ch.charCodeAt(0), 0);
+  return 4 + (sum % 12); // representative range, deterministic per affiliate
+}
 
 /** Shape of the API's error envelope body, e.g.:
  *  { success: false, data: null, message: "...", errors: [{ code, field, message }] } */
@@ -136,13 +171,50 @@ export class SubmissionReviewComponent implements OnInit {
 
   readonly reviewerName = computed(() => this.authService.currentUser()?.name ?? 'Aniket Sonkar');
 
+  /** Display name carried over via router state from the Affiliate Landing
+   * page (e.g. "SABIC"), so the header shows exactly the name the person
+   * clicked rather than whatever entityName the affiliate API happens to
+   * return for that code (which may be a longer/legal name). Falls back to
+   * the API-provided name for direct/standalone visits with no state. */
+  private readonly passedAffiliateName = (history.state as { affiliateName?: string } | undefined)?.affiliateName ?? null;
+
   readonly activeAffiliateName = computed(() => {
+    if (this.passedAffiliateName) return this.passedAffiliateName;
     if (this.tab() === 'coa') {
       return this.coaAffiliates().find((a) => a.key === this.coaAffiliate())?.name ?? this.coaAffiliate();
     }
     const code = this.tab() === 'irregularities' ? this.irregularitiesAffiliate() : this.completenessAffiliate();
     return this.financeAffiliates().find((a) => a.entityCode === code)?.entityName ?? code;
   });
+
+  // ---- Header point-of-contact + pending-items badge (mock; see note above) ----
+  readonly headerLoading = signal(true);
+  readonly headerContact = signal<AffiliateContactInfo | null>(null);
+  readonly headerPendingCount = signal<number | null>(null);
+  private lastHeaderAffiliate: string | null = null;
+
+  private readonly headerInfoEffect = effect(() => {
+    // Driven off the Completeness affiliate specifically -- it's the one
+    // set as soon as the page loads (from the landing page or the default
+    // "first affiliate"), so the header identity is stable and doesn't
+    // flicker as the person switches tabs. Prefers the name carried over
+    // from the landing page (see passedAffiliateName) so the contact card's
+    // "{name} Representative" matches the header title exactly.
+    const code = this.completenessAffiliate();
+    const name = this.passedAffiliateName ?? this.financeAffiliates().find((a) => a.entityCode === code)?.entityName;
+    if (!name || name === this.lastHeaderAffiliate) return;
+    this.lastHeaderAffiliate = name;
+    this.loadHeaderInfo(name);
+  });
+
+  private loadHeaderInfo(affiliateName: string): void {
+    this.headerLoading.set(true);
+    of(null).pipe(delay(500)).subscribe(() => {
+      this.headerContact.set(mockContactFor(affiliateName));
+      this.headerPendingCount.set(mockPendingCountFor(affiliateName));
+      this.headerLoading.set(false);
+    });
+  }
 
   readonly checklistCounts = computed(() => {
     const allItems = this.checklist().flatMap((g) => g.items);
@@ -156,11 +228,32 @@ export class SubmissionReviewComponent implements OnInit {
 
   readonly checklistStatCards = computed(() => {
     const counts = this.checklistCounts();
+    // "Required items" excludes Not Applicable -- those items simply aren't
+    // required, so they don't count toward the completeness percentage.
+    const requiredTotal = counts.Complete + counts.Incomplete + counts.Missing;
+    const completePct = requiredTotal > 0 ? Math.round((counts.Complete / requiredTotal) * 100) : 0;
     return [
-      { label: 'Complete', value: counts.Complete, color: 'var(--submission-success)', attention: false },
-      { label: 'Incomplete', value: counts.Incomplete, color: 'var(--submission-warning)', attention: false },
-      { label: 'Missing', value: counts.Missing, color: 'var(--submission-danger)', attention: counts.Missing > 0 },
-      { label: 'Not Applicable', value: counts['Not Applicable'], color: 'var(--submission-neutral)', attention: false },
+      {
+        label: 'Affiliate Submission Complete',
+        value: counts.Complete,
+        color: 'var(--submission-success)',
+        detail: `${completePct}% of required items`,
+        attention: false,
+      },
+      {
+        label: 'Affiliate Submission Missing',
+        value: counts.Missing,
+        color: 'var(--submission-danger)',
+        detail: 'Required items not submitted',
+        attention: false,
+      },
+      {
+        label: 'Affiliate Submission Partial',
+        value: counts.Incomplete,
+        color: 'var(--submission-warning)',
+        detail: 'Submitted but incomplete',
+        attention: false,
+      },
     ];
   });
 
@@ -179,11 +272,17 @@ export class SubmissionReviewComponent implements OnInit {
 
   readonly irregularitiesTotal = computed(() => this.irregularitiesSummary()?.total ?? 0);
 
+  /** Purely presentational: the "X resolved · Y requiring review" detail
+   * line under the Total Irregularities card. Reuses the same summary data
+   * already fetched for irregularitiesStatusBreakdown -- no new fetch/logic. */
+  readonly irregularitiesResolvedCount = computed(() => this.irregularitiesSummary()?.closed ?? 0);
+  readonly irregularitiesRequiringReview = computed(() => this.irregularitiesTotal() - this.irregularitiesResolvedCount());
+
   readonly irregularitiesPriorityBreakdown = computed(() => {
     const s = this.irregularitiesSummary();
     return [
       { label: 'High', value: s?.highSeverity ?? 0, color: 'var(--submission-danger)' },
-      { label: 'Mid', value: s?.midSeverity ?? 0, color: 'var(--submission-warning)' },
+      { label: 'Medium', value: s?.midSeverity ?? 0, color: 'var(--submission-warning)' },
       { label: 'Low', value: s?.lowSeverity ?? 0, color: 'var(--submission-info)' },
     ];
   })
@@ -192,7 +291,7 @@ export class SubmissionReviewComponent implements OnInit {
     const s = this.irregularitiesSummary();
     return [
       { label: 'Open', value: s?.open ?? 0, color: 'var(--submission-warning)' },
-      { label: 'Under Investigation', value: s?.underInvestigation ?? 0, color: 'var(--submission-info)' },
+      { label: 'Investigate', value: s?.underInvestigation ?? 0, color: 'var(--submission-info)' },
       { label: 'Closed', value: s?.closed ?? 0, color: 'var(--submission-success)' },
     ];
   });
@@ -245,17 +344,38 @@ export class SubmissionReviewComponent implements OnInit {
 
   readonly groupNodes = computed<CoaGroupNode[]>(() => this.coaSchema()?.groupNodes ?? []);
 
+  /** Entity code carried over from the new Affiliate Landing page (Step 1 of
+   *  the submission flow: /submission → pick an affiliate → /submission/review/:entityCode).
+   *  Direct visits to /submission/review with no param fall back to the
+   *  previous "first affiliate in the list" default, so this page still
+   *  works standalone. */
+  private preselectedEntityCode: string | null = null;
+
   constructor(
     private readonly submissionReviewService: SubmissionReviewService,
     private readonly authService: AuthService,
     private readonly router: Router,
+    private readonly route: ActivatedRoute,
   ) {}
 
   ngOnInit(): void {
+    this.preselectedEntityCode = this.route.snapshot.paramMap.get('entityCode');
+
     // Schema is configuration for the CoA table, so fetch it once when the
     // screen starts rather than coupling it to a particular affiliate.
     this.loadCoaSchema();
     this.loadAffiliateLists();
+  }
+
+  /** True when this page was reached via the Affiliate Landing page for a
+   *  specific affiliate (rather than a direct/standalone visit). Used to
+   *  show a small "change affiliate" breadcrumb back to the landing page. */
+  get cameFromLanding(): boolean {
+    return !!this.preselectedEntityCode;
+  }
+
+  backToLanding(): void {
+    this.router.navigate(['/submission']);
   }
 
   private loadCoaSchema(): void {
@@ -273,14 +393,22 @@ export class SubmissionReviewComponent implements OnInit {
       next: (affiliates) => {
         this.financeAffiliates.set(affiliates);
         if (affiliates.length) {
-          if (!this.completenessAffiliate()) {
-            this.completenessAffiliate.set(affiliates[0].entityCode);
+          // Prefer the affiliate carried over from the landing page, when it
+          // still exists in the fetched list; otherwise fall back to the
+          // first affiliate exactly as before.
+          const preferredCode =
+            (this.preselectedEntityCode && affiliates.some((a) => a.entityCode === this.preselectedEntityCode)
+              ? this.preselectedEntityCode
+              : affiliates[0].entityCode);
+
+          if (!this.completenessAffiliate() || this.preselectedEntityCode) {
+            this.completenessAffiliate.set(preferredCode);
             this.loadCompleteness();
           }
-          // Irregularities defaults to the same first affiliate but is not
+          // Irregularities defaults to the same affiliate but is not
           // fetched yet — it lazily loads the first time that tab is visited.
-          if (!this.irregularitiesAffiliate()) {
-            this.irregularitiesAffiliate.set(affiliates[0].entityCode);
+          if (!this.irregularitiesAffiliate() || this.preselectedEntityCode) {
+            this.irregularitiesAffiliate.set(preferredCode);
           }
         }
       },
@@ -290,8 +418,11 @@ export class SubmissionReviewComponent implements OnInit {
     this.submissionReviewService.getCoaAffiliates().subscribe({
       next: (affiliates) => {
         this.coaAffiliates.set(affiliates);
-        const defaultAffiliate = affiliates.find((a) => a.isDefault)?.key ?? affiliates[0]?.key ?? '';
-        if (!this.coaAffiliate() && defaultAffiliate) this.coaAffiliate.set(defaultAffiliate);
+        const preferredKey = this.preselectedEntityCode && affiliates.some((a) => a.key === this.preselectedEntityCode)
+          ? this.preselectedEntityCode
+          : null;
+        const defaultAffiliate = preferredKey ?? affiliates.find((a) => a.isDefault)?.key ?? affiliates[0]?.key ?? '';
+        if ((!this.coaAffiliate() || preferredKey) && defaultAffiliate) this.coaAffiliate.set(defaultAffiliate);
       },
       error: (err) => this.handleError(err, 'Could not load affiliate list for CoA Mapping Review.'),
       complete: () => this.affiliateLoading.set(false),
@@ -361,6 +492,18 @@ export class SubmissionReviewComponent implements OnInit {
     return Boolean(this.collapsedGroups()[group]);
   }
 
+  /** "Expand All" button in the tabs row. Purely a convenience wrapper
+   * around the existing per-group collapse state -- toggles every group at
+   * once rather than introducing any new expand/collapse behaviour. */
+  readonly allGroupsExpanded = computed(() => this.checklist().every((g) => !this.isCollapsed(g.group)));
+
+  toggleExpandAll(): void {
+    const expand = !this.allGroupsExpanded();
+    const next: Record<string, boolean> = {};
+    this.checklist().forEach((g) => (next[g.group] = !expand));
+    this.collapsedGroups.set(next);
+  }
+
   onIrregularitiesPageChange(page: number): void {
     this.loadIrregularities(page);
   }
@@ -374,7 +517,15 @@ export class SubmissionReviewComponent implements OnInit {
     const affiliate = this.completenessAffiliate();
     this.completenessLoading.set(true);
     this.submissionReviewService.getChecklist(affiliate).subscribe({
-      next: (checklist) => this.checklist.set(checklist),
+      next: (checklist) => {
+        this.checklist.set(checklist);
+        // Default every group to collapsed on load, matching the approved
+        // design. Doesn't touch collapse/expand behaviour itself -- just
+        // the starting state.
+        const collapsed: Record<string, boolean> = {};
+        checklist.forEach((g) => (collapsed[g.group] = true));
+        this.collapsedGroups.set(collapsed);
+      },
       error: (err) => this.handleError(err, 'Could not load completeness review.'),
       complete: () => {
         this.completenessLoading.set(false);

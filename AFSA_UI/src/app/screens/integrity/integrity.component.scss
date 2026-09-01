@@ -319,19 +319,31 @@
 }
 
 .integrity-kpi {
+  position: relative;
   min-height: 72px;
   display: flex;
   flex-direction: column;
   justify-content: center;
   padding: 12px 15px;
-  border: 1px solid var(--border);
+  border: 1px solid color-mix(in srgb, var(--kpi-accent, var(--border)) 35%, var(--border));
+  border-top: 3px solid var(--kpi-accent, var(--border));
   border-radius: 10px;
   background: var(--card);
-  transition: border-color 180ms ease, transform 180ms ease;
+  overflow: hidden;
+  transition: border-color 180ms ease, box-shadow 180ms ease, transform 180ms ease;
+
+  &::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(to bottom right, transparent 40%, color-mix(in srgb, var(--kpi-accent, transparent) 7%, transparent) 100%);
+    pointer-events: none;
+  }
 
   &:hover {
-    transform: translateY(-1px);
-    border-color: var(--integrity-accent-border);
+    transform: translateY(-3px);
+    border-color: var(--kpi-accent, var(--border));
+    box-shadow: 0 8px 20px -6px color-mix(in srgb, var(--kpi-accent, #000) 35%, transparent);
   }
 
   &.attention {

@@ -1,0 +1,237 @@
+<div class="st-page">
+  <button type="button" class="st-back" (click)="backToOverview()">
+    <app-icon name="chevron-left" [size]="14" [strokeWidth]="2"></app-icon>
+    Back to Home
+  </button>
+
+  <section class="st-header-card">
+    <div class="st-header-accent"></div>
+    <div class="st-kicker">Group Variance Analysis</div>
+    <h1 class="st-title">
+      @switch (activeTab()) {
+        @case ('income') { Income Statement }
+        @case ('balance') { Balance Sheet }
+        @case ('cashflow') { Cash Flow Statement }
+      }
+    </h1>
+    <div class="st-subtitle">Group Consolidated &middot; {{ period() }} vs {{ comparison() }} &middot; {{ currency() }}</div>
+  </section>
+
+  <!-- ===================================================
+       STATEMENT TABS
+  ==================================================== -->
+  <div class="st-tabs">
+    <span
+      class="st-tab-indicator"
+      [style.left]="tabIndicatorStyle().left"
+      [style.width]="tabIndicatorStyle().width"
+      [style.opacity]="tabIndicatorStyle().opacity"
+    ></span>
+    <button #tabBtn type="button" class="st-tab" [class.active]="activeTab() === 'income'" (click)="setTab('income')">
+      Income Statement
+    </button>
+    <button #tabBtn type="button" class="st-tab" [class.active]="activeTab() === 'balance'" (click)="setTab('balance')">
+      Balance Sheet
+    </button>
+    <button #tabBtn type="button" class="st-tab st-tab-locked" disabled (click)="setTab('cashflow')">
+      <app-icon name="lock" [size]="12" [strokeWidth]="2"></app-icon>
+      Cash Flow Statement
+    </button>
+  </div>
+
+  <!-- ===================================================
+       SUMMARY METRIC CARDS
+  ==================================================== -->
+  <section class="st-metric-grid">
+    @if (loading()) {
+      @for (i of [1,2,3]; track i) {
+        <div class="st-metric-card">
+          <app-skeleton width="36px" height="36px" radius="10px"></app-skeleton>
+          <div style="margin-top:12px"><app-skeleton width="60%" height="28px" radius="4px"></app-skeleton></div>
+          <div style="margin-top:12px"><app-skeleton width="90%" height="10px" radius="4px"></app-skeleton></div>
+        </div>
+      }
+    } @else {
+      @for (metric of summaryMetrics(); track metric.label) {
+        <div class="st-metric-card" [style.--metric-accent]="metric.accent">
+          <div
+            class="st-metric-icon"
+            [style.background]="'radial-gradient(circle, ' + metric.accent + '30 0%, ' + metric.accent + '12 65%, transparent 100%)'"
+            [style.color]="metric.accent"
+          >
+            <app-icon [name]="metric.icon" [size]="16" [strokeWidth]="1.8"></app-icon>
+          </div>
+          <div class="st-metric-label">{{ metric.label | uppercase }}</div>
+          <div class="st-metric-value">{{ metric.value }}</div>
+          <div class="st-metric-unit">{{ currency() }} &middot; {{ period() }}</div>
+
+          <div class="st-metric-compare">
+            <span class="st-compare-label">vs. Budget</span>
+            <span class="st-compare-pill" [class.st-compare-positive]="metric.vsBudgetPositive" [class.st-compare-negative]="!metric.vsBudgetPositive">
+              <app-icon [name]="metric.vsBudget.startsWith('-') ? 'trending-down' : 'trending-up'" [size]="10" [strokeWidth]="2.2"></app-icon>
+              {{ metric.vsBudget }}
+            </span>
+          </div>
+          <div class="st-metric-compare">
+            <span class="st-compare-label">vs. Prior Period</span>
+            <span class="st-compare-pill" [class.st-compare-positive]="metric.vsPriorPositive" [class.st-compare-negative]="!metric.vsPriorPositive">
+              <app-icon [name]="metric.vsPrior.startsWith('-') ? 'trending-down' : 'trending-up'" [size]="10" [strokeWidth]="2.2"></app-icon>
+              {{ metric.vsPrior }}
+            </span>
+          </div>
+        </div>
+      }
+    }
+  </section>
+
+  <!-- ===================================================
+       PERIOD CONTROLS
+  ==================================================== -->
+  <section class="st-controls-card">
+    <div class="st-control-group">
+      <label class="st-control-label">Period</label>
+      <div class="st-granularity-toggle">
+        <span
+          class="st-gran-indicator"
+          [style.left]="granIndicatorStyle().left"
+          [style.width]="granIndicatorStyle().width"
+          [style.opacity]="granIndicatorStyle().opacity"
+        ></span>
+        @for (g of granularityOptions; track g) {
+          <button #granBtn type="button" [class.active]="granularity() === g" (click)="setGranularity(g)">{{ g }}</button>
+        }
+      </div>
+    </div>
+
+    <div class="st-control-group">
+      <label class="st-control-label">Actual Period</label>
+      <select class="st-select" [(ngModel)]="period" (ngModelChange)="onFiltersChanged()">
+        <option>Q1 2024</option>
+        <option>Q2 2024</option>
+        <option>Q3 2024</option>
+        <option>Q4 2024</option>
+        <option>Q1 2025</option>
+        <option>Q2 2025</option>
+        <option>Q3 2025</option>
+        <option>Q4 2025</option>
+        <option>Q1 2026</option>
+      </select>
+    </div>
+
+    <div class="st-control-group">
+      <label class="st-control-label">Comparison Period</label>
+      <select class="st-select" [(ngModel)]="comparison" (ngModelChange)="onFiltersChanged()">
+        <option>Q1 2024</option>
+        <option>Q2 2024</option>
+        <option>Q3 2024</option>
+        <option>Q4 2024</option>
+        <option>Q1 2025</option>
+        <option>Q2 2025</option>
+        <option>Q3 2025</option>
+        <option>Q4 2025</option>
+        <option>Q1 2026</option>
+      </select>
+    </div>
+
+    <button type="button" class="st-expand-all" (click)="toggleExpandAll()">
+      <app-icon name="expand" [size]="13" [strokeWidth]="2"></app-icon>
+      Expand All
+    </button>
+  </section>
+
+  <!-- ===================================================
+       VARIANCE TABLE
+  ==================================================== -->
+  <section class="st-table-card">
+    <div class="st-table-title">
+      <span class="st-table-heading">Group Variance Analysis</span>
+      <span class="st-table-context">{{ currency() }}</span>
+    </div>
+
+    <table class="st-table">
+      <colgroup>
+        <col style="width: 30%" />
+        <col style="width: 13%" />
+        <col style="width: 13%" />
+        <col style="width: 11%" />
+        <col style="width: 10%" />
+        <col style="width: 23%" />
+      </colgroup>
+      <thead>
+        <tr>
+          <th style="text-align: left">Line Item</th>
+          <th style="text-align: right">{{ period() }}</th>
+          <th style="text-align: right">{{ comparison() }}</th>
+          <th style="text-align: right">Variance</th>
+          <th style="text-align: right">Variance %</th>
+          <th style="text-align: left">AI Analysis</th>
+        </tr>
+      </thead>
+      <tbody>
+        @if (loading() && activeRows().length === 0) {
+          @for (i of [1,2,3,4,5]; track i) {
+            <tr class="st-skeleton-row">
+              <td><app-skeleton width="85%" height="11px" radius="4px"></app-skeleton></td>
+              <td style="text-align: right"><app-skeleton width="70%" height="11px" radius="4px"></app-skeleton></td>
+              <td style="text-align: right"><app-skeleton width="70%" height="11px" radius="4px"></app-skeleton></td>
+              <td style="text-align: right"><app-skeleton width="60%" height="11px" radius="4px"></app-skeleton></td>
+              <td style="text-align: right"><app-skeleton width="50%" height="11px" radius="4px"></app-skeleton></td>
+              <td><app-skeleton width="95%" height="11px" radius="4px"></app-skeleton></td>
+            </tr>
+          }
+        }
+        @for (row of activeRows(); track row.item) {
+          <tr [class.st-row-subtotal]="row.isSubtotal">
+            <td>
+              <span class="st-line-item">
+                @if (!row.isSubtotal) {
+                  <button type="button" class="st-row-chevron" (click)="toggleRow(row.item)">
+                    <app-icon
+                      name="chevron-down"
+                      [size]="12"
+                      [strokeWidth]="2"
+                      [style.transform]="isRowCollapsed(row.item) ? 'rotate(-90deg)' : 'rotate(0deg)'"
+                    ></app-icon>
+                  </button>
+                }
+                {{ row.item }}
+              </span>
+            </td>
+            <td style="text-align: right"><span class="st-number">{{ formatNumber(row.current) }}</span></td>
+            <td style="text-align: right"><span class="st-number st-comparison">{{ formatNumber(row.comparison) }}</span></td>
+            <td style="text-align: right">
+              <span class="st-movement" [ngClass]="varianceColorClass(row.color)">{{ formatNumber(row.variance) }}</span>
+            </td>
+            <td style="text-align: right">
+              <span class="st-pct-pill" [ngClass]="varianceColorClass(row.color)">{{ row.varPct }}</span>
+            </td>
+            <td>
+              @if (row.analysis === null) {
+                <div class="st-analysis-skeleton">
+                  <app-skeleton width="92%" height="9px" radius="4px"></app-skeleton>
+                  <app-skeleton width="58%" height="9px" radius="4px"></app-skeleton>
+                </div>
+              } @else {
+                <span class="st-analysis">{{ row.analysis }}</span>
+              }
+            </td>
+          </tr>
+        }
+      </tbody>
+    </table>
+
+    <div class="st-table-footer">
+      <span>Values in {{ currency() }}</span>
+      <span>{{ period() }} vs {{ comparison() }} &middot; Group Consolidated</span>
+    </div>
+  </section>
+</div>
+
+@if (toast()) {
+  <div class="st-toast">
+    <span class="st-toast-icon">
+      <app-icon name="check" [size]="14" [strokeWidth]="2.1"></app-icon>
+    </span>
+    {{ toast() }}
+  </div>
+}

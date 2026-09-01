@@ -1,0 +1,201 @@
+<div class="al-page">
+  <!-- ===================================================
+       HEADER
+  ==================================================== -->
+  <section class="al-header">
+    <div class="al-header-accent"></div>
+    <div>
+      <div class="al-kicker">Affiliate Submission Review</div>
+      <h1 class="al-title">Affiliate Submission Overview</h1>
+      <div class="al-subtitle">Monitor submission completeness, irregularities resolution and CoA mapping across all affiliates.</div>
+    </div>
+  </section>
+
+  <!-- ===================================================
+       OVERALL METRIC CARDS
+  ==================================================== -->
+  <section class="al-metric-grid">
+    @if (loading()) {
+      @for (i of [1,2,3]; track i) {
+        <div class="al-metric-card">
+          <app-skeleton width="55%" height="12px" radius="4px"></app-skeleton>
+          <div style="margin-top:12px"><app-skeleton width="40%" height="30px" radius="4px"></app-skeleton></div>
+          <div style="margin-top:10px"><app-skeleton width="80%" height="10px" radius="4px"></app-skeleton></div>
+          <div style="margin-top:12px"><app-skeleton width="100%" height="6px" radius="4px"></app-skeleton></div>
+        </div>
+      }
+    } @else {
+      @for (metric of overallMetrics(); track metric.label) {
+        <div class="al-metric-card" [style.--metric-accent]="metric.accent">
+          <div class="al-metric-label">{{ metric.label }}</div>
+          <div class="al-metric-value" [style.color]="metric.accent">{{ metric.percent }}%</div>
+          <div class="al-metric-detail">{{ metric.detail }}</div>
+          <div class="al-metric-track">
+            <div class="al-metric-fill" [style.width.%]="metric.percent" [style.background]="metric.accent"></div>
+          </div>
+        </div>
+      }
+    }
+  </section>
+
+  <!-- ===================================================
+       AFFILIATES TABLE
+  ==================================================== -->
+  <section class="al-table-card">
+    <div class="al-table-header">
+      <div>
+        <div class="al-table-title">Affiliates</div>
+        <div class="al-table-subtitle">Select an affiliate to review its submission details.</div>
+      </div>
+      @if (!loading()) {
+        <span class="al-count-pill">{{ affiliates().length }} affiliate{{ affiliates().length !== 1 ? 's' : '' }}</span>
+      }
+    </div>
+
+    @if (loading()) {
+      <div class="al-table-skel">
+        @for (i of [1,2]; track i) {
+          <div class="al-skel-row">
+            <div class="al-skel-affiliate">
+              <app-skeleton width="36px" height="36px" radius="10px"></app-skeleton>
+              <div>
+                <app-skeleton width="120px" height="13px" radius="4px"></app-skeleton>
+                <div style="margin-top:6px"><app-skeleton width="60px" height="10px" radius="4px"></app-skeleton></div>
+              </div>
+            </div>
+            <div class="al-skel-metric"><app-skeleton width="90%" height="20px" radius="4px"></app-skeleton></div>
+            <div class="al-skel-metric"><app-skeleton width="90%" height="20px" radius="4px"></app-skeleton></div>
+            <div class="al-skel-metric"><app-skeleton width="90%" height="20px" radius="4px"></app-skeleton></div>
+          </div>
+        }
+      </div>
+    } @else {
+      <table class="al-table">
+        <thead>
+          <tr>
+            <th style="text-align: left">Affiliate</th>
+            <th style="text-align: left">Submission Completeness</th>
+            <th style="text-align: left">Irregularities</th>
+            <th style="text-align: left">CoA Mapping</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (row of affiliates(); track row.entityCode) {
+            <tr
+              class="al-row"
+              (mouseenter)="showContact(row.entityCode)"
+              (mouseleave)="hideContact()"
+              (click)="selectAffiliate(row)"
+            >
+              <td>
+                <div class="al-affiliate-cell">
+                  <div class="al-avatar">{{ row.code }}</div>
+                  <div>
+                    <div class="al-affiliate-name">{{ row.name }}</div>
+                    <div class="al-affiliate-period">{{ row.period }}</div>
+                  </div>
+
+                  @if (hoveredEntityCode() === row.entityCode) {
+                    <div class="al-contact-popover">
+                      <div class="al-contact-kicker">Affiliate Point of Contact</div>
+                      <div class="al-contact-person">
+                        <div class="al-contact-avatar">
+                          <app-icon name="user" [size]="16" [strokeWidth]="1.6"></app-icon>
+                        </div>
+                        <div>
+                          <div class="al-contact-name">{{ row.contact.name }}</div>
+                          <div class="al-contact-role">{{ row.contact.role }}</div>
+                          <div class="al-contact-company">{{ row.contact.company }}</div>
+                        </div>
+                      </div>
+
+                      <div class="al-contact-divider"></div>
+
+                      <div class="al-contact-fields">
+                        <div>
+                          <div class="al-contact-field-label">Email</div>
+                          <div class="al-contact-field-value">{{ row.contact.email }}</div>
+                        </div>
+                        <div>
+                          <div class="al-contact-field-label">Phone</div>
+                          <div class="al-contact-field-value">{{ row.contact.phone }}</div>
+                        </div>
+                      </div>
+
+                      <div class="al-contact-pending">
+                        <div>
+                          <div class="al-contact-pending-label">Pending review items</div>
+                          <div class="al-contact-pending-breakdown">
+                            {{ row.pending.submission }} submission &middot; {{ row.pending.irregularities }} irregularities &middot; {{ row.pending.mappings }} mappings
+                          </div>
+                        </div>
+                        <div class="al-contact-pending-count">{{ pendingTotal(row) }}</div>
+                      </div>
+                    </div>
+                  }
+                </div>
+              </td>
+
+              <td>
+                <div class="al-cell-metric">
+                  <div class="al-cell-top">
+                    <span class="al-cell-percent" [class.al-cell-green]="row.completenessPercent >= 90" [class.al-cell-red]="row.completenessPercent < 90">
+                      {{ row.completenessPercent }}%
+                    </span>
+                    <span class="al-cell-fraction">{{ row.completenessFraction }}</span>
+                  </div>
+                  <div class="al-cell-track">
+                    <div
+                      class="al-cell-fill"
+                      [style.width.%]="row.completenessPercent"
+                      [class.al-fill-green]="row.completenessPercent >= 90"
+                      [class.al-fill-red]="row.completenessPercent < 90"
+                    ></div>
+                  </div>
+                </div>
+              </td>
+
+              <td>
+                <div class="al-cell-metric">
+                  <div class="al-cell-top">
+                    <span class="al-cell-percent al-cell-red">{{ row.irregularitiesPercent }}%</span>
+                    <span class="al-cell-fraction">{{ row.irregularitiesFraction }}</span>
+                  </div>
+                  <div class="al-cell-track">
+                    <div class="al-cell-fill al-fill-red" [style.width.%]="row.irregularitiesPercent"></div>
+                  </div>
+                </div>
+              </td>
+
+              <td>
+                <div class="al-cell-metric">
+                  <div class="al-cell-top">
+                    <span class="al-cell-percent al-cell-green">{{ row.coaMappingPercent }}%</span>
+                    <span class="al-cell-fraction">{{ row.coaMappingFraction }}</span>
+                  </div>
+                  <div class="al-cell-track">
+                    <div class="al-cell-fill al-fill-green" [style.width.%]="row.coaMappingPercent"></div>
+                  </div>
+                </div>
+              </td>
+
+              <td>
+                <button type="button" class="al-row-cta" (click)="selectAffiliate(row); $event.stopPropagation()" title="Review submission">
+                  <app-icon name="arrow-right" [size]="14" [strokeWidth]="2"></app-icon>
+                </button>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    }
+
+    @if (error()) {
+      <div class="al-error">
+        {{ error() }}
+        <button type="button" (click)="retry()">Retry</button>
+      </div>
+    }
+  </section>
+</div>

@@ -18,6 +18,16 @@
   transition: box-shadow 280ms ease, transform 220ms ease;
 }
 
+.afsa-nav-item-disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+.afsa-nav-item-disabled .afsa-nav-icon,
+.afsa-nav-item-disabled .afsa-nav-text {
+  color: var(--text-faint, var(--text-muted));
+}
+
 .afsa-nav-selection {
   position: absolute;
   inset: 0;

@@ -1,0 +1,220 @@
+<div class="mr-page">
+  <!-- ===================================================
+       HEADER
+  ==================================================== -->
+  <section class="mr-header">
+    <div class="mr-header-accent"></div>
+
+    <div>
+      <div class="mr-kicker">Management Analysis</div>
+      <h1 class="mr-title">Management Report Generator</h1>
+      <div class="mr-subtitle">
+        {{ period() }} &middot; Group Consolidated &middot; {{ currency() }}
+      </div>
+    </div>
+  </section>
+
+  <div class="mr-tab-content">
+    <div class="management-primary-grid">
+      <!-- LEFT COLUMN -->
+      <div class="management-left-stack">
+        <!-- GENERATION READINESS -->
+        <section class="management-readiness">
+          <div class="management-readiness-header">
+            <div>
+              <div class="management-section-title">Generation Readiness</div>
+              <div class="management-section-subtitle">
+                Required inputs are available for report generation.
+              </div>
+            </div>
+            <div class="management-ready-pill">
+              <app-icon name="check" [size]="14" [strokeWidth]="2.1" />
+              Ready to Generate
+            </div>
+          </div>
+
+          <div class="management-readiness-list">
+            @for (item of readinessItems; track item.label) {
+              <div class="management-readiness-row">
+                <span class="management-readiness-check">
+                  <app-icon name="check" [size]="14" [strokeWidth]="2.1" />
+                </span>
+                <div>
+                  <div class="management-readiness-label">{{ item.label }}</div>
+                  <div class="management-readiness-detail">{{ item.detail }}</div>
+                </div>
+              </div>
+            }
+          </div>
+        </section>
+      </div>
+
+      <!-- REPORT GENERATION — RIGHT -->
+      <section class="management-generation">
+
+            @if (reportState() === 'idle') {
+              <div class="management-generate-title">Generate Management Report</div>
+              <div class="management-generate-copy">
+                Create the {{ period() }} management presentation using the standardized Finance template.
+              </div>
+              <button type="button" class="management-generate-button" (click)="generateManagementReport()">
+                <app-icon name="presentation" [size]="17" [strokeWidth]="1.8" />
+                Generate Management Report
+              </button>
+            }
+
+            @if (reportState() === 'generating') {
+              <div class="management-generating">
+                <div class="management-generating-icon">
+                  <span class="management-generating-dot"></span>
+                </div>
+
+                <div class="management-generate-title">Generating Management Report</div>
+                <div class="management-generate-copy">
+                  Preparing the standardized PowerPoint presentation.
+                </div>
+
+                <div class="management-progress-track">
+                  <div class="management-progress-bar"></div>
+                </div>
+
+                <div class="management-step-list">
+                  @for (step of generationSteps; track step; let index = $index) {
+                    <div
+                      class="management-step"
+                      [class.complete]="index < generationStep()"
+                      [class.active]="index === generationStep()"
+                    >
+                      <span class="management-step-indicator"></span>
+                      {{ step }}
+                    </div>
+                  }
+                </div>
+              </div>
+            }
+
+            @if (reportState() === 'ready') {
+              <div class="management-ready-icon">
+                <app-icon name="check" [size]="17" [strokeWidth]="2.1" />
+              </div>
+
+              <div class="management-generate-title">Management Report Ready</div>
+              <div class="management-generate-copy">
+                The presentation has been generated using the standardized Finance reporting template.
+              </div>
+
+              <div class="management-file">
+                <span class="management-file-icon">
+                  <app-icon name="presentation" [size]="17" [strokeWidth]="1.8" />
+                </span>
+                <div>
+                  <div class="management-file-name">{{ reportFileName() }}</div>
+                  <div class="management-file-meta">
+                    Finance Management Report v2026.1 &middot; {{ generatedAt() }}
+                  </div>
+                </div>
+              </div>
+
+              @if (reportNeedsRefresh()) {
+                <div class="management-refresh-warning">
+                  <app-icon name="refresh" [size]="14" [strokeWidth]="1.9" />
+                  <span>
+                    Reporting inputs have changed since this version was generated. Regeneration is recommended.
+                  </span>
+                </div>
+              }
+
+              <button type="button" class="management-download-button" (click)="downloadManagementReport()">
+                <app-icon name="download" [size]="14" [strokeWidth]="1.9" />
+                Download PPTX
+              </button>
+
+              <button type="button" class="management-secondary-button" (click)="generateManagementReport()">
+                <app-icon name="refresh" [size]="14" [strokeWidth]="1.9" />
+                Regenerate Report
+              </button>
+            }
+          </section>
+        </div>
+
+        <!-- TEMPLATE INFORMATION -->
+        <section class="management-template-info">
+          <div class="management-template-heading">
+            <app-icon name="template" [size]="15" [strokeWidth]="1.8" />
+            Template Information
+          </div>
+
+          <div class="management-template-grid">
+            <div class="management-template-field">
+              <div class="management-template-label">Template</div>
+              <div class="management-template-value">Finance Management Report</div>
+            </div>
+            <div class="management-template-field">
+              <div class="management-template-label">Version</div>
+              <div class="management-template-value">v2026.1</div>
+            </div>
+            <div class="management-template-field">
+              <div class="management-template-label">Output</div>
+              <div class="management-template-value">PowerPoint (.pptx)</div>
+            </div>
+          </div>
+        </section>
+
+        <!-- GENERATION HISTORY -->
+        <section class="management-history">
+          <div class="management-history-header">
+            <div class="management-history-header-left">
+              <app-icon name="clock" [size]="14" [strokeWidth]="1.8" />
+              Generation History
+            </div>
+
+            <button
+              type="button"
+              class="management-history-toggle"
+              (click)="toggleHistory()"
+              [attr.aria-expanded]="!historyCollapsed()"
+              [attr.aria-label]="historyCollapsed() ? 'Expand generation history' : 'Collapse generation history'"
+              [title]="historyCollapsed() ? 'Expand' : 'Collapse'"
+            >
+              <span
+                class="management-history-chevron"
+                [style.transform]="historyCollapsed() ? 'rotate(0deg)' : 'rotate(180deg)'"
+              >
+                <app-icon name="chevron-down" [size]="14" [strokeWidth]="2" />
+              </span>
+            </button>
+          </div>
+
+          <div class="management-history-collapse" [class.collapsed]="historyCollapsed()">
+            <div class="management-history-collapse-inner">
+              @if (reportState() === 'ready') {
+                <div class="management-history-row">
+                  <div class="management-history-period">{{ generatedPeriod() }}</div>
+                  <div class="management-history-file">{{ reportFileName() }}</div>
+                  <div class="management-history-date">{{ generatedAt() }}</div>
+                  <div class="management-history-status">Current</div>
+                </div>
+              }
+            </div>
+          </div>
+        </section>
+
+    <div class="mr-continue-row">
+      <button type="button" class="mr-continue-button" (click)="goToIntegrity()">
+        Continue to Financial Statement Integrity Check
+        <span class="mr-continue-arrow">
+          <app-icon name="arrow-right" [size]="14" [strokeWidth]="2" />
+        </span>
+      </button>
+    </div>
+  </div>
+</div>
+
+@if (toast()) {
+  <div class="mr-toast">
+    <span class="mr-toast-icon">
+      <app-icon name="check" [size]="14" [strokeWidth]="2.1" />
+    </span>
+    {{ toast() }}
+  </div>
+}

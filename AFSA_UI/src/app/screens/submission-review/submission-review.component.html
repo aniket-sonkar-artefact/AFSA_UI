@@ -1,50 +1,57 @@
 <div class="submission">
+  @if (cameFromLanding) {
+    <button type="button" class="sr-back-link" (click)="backToLanding()">
+      <app-icon name="chevron-left" [size]="14"></app-icon>
+      Back to Submission Overview
+    </button>
+  }
+
   <!-- HEADER -->
   <section class="sr-header">
     <div class="sr-header-accent"></div>
 
     <div>
-      <div class="sr-eyebrow">Affiliate Review</div>
-      <h1 class="sr-title">Affiliate Submission Review</h1>
+      <div class="sr-eyebrow">Affiliate Submission Review</div>
+      <h1 class="sr-title">{{ activeAffiliateName() }} Submission Review</h1>
       <div class="sr-subtitle">
-        Review submission completeness, irregular values and Group CoA mappings by affiliate.
+        Review submission completeness, irregularities and CoA mapping for {{ activeAffiliateName() }} &middot; {{ displayPeriod() }}.
       </div>
     </div>
 
-    <div class="sr-header-controls">
-      <div class="sr-affiliate-field">
-        <label for="affiliate-selector" class="sr-meta-label">Affiliate</label>
-        <select
-          id="affiliate-selector"
-          class="sr-affiliate-select"
-          [ngModel]="tab() === 'coa' ? coaAffiliate() : (tab() === 'irregularities' ? irregularitiesAffiliate() : completenessAffiliate())"
-          (ngModelChange)="onAffiliateSelectChange($event)"
-          [disabled]="affiliateLoading()"
-        >
-          @if (tab() === 'coa') {
-            @for (aff of coaAffiliates(); track aff.key) {
-              <option [value]="aff.key">{{ aff.name }}</option>
-            }
-          } @else {
-            @for (aff of financeAffiliates(); track aff.entityCode) {
-              <option [value]="aff.entityCode">{{ aff.entityName }}</option>
-            }
-          }
-        </select>
-        <span class="sr-affiliate-chevron">
-          <app-icon name="chevron-down" [size]="14" [strokeWidth]="2"></app-icon>
-        </span>
-      </div>
+    <div class="sr-header-right">
+      <!-- Point of contact + pending items: see loadHeaderInfo() note for
+           data-sourcing details (mock, skeleton-ready for a real endpoint). -->
+      @if (headerLoading()) {
+        <div class="sr-header-contact sr-header-contact-skeleton">
+          <app-skeleton width="34px" height="34px" radius="50%"></app-skeleton>
+          <div class="sr-header-contact-lines">
+            <app-skeleton width="120px" height="12px" radius="4px"></app-skeleton>
+            <app-skeleton width="150px" height="10px" radius="4px"></app-skeleton>
+            <app-skeleton width="160px" height="10px" radius="4px"></app-skeleton>
+          </div>
+        </div>
+        <app-skeleton width="80px" height="46px" radius="10px"></app-skeleton>
+      } @else if (headerContact()) {
+        <div class="sr-header-contact">
+          <div class="sr-header-contact-avatar">
+            <app-icon name="user" [size]="16" [strokeWidth]="1.6"></app-icon>
+          </div>
+          <div>
+            <div class="sr-header-contact-name">{{ headerContact()!.name }}</div>
+            <div class="sr-header-contact-role">{{ headerContact()!.role }}</div>
+            <div class="sr-header-contact-company">{{ headerContact()!.company }}</div>
+            <div class="sr-header-contact-fields">
+              <span>{{ headerContact()!.email }}</span>
+              <span>{{ headerContact()!.phone }}</span>
+            </div>
+          </div>
+        </div>
 
-      <div class="sr-meta-block">
-        <span class="sr-meta-label">Period</span>
-        <div class="sr-meta-value">{{ displayPeriod() }}</div>
-      </div>
-
-      <div class="sr-meta-block wide">
-        <span class="sr-meta-label">Reviewer</span>
-        <div class="sr-meta-value">{{ tab() === 'coa' && coaSummary()?.session?.reviewer ? coaSummary()?.session?.reviewer : reviewerName() }}</div>
-      </div>
+        <div class="sr-pending-badge">
+          <span class="sr-pending-count">{{ headerPendingCount() }}</span>
+          <span class="sr-pending-label">Pending<br />Items</span>
+        </div>
+      }
     </div>
   </section>
 
@@ -57,9 +64,12 @@
         </button>
       }
     </div>
-    <div class="sr-tabs-breadcrumb">
-      {{ activeAffiliateName() }} &middot; {{ tabLabel[tab()] }} &middot; {{ displayPeriod() }}
-    </div>
+
+    @if (tab() === 'completeness') {
+      <button type="button" class="sr-expand-all-button" (click)="toggleExpandAll()">
+        {{ allGroupsExpanded() ? 'Collapse All' : 'Expand All' }}
+      </button>
+    }
   </div>
 
   @if (error()) {
@@ -73,8 +83,8 @@
   @if (tab() === 'completeness') {
     <div class="sr-tab-content">
       @if (completenessLoading()) {
-        <div class="sr-kpi-grid">
-          @for (i of [1, 2, 3, 4]; track i) {
+        <div class="sr-kpi-grid sr-kpi-grid-3">
+          @for (i of [1, 2, 3]; track i) {
             <div class="sr-kpi sr-kpi-skeleton"><app-skeleton width="42px" height="27px" radius="5px"></app-skeleton><app-skeleton width="72px" height="9px" radius="4px"></app-skeleton></div>
           }
         </div>
@@ -89,18 +99,19 @@
           </section>
         }
       } @else {
-        <div class="sr-kpi-grid">
+        <div class="sr-kpi-grid sr-kpi-grid-3">
           @for (s of checklistStatCards(); track s.label) {
-            <div class="sr-kpi" [class.attention]="s.attention">
+            <div class="sr-kpi" [class.attention]="s.attention" [style.--kpi-accent]="s.color">
               <div class="sr-kpi-top">
                 <div>
+                  <div class="sr-kpi-label sr-kpi-label-top">{{ s.label }}</div>
                   <div class="sr-kpi-value" [style.color]="s.color">{{ s.value }}</div>
-                  <div class="sr-kpi-label">{{ s.label }}</div>
                 </div>
                 @if (s.attention) {
                   <div class="sr-kpi-alert"><span class="sr-kpi-alert-dot"></span>Attention</div>
                 }
               </div>
+              <div class="sr-kpi-detail">{{ s.detail }}</div>
             </div>
           }
         </div>
@@ -111,7 +122,7 @@
 
         @for (group of checklist(); track group.group) {
           <section class="sr-table-card">
-            <div class="sr-group-header">
+            <div class="sr-group-header" [class.expanded]="!isCollapsed(group.group)">
               <div class="sr-group-header-left"><div class="sr-group-marker"></div><span>{{ group.group }}</span><span class="sr-group-count">{{ group.items.length }} items</span></div>
               <button type="button" class="sr-collapse-button" [attr.aria-expanded]="!isCollapsed(group.group)" (click)="toggleGroup(group.group)">
                 <span class="sr-collapse-chevron" [class.collapsed]="isCollapsed(group.group)"><app-icon name="chevron-down" [size]="14" [strokeWidth]="2"></app-icon></span>
@@ -177,7 +188,7 @@
             <app-skeleton width="60px" height="9px" radius="4px"></app-skeleton>
             <div class="sr-overview-breakdown">
               @for (i of [1,2,3]; track i) {
-                <div class="sr-overview-stat"><app-skeleton width="8px" height="8px" radius="999px"></app-skeleton><div><app-skeleton width="24px" height="15px" radius="4px"></app-skeleton><app-skeleton width="34px" height="9px" radius="4px"></app-skeleton></div></div>
+                <div class="sr-overview-stat"><div><app-skeleton width="24px" height="15px" radius="4px"></app-skeleton><app-skeleton width="34px" height="9px" radius="4px"></app-skeleton></div></div>
               }
             </div>
           </div>
@@ -185,7 +196,7 @@
             <app-skeleton width="60px" height="9px" radius="4px"></app-skeleton>
             <div class="sr-overview-breakdown">
               @for (i of [1,2,3]; track i) {
-                <div class="sr-overview-stat"><app-skeleton width="8px" height="8px" radius="999px"></app-skeleton><div><app-skeleton width="24px" height="15px" radius="4px"></app-skeleton><app-skeleton width="60px" height="9px" radius="4px"></app-skeleton></div></div>
+                <div class="sr-overview-stat"><div><app-skeleton width="24px" height="15px" radius="4px"></app-skeleton><app-skeleton width="60px" height="9px" radius="4px"></app-skeleton></div></div>
               }
             </div>
           </div>
@@ -229,16 +240,16 @@
         </div>
       } @else {
         <div class="sr-kpi-grid sr-kpi-grid-3">
-           <div class="sr-kpi">
+           <div class="sr-kpi" [style.--kpi-accent]="'var(--submission-accent)'">
+            <div class="sr-kpi-label sr-kpi-label-top">Affiliate Total Irregularities</div>
             <div class="sr-kpi-value" style="color: var(--submission-accent)">{{ irregularitiesTotal() }}</div>
-            <div class="sr-kpi-label">Total Irregularities</div>
+            <div class="sr-kpi-detail">{{ irregularitiesResolvedCount() }} resolved &middot; {{ irregularitiesRequiringReview() }} requiring review</div>
           </div>
-          <div class="sr-kpi sr-kpi-breakdown">
-            <div class="sr-kpi-label">By Priority</div>
+          <div class="sr-kpi sr-kpi-breakdown" [style.--kpi-accent]="'var(--submission-warning)'">
+            <div class="sr-kpi-label sr-kpi-label-top">Irregularities by Priority</div>
             <div class="sr-overview-breakdown">
               @for (b of irregularitiesPriorityBreakdown(); track b.label) {
                 <div class="sr-overview-stat">
-                  <span class="sr-overview-stat-dot" [style.background]="b.color"></span>
                   <div>
                     <div class="sr-overview-stat-value" [style.color]="b.color">{{ b.value }}</div>
                     <div class="sr-overview-stat-label">{{ b.label }}</div>
@@ -248,12 +259,11 @@
             </div>
         </div>
 
-        <div class="sr-kpi sr-kpi-breakdown">
-            <div class="sr-kpi-label">By Status</div>
+        <div class="sr-kpi sr-kpi-breakdown" [style.--kpi-accent]="'var(--submission-info)'">
+            <div class="sr-kpi-label sr-kpi-label-top">Irregularities by Status</div>
             <div class="sr-overview-breakdown">
               @for (b of irregularitiesStatusBreakdown(); track b.label) {
                 <div class="sr-overview-stat">
-                  <span class="sr-overview-stat-dot" [style.background]="b.color"></span>
                   <div>
                     <div class="sr-overview-stat-value" [style.color]="b.color">{{ b.value }}</div>
                     <div class="sr-overview-stat-label">{{ b.label }}</div>
@@ -307,16 +317,14 @@
   @if (tab() === 'coa') {
   <div class="sr-tab-content">
     @if (coaLoading()) {
-      <div class="sr-overview-card sr-skeleton-card">
-        <div class="sr-overview-primary">
-          <app-skeleton width="60px" height="27px" radius="5px"></app-skeleton>
-          <app-skeleton width="100px" height="9px" radius="4px"></app-skeleton>
-        </div>
-        <div class="sr-overview-breakdown">
-          @for (i of [1,2,3]; track i) {
-            <div class="sr-overview-stat"><app-skeleton width="8px" height="8px" radius="999px"></app-skeleton><div><app-skeleton width="30px" height="17px" radius="4px"></app-skeleton><app-skeleton width="80px" height="9px" radius="4px"></app-skeleton></div></div>
-          }
-        </div>
+      <div class="sr-kpi-grid sr-kpi-grid-3">
+        @for (i of [1,2,3]; track i) {
+          <div class="sr-kpi sr-kpi-skeleton">
+            <app-skeleton width="60px" height="27px" radius="5px"></app-skeleton>
+            <app-skeleton width="100px" height="9px" radius="4px"></app-skeleton>
+            <app-skeleton width="80px" height="9px" radius="4px"></app-skeleton>
+          </div>
+        }
       </div>
       <section class="sr-table-card sr-skeleton-card">
         <div class="sr-group-header"><app-skeleton width="160px" height="11px" radius="4px"></app-skeleton><app-skeleton width="80px" height="9px" radius="4px"></app-skeleton></div>
@@ -345,22 +353,14 @@
       </section>
     } @else {
       @let overview = coaOverviewCard();
-      <div class="sr-overview-card">
-        <div class="sr-overview-primary">
-          <div class="sr-overview-total-value">{{ overview.total }}</div>
-          <div class="sr-overview-total-label">Accounts Reviewed</div>
-        </div>
-        <div class="sr-overview-breakdown">
-          @for (b of overview.breakdown; track b.label) {
-            <div class="sr-overview-stat">
-              <span class="sr-overview-stat-dot" [style.background]="b.color"></span>
-              <div>
-                <div class="sr-overview-stat-value" [style.color]="b.color">{{ b.value }}</div>
-                <div class="sr-overview-stat-label">{{ b.label }}</div>
-              </div>
-            </div>
-          }
-        </div>
+      <div class="sr-kpi-grid sr-kpi-grid-3">
+        @for (b of overview.breakdown; track b.label) {
+          <div class="sr-kpi" [style.--kpi-accent]="b.color">
+            <div class="sr-kpi-value" [style.color]="b.color">{{ b.value }}</div>
+            <div class="sr-kpi-label">{{ b.label }}</div>
+            <div class="sr-kpi-detail">of {{ overview.total }} mappings</div>
+          </div>
+        }
       </div>
 
       @if (coaHasBlockers()) {<div class="sr-warning-banner">Mapping review cannot be completed: confirm all Low Confidence and Unmapped accounts before proceeding.</div>}

@@ -38,9 +38,36 @@
   </section>
 
   <!-- ===================================================
-       EMPTY STATE
+       LOADING STATE (skeleton)
   ==================================================== -->
-  @if (groupedReports().length === 0) {
+  @if (loading()) {
+    @for (i of [1,2,3]; track i) {
+      <section class="reports-group">
+        <div class="reports-group-header expanded">
+          <div class="reports-group-header-left">
+            <app-skeleton width="8px" height="8px" radius="50%"></app-skeleton>
+            <app-skeleton width="180px" height="13px" radius="4px"></app-skeleton>
+          </div>
+        </div>
+        <div class="reports-group-collapse">
+          <div class="reports-group-collapse-inner">
+            @for (j of [1,2]; track j) {
+              <div class="reports-row">
+                <app-skeleton width="32px" height="32px" radius="8px"></app-skeleton>
+                <div class="reports-row-content">
+                  <app-skeleton width="60%" height="13px" radius="4px"></app-skeleton>
+                  <div style="margin-top:6px">
+                    <app-skeleton width="40%" height="10px" radius="4px"></app-skeleton>
+                  </div>
+                </div>
+                <app-skeleton width="120px" height="30px" radius="8px"></app-skeleton>
+              </div>
+            }
+          </div>
+        </div>
+      </section>
+    }
+  } @else if (groupedReports().length === 0) {
     <section class="reports-empty">
       <div class="reports-empty-title">No reports found</div>
       <div class="reports-empty-copy">No reports match your current search or filter.</div>
