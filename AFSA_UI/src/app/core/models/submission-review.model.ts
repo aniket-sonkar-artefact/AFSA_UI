@@ -24,6 +24,13 @@ export interface Finding {
   severityColor: 'red' | 'yellow';
   colorLocation: 'currentPeriod' | 'change';
   status: FindingStatus;
+  qtd?: string;
+  priorYearQtd?: string;
+  qoqDelta?: string;
+  ytd?: string;
+  priorYearYtd?: string;
+  yoyDelta?: string;
+  priority?: 'High' | 'Medium' | 'Low' | string;
 }
 
 export interface IrregularitiesPage {
@@ -36,8 +43,11 @@ export interface IrregularitiesPage {
 }
 
 export interface IrregularitiesSummary {
-  totalIrregularities: number;
-  highPriorityOpen: number;
+  total: number;
+  highSeverity: number;
+  midSeverity: number;
+  lowSeverity: number;
+  open: number;
   underInvestigation: number;
   closed: number;
 }

@@ -171,8 +171,54 @@
   @if (tab() === 'irregularities') {
     <div class="sr-tab-content">
       @if (irregularitiesLoading()) {
-        <div class="sr-kpi-grid">@for (i of [1, 2, 3, 4]; track i) {<div class="sr-kpi sr-kpi-skeleton"><app-skeleton width="42px" height="27px" radius="5px"></app-skeleton><app-skeleton width="105px" height="9px" radius="4px"></app-skeleton></div>}</div>
-        <section class="sr-table-card sr-skeleton-card"><div class="sr-group-header"><app-skeleton width="180px" height="11px" radius="4px"></app-skeleton><app-skeleton width="85px" height="9px" radius="4px"></app-skeleton></div><table class="sr-table"><colgroup><col class="ir-code"><col class="ir-account"><col class="ir-value"><col class="ir-value"><col class="ir-change"><col class="ir-flag"><col class="ir-status"></colgroup><thead><tr><th>Account Code</th><th>Account</th><th>Current Period</th><th>Prior Period</th><th>Change</th><th>Flag</th><th>Status</th></tr></thead><tbody>@for (row of [1,2,3,4,5,6,7,8]; track row) {<tr><td><app-skeleton width="52px" height="10px" radius="4px"></app-skeleton></td><td><app-skeleton width="150px" height="11px" radius="4px"></app-skeleton></td><td><app-skeleton width="70px" height="10px" radius="4px"></app-skeleton></td><td><app-skeleton width="70px" height="10px" radius="4px"></app-skeleton></td><td><app-skeleton width="45px" height="10px" radius="4px"></app-skeleton></td><td><app-skeleton width="170px" height="10px" radius="4px"></app-skeleton></td><td><app-skeleton width="75px" height="27px" radius="7px"></app-skeleton></td></tr>}</tbody></table></section>
+        <div class="sr-kpi-grid sr-kpi-grid-3">
+          <div class="sr-kpi sr-kpi-skeleton"><app-skeleton width="42px" height="27px" radius="5px"></app-skeleton><app-skeleton width="105px" height="9px" radius="4px"></app-skeleton></div>
+          <div class="sr-kpi sr-kpi-skeleton sr-kpi-breakdown">
+            <app-skeleton width="60px" height="9px" radius="4px"></app-skeleton>
+            <div class="sr-overview-breakdown">
+              @for (i of [1,2,3]; track i) {
+                <div class="sr-overview-stat"><app-skeleton width="8px" height="8px" radius="999px"></app-skeleton><div><app-skeleton width="24px" height="15px" radius="4px"></app-skeleton><app-skeleton width="34px" height="9px" radius="4px"></app-skeleton></div></div>
+              }
+            </div>
+          </div>
+          <div class="sr-kpi sr-kpi-skeleton sr-kpi-breakdown">
+            <app-skeleton width="60px" height="9px" radius="4px"></app-skeleton>
+            <div class="sr-overview-breakdown">
+              @for (i of [1,2,3]; track i) {
+                <div class="sr-overview-stat"><app-skeleton width="8px" height="8px" radius="999px"></app-skeleton><div><app-skeleton width="24px" height="15px" radius="4px"></app-skeleton><app-skeleton width="60px" height="9px" radius="4px"></app-skeleton></div></div>
+              }
+            </div>
+          </div>
+        </div>
+        <section class="sr-table-card sr-skeleton-card">
+          <div class="sr-group-header"><app-skeleton width="180px" height="11px" radius="4px"></app-skeleton><app-skeleton width="85px" height="9px" radius="4px"></app-skeleton></div>
+          <div class="sr-table-scroll">
+            <table class="sr-table sr-table-irregularities">
+              <colgroup><col class="ir-code"><col class="ir-account"><col class="ir-mtd"><col class="ir-prior-mtd"><col class="ir-mom"><col class="ir-qtd"><col class="ir-prior-qtd"><col class="ir-qoq"><col class="ir-ytd"><col class="ir-prior-ytd"><col class="ir-yoy"><col class="ir-priority"><col class="ir-flag"><col class="ir-status"></colgroup>
+              <thead><tr><th>Account Code</th><th>Account</th><th>MTD</th><th>Prior Year MTD</th><th>MoM Delta</th><th>QTD</th><th>Prior Year QTD</th><th>QoQ Delta</th><th>YTD</th><th>Prior Year YTD</th><th>YoY Delta</th><th>Priority</th><th>Flag</th><th>Status</th></tr></thead>
+              <tbody>
+                @for (row of [1,2,3,4,5,6,7,8]; track row) {
+                  <tr>
+                    <td><app-skeleton width="45px" height="10px" radius="4px"></app-skeleton></td>
+                    <td><app-skeleton width="110px" height="11px" radius="4px"></app-skeleton></td>
+                    <td><app-skeleton width="55px" height="10px" radius="4px"></app-skeleton></td>
+                    <td><app-skeleton width="55px" height="10px" radius="4px"></app-skeleton></td>
+                    <td><app-skeleton width="40px" height="10px" radius="4px"></app-skeleton></td>
+                    <td><app-skeleton width="55px" height="10px" radius="4px"></app-skeleton></td>
+                    <td><app-skeleton width="55px" height="10px" radius="4px"></app-skeleton></td>
+                    <td><app-skeleton width="40px" height="10px" radius="4px"></app-skeleton></td>
+                    <td><app-skeleton width="55px" height="10px" radius="4px"></app-skeleton></td>
+                    <td><app-skeleton width="55px" height="10px" radius="4px"></app-skeleton></td>
+                    <td><app-skeleton width="40px" height="10px" radius="4px"></app-skeleton></td>
+                    <td><app-skeleton width="55px" height="20px" radius="999px"></app-skeleton></td>
+                    <td><app-skeleton width="130px" height="10px" radius="4px"></app-skeleton></td>
+                    <td><app-skeleton width="70px" height="27px" radius="7px"></app-skeleton></td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        </section>
       } @else if (irregularitiesBlocked().blocked) {
         <div class="sr-irregularities-blocked" role="alert">
           <span class="sr-irregularities-blocked-icon"><app-icon name="alert-triangle" [size]="18" [strokeWidth]="2"></app-icon></span>
@@ -182,10 +228,40 @@
           </div>
         </div>
       } @else {
-        <div class="sr-kpi-grid">
-          @for (s of irregularitiesStatCards(); track s.label) {
-            <div class="sr-kpi" [class.attention]="s.attention"><div class="sr-kpi-top"><div><div class="sr-kpi-value" [style.color]="s.color">{{ s.value }}</div><div class="sr-kpi-label">{{ s.label }}</div></div>@if (s.attention) {<div class="sr-kpi-alert"><span class="sr-kpi-alert-dot"></span>Attention</div>}</div></div>
-          }
+        <div class="sr-kpi-grid sr-kpi-grid-3">
+           <div class="sr-kpi">
+            <div class="sr-kpi-value" style="color: var(--submission-accent)">{{ irregularitiesTotal() }}</div>
+            <div class="sr-kpi-label">Total Irregularities</div>
+          </div>
+          <div class="sr-kpi sr-kpi-breakdown">
+            <div class="sr-kpi-label">By Priority</div>
+            <div class="sr-overview-breakdown">
+              @for (b of irregularitiesPriorityBreakdown(); track b.label) {
+                <div class="sr-overview-stat">
+                  <span class="sr-overview-stat-dot" [style.background]="b.color"></span>
+                  <div>
+                    <div class="sr-overview-stat-value" [style.color]="b.color">{{ b.value }}</div>
+                    <div class="sr-overview-stat-label">{{ b.label }}</div>
+                  </div>
+                </div>
+              }
+            </div>
+        </div>
+
+        <div class="sr-kpi sr-kpi-breakdown">
+            <div class="sr-kpi-label">By Status</div>
+            <div class="sr-overview-breakdown">
+              @for (b of irregularitiesStatusBreakdown(); track b.label) {
+                <div class="sr-overview-stat">
+                  <span class="sr-overview-stat-dot" [style.background]="b.color"></span>
+                  <div>
+                    <div class="sr-overview-stat-value" [style.color]="b.color">{{ b.value }}</div>
+                    <div class="sr-overview-stat-label">{{ b.label }}</div>
+                  </div>
+                </div>
+              }
+            </div>
+          </div>
         </div>
 
         @if (findings().length === 0) { <div class="sr-empty-state">No irregularities identified for {{ activeAffiliateName() }}.</div> }
@@ -194,20 +270,27 @@
             <div class="sr-group-header"><div class="sr-group-header-left"><div class="sr-group-marker"></div><span>Irregularities Review</span></div><span class="sr-group-count">{{ irregularitiesTotalCount() }} findings</span></div>
             <div class="sr-table-scroll">
               <table class="sr-table sr-table-irregularities">
-                <colgroup><col class="ir-code"><col class="ir-account"><col class="ir-value"><col class="ir-value"><col class="ir-change"><col class="ir-flag"><col class="ir-status"></colgroup>
-                <thead><tr><th>Account Code</th><th>Account</th><th>Current Period</th><th>Prior Period</th><th>Change</th><th>Flag</th><th>Status</th></tr></thead>
+              <colgroup><col class="ir-code"><col class="ir-account"><col class="ir-mtd"><col class="ir-prior-mtd"><col class="ir-mom"><col class="ir-qtd"><col class="ir-prior-qtd"><col class="ir-qoq"><col class="ir-ytd"><col class="ir-prior-ytd"><col class="ir-yoy"><col class="ir-priority"><col class="ir-flag"><col class="ir-status"></colgroup>
+                <thead><tr><th>Account Code</th><th>Account</th><th>MTD</th><th>Prior Year MTD</th><th>MoM Delta</th><th>QTD</th><th>Prior Year QTD</th><th>QoQ Delta</th><th>YTD</th><th>Prior Year YTD</th><th>YoY Delta</th><th>Priority</th><th>Flag</th><th>Status</th></tr></thead>
                 <tbody>
                   @for (row of findings(); track row.accountCode; let i = $index) {
-                    <tr>
-                      <td><span class="sr-account-code">{{ row.accountCode }}</span></td>
-                      <td><span class="sr-item-name">{{ row.account }}</span></td>
-                      <td [class]="flagClass(row.colorLocation === 'currentPeriod', row.severityColor)"><span class="sr-number">{{ row.currentPeriod }}</span></td>
-                      <td><span class="sr-number sr-number-muted">{{ row.priorPeriod }}</span></td>
-                      <td [class]="flagClass(row.colorLocation === 'change', row.severityColor)"><span class="sr-number">{{ row.change }}</span></td>
-                      <td><div class="sr-flag-cell"><span class="sr-severity-dot" [class.high]="row.severityColor === 'red'" [class.medium]="row.severityColor === 'yellow'"></span><span class="sr-flag-copy">{{ row.flag }}</span></div></td>
-                      <td><select class="sr-status-select" [style.background]="findingStatusStyle(row.status).background" [style.color]="findingStatusStyle(row.status).color" [style.border]="'1px solid ' + findingStatusStyle(row.status).border" [ngModel]="row.status" (ngModelChange)="onFindingStatusChange(i, $event)"><option value="Open">Open</option><option value="Investigate">Investigate</option><option value="Closed">Closed</option></select></td>
-                    </tr>
-                  }
+                  <tr>
+                    <td><span class="sr-account-code">{{ row.accountCode }}</span></td>
+                    <td><span class="sr-item-name">{{ row.account }}</span></td>
+                    <td [class]="flagClass(row.colorLocation === 'currentPeriod', row.severityColor)"><span class="sr-number">{{ row.currentPeriod }}</span></td>
+                    <td><span class="sr-number sr-number-muted">{{ row.priorPeriod }}</span></td>
+                    <td [class]="flagClass(row.colorLocation === 'change', row.severityColor)"><span class="sr-number">{{ row.change }}</span></td>
+                    <td><span class="sr-number sr-number-muted">{{ row.qtd }}</span></td>
+                    <td><span class="sr-number sr-number-muted">{{ row.priorYearQtd }}</span></td>
+                    <td><span class="sr-number">{{ row.qoqDelta }}</span></td>
+                    <td><span class="sr-number sr-number-muted">{{ row.ytd }}</span></td>
+                    <td><span class="sr-number sr-number-muted">{{ row.priorYearYtd }}</span></td>
+                    <td><span class="sr-number">{{ row.yoyDelta }}</span></td>
+                    <td><span class="sr-status-chip" [style.color]="priorityStyle(row.priority).color" [style.background]="priorityStyle(row.priority).background" [style.border]="'1px solid ' + priorityStyle(row.priority).border">{{ row.priority }}</span></td>
+                    <td><div class="sr-flag-cell"><span class="sr-severity-dot" [class.high]="row.severityColor === 'red'" [class.medium]="row.severityColor === 'yellow'"></span><span class="sr-flag-copy">{{ row.flag }}</span></div></td>
+                    <td><select class="sr-status-select" [style.background]="findingStatusStyle(row.status).background" [style.color]="findingStatusStyle(row.status).color" [style.border]="'1px solid ' + findingStatusStyle(row.status).border" [ngModel]="row.status" (ngModelChange)="onFindingStatusChange(i, $event)"><option value="Open">Open</option><option value="Investigate">Investigate</option><option value="Closed">Closed</option></select></td>
+                  </tr>
+                }
                 </tbody>
               </table>
             </div>
@@ -225,8 +308,15 @@
   <div class="sr-tab-content">
     @if (coaLoading()) {
       <div class="sr-overview-card sr-skeleton-card">
-        <app-skeleton width="90px" height="27px" radius="5px"></app-skeleton>
-        <app-skeleton width="280px" height="27px" radius="5px"></app-skeleton>
+        <div class="sr-overview-primary">
+          <app-skeleton width="60px" height="27px" radius="5px"></app-skeleton>
+          <app-skeleton width="100px" height="9px" radius="4px"></app-skeleton>
+        </div>
+        <div class="sr-overview-breakdown">
+          @for (i of [1,2,3]; track i) {
+            <div class="sr-overview-stat"><app-skeleton width="8px" height="8px" radius="999px"></app-skeleton><div><app-skeleton width="30px" height="17px" radius="4px"></app-skeleton><app-skeleton width="80px" height="9px" radius="4px"></app-skeleton></div></div>
+          }
+        </div>
       </div>
       <section class="sr-table-card sr-skeleton-card">
         <div class="sr-group-header"><app-skeleton width="160px" height="11px" radius="4px"></app-skeleton><app-skeleton width="80px" height="9px" radius="4px"></app-skeleton></div>
@@ -359,7 +449,7 @@
         <div class="sr-pagination-row"><app-pagination [currentPage]="coaPage()" [totalPages]="coaTotalPages()" (pageChange)="onCoaPageChange($event)"></app-pagination></div>
       </section>
     }
-    
+
     <div class="sr-continue-row"><button type="button" class="sr-continue-button" (click)="goToCompliance()"><span>Continue to Compliance Monitoring</span><span class="sr-continue-arrow"><app-icon name="arrow-right" [size]="14" [strokeWidth]="2"></app-icon></span></button></div>
   </div>
 }

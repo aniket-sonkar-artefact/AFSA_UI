@@ -952,7 +952,13 @@
 .sr-table-completeness,
 .sr-table-irregularities,
 .sr-table-coa {
-  table-layout: fixed;
+  table-layout: auto;
+}
+
+// 14 columns now need real room — always horizontal-scrolls below this,
+// same approach as .sr-table-coa.
+.sr-table-irregularities {
+  min-width: 1500px;
 }
 
 .sr-table-completeness .col-item { width: 28%; }
@@ -979,12 +985,33 @@
   text-align: left;
 }
 
-.ir-code { width: 10%; }
-.ir-account { width: 22%; }
-.ir-value { width: 13%; }
-.ir-change { width: 9%; }
-.ir-flag { width: 20%; }
-.ir-status { width: 14%; }
+.sr-kpi-grid-3 {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+
+  @include bp.tablet-down {
+    grid-template-columns: 1fr;
+  }
+}
+
+.sr-kpi-breakdown {
+  gap: 8px;
+  align-items: stretch;
+  justify-content: space-between;
+  
+  .sr-overview-breakdown {
+    justify-content: space-between;
+    gap: 2px;
+  }
+}
+
+.ir-code { width: 6%; }
+.ir-account { width: 11%; }
+.ir-mtd, .ir-mom, .ir-qtd, .ir-qoq, .ir-yoy { width: 6%; }
+.ir-prior-mtd, .ir-prior-qtd, .ir-prior-ytd { width: 7%; }
+.ir-ytd { width: 6%; }
+.ir-priority { width: 6%; }
+.ir-flag { width: 11%; }
+.ir-status { width: 10%; }
 
 .coa-account { width: 12%; }
 .coa-description { width: 23%; }

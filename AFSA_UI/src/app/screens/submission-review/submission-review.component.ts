@@ -177,19 +177,39 @@ export class SubmissionReviewComponent implements OnInit {
     return this.groupNodes().find(n => n.code === row.pendingSelection)?.label ?? row.pendingSelection ?? '—';
   }
 
-  readonly irregularitiesStatCards = computed(() => {
-    const summary = this.irregularitiesSummary();
-    const total = summary?.totalIrregularities ?? 0;
-    const highPriority = summary?.highPriorityOpen ?? 0;
-    const investigating = summary?.underInvestigation ?? 0;
-    const closed = summary?.closed ?? 0;
+  readonly irregularitiesTotal = computed(() => this.irregularitiesSummary()?.total ?? 0);
+
+  readonly irregularitiesPriorityBreakdown = computed(() => {
+    const s = this.irregularitiesSummary();
     return [
-      { label: 'Total Irregularities', value: total, color: 'var(--submission-accent)', attention: false },
-      { label: 'High Priority Open', value: highPriority, color: 'var(--submission-danger)', attention: highPriority > 0 },
-      { label: 'Under Investigation', value: investigating, color: 'var(--submission-info)', attention: false },
-      { label: 'Closed', value: closed, color: 'var(--submission-success)', attention: false },
+      { label: 'High', value: s?.highSeverity ?? 0, color: 'var(--submission-danger)' },
+      { label: 'Mid', value: s?.midSeverity ?? 0, color: 'var(--submission-warning)' },
+      { label: 'Low', value: s?.lowSeverity ?? 0, color: 'var(--submission-info)' },
+    ];
+  })
+
+  readonly irregularitiesStatusBreakdown = computed(() => {
+    const s = this.irregularitiesSummary();
+    return [
+      { label: 'Open', value: s?.open ?? 0, color: 'var(--submission-warning)' },
+      { label: 'Under Investigation', value: s?.underInvestigation ?? 0, color: 'var(--submission-info)' },
+      { label: 'Closed', value: s?.closed ?? 0, color: 'var(--submission-success)' },
     ];
   });
+
+  // readonly irregularitiesStatCards = computed(() => {
+  //   const summary = this.irregularitiesSummary();
+  //   const total = summary?.totalIrregularities ?? 0;
+  //   const highPriority = summary?.highPriorityOpen ?? 0;
+  //   const investigating = summary?.underInvestigation ?? 0;
+  //   const closed = summary?.closed ?? 0;
+  //   return [
+  //     { label: 'Total Irregularities', value: total, color: 'var(--submission-accent)', attention: false },
+  //     { label: 'High Priority Open', value: highPriority, color: 'var(--submission-danger)', attention: highPriority > 0 },
+  //     { label: 'Under Investigation', value: investigating, color: 'var(--submission-info)', attention: false },
+  //     { label: 'Closed', value: closed, color: 'var(--submission-success)', attention: false },
+  //   ];
+  // });
 
 
   readonly coaOverviewCard = computed(() => {
@@ -379,10 +399,10 @@ export class SubmissionReviewComponent implements OnInit {
     }).subscribe({
       next: ({ findings, summary }) => {
         const overrides = this.findingStatusOverrides();
-        this.findings.set(findings.items.map((row) => ({
+        this.findings.set(findings.items.map((row, i) => this.mockExpandFinding({
           ...row,
           status: overrides[`${affiliate}:${row.accountCode}`] ?? row.status,
-        })));
+        }, i)));
         this.irregularitiesTotalPages.set(findings.totalPages);
         this.irregularitiesTotalCount.set(findings.totalCount);
         this.irregularitiesSummary.set(summary);
@@ -506,6 +526,30 @@ export class SubmissionReviewComponent implements OnInit {
   flagClass(active: boolean, severityColor: 'red' | 'yellow'): string {
     if (!active) return '';
     return severityColor === 'red' ? 'flag-high' : 'flag-medium';
+  }
+
+  // TEMP: Priority + the new QTD/YTD comparison fields aren't in the API yet.
+  // `??` only fills what's missing, so this quietly becomes a no-op (and can
+  // be deleted) once the backend adds real values — no other code changes.
+  private readonly MOCK_PRIORITIES: Array<'High' | 'Medium' | 'Low'> = ['High', 'Medium', 'Low'];
+
+  private mockExpandFinding(row: Finding, index: number): Finding {
+    return {
+      ...row,
+      qtd: row.qtd ?? row.currentPeriod,
+      priorYearQtd: row.priorYearQtd ?? row.priorPeriod,
+      qoqDelta: row.qoqDelta ?? row.change,
+      ytd: row.ytd ?? row.currentPeriod,
+      priorYearYtd: row.priorYearYtd ?? row.priorPeriod,
+      yoyDelta: row.yoyDelta ?? row.change,
+      priority: row.priority ?? this.MOCK_PRIORITIES[index % this.MOCK_PRIORITIES.length],
+    };
+  }
+
+  priorityStyle(priority: string | undefined) {
+    if (priority === 'High') return this.toneStyle('danger');
+    if (priority === 'Medium') return this.toneStyle('warning');
+    return this.toneStyle('info');
   }
 
   /* ---------- Finding status is intentionally client-side until PATCH exists ---------- */

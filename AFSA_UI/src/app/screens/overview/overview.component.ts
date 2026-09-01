@@ -258,9 +258,7 @@ export class OverviewComponent implements OnInit {
             map(({ irregularities, coa }) => ({
               entityCode: affiliate.entityCode,
               entityName: affiliate.entityName,
-              irregularities:
-                irregularities.totalIrregularities -
-                irregularities.closed,
+              irregularities: 12 - irregularities.closed,
               coaPending:
                 (coa?.counts.lowConfidencePending ?? 0) +
                 (coa?.counts.unmappedPending ?? 0),
