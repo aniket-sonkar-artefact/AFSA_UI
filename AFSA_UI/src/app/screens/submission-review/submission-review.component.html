@@ -19,8 +19,6 @@
     </div>
 
     <div class="sr-header-right">
-      <!-- Point of contact + pending items: see loadHeaderInfo() note for
-           data-sourcing details (mock, skeleton-ready for a real endpoint). -->
       @if (headerLoading()) {
         <div class="sr-header-contact sr-header-contact-skeleton">
           <app-skeleton width="34px" height="34px" radius="50%"></app-skeleton>
@@ -57,13 +55,12 @@
 
   <!-- TABS -->
   <div class="sr-tabs-row">
-    <div class="sr-tabs-shell">
-      @for (t of tabs; track t) {
-        <button type="button" class="sr-tab-button" [class.active]="tab() === t" (click)="selectTab(t)">
-          {{ tabLabel[t] }}
-        </button>
-      }
-    </div>
+    <app-period-toggle
+      variant="tabs"
+      [options]="tabToggleOptions()"
+      [selected]="tab()"
+      (selectedChange)="onTabToggleChange($event)"
+    ></app-period-toggle>
 
     @if (tab() === 'completeness') {
       <button type="button" class="sr-expand-all-button" (click)="toggleExpandAll()">
@@ -202,11 +199,11 @@
           </div>
         </div>
         <section class="sr-table-card sr-skeleton-card">
-          <div class="sr-group-header"><app-skeleton width="180px" height="11px" radius="4px"></app-skeleton><app-skeleton width="85px" height="9px" radius="4px"></app-skeleton></div>
+          <div class="sr-group-header"><app-skeleton width="180px" height="11px" radius="4px"></app-skeleton><app-skeleton width="130px" height="9px" radius="4px"></app-skeleton></div>
           <div class="sr-table-scroll">
             <table class="sr-table sr-table-irregularities">
-              <colgroup><col class="ir-code"><col class="ir-account"><col class="ir-mtd"><col class="ir-prior-mtd"><col class="ir-mom"><col class="ir-qtd"><col class="ir-prior-qtd"><col class="ir-qoq"><col class="ir-ytd"><col class="ir-prior-ytd"><col class="ir-yoy"><col class="ir-priority"><col class="ir-flag"><col class="ir-status"></colgroup>
-              <thead><tr><th>Account Code</th><th>Account</th><th>MTD</th><th>Prior Year MTD</th><th>MoM Delta</th><th>QTD</th><th>Prior Year QTD</th><th>QoQ Delta</th><th>YTD</th><th>Prior Year YTD</th><th>YoY Delta</th><th>Priority</th><th>Flag</th><th>Status</th></tr></thead>
+              <colgroup><col class="ir-code"><col class="ir-account"><col class="ir-value"><col class="ir-prior"><col class="ir-delta"><col class="ir-reasoning"><col class="ir-priority"><col class="ir-status"></colgroup>
+              <thead><tr><th>Account Code</th><th>Account</th><th>MTD</th><th>Prior Year MTD</th><th>MTD Delta</th><th>Reasoning</th><th>Priority</th><th>Status</th></tr></thead>
               <tbody>
                 @for (row of [1,2,3,4,5,6,7,8]; track row) {
                   <tr>
@@ -215,14 +212,8 @@
                     <td><app-skeleton width="55px" height="10px" radius="4px"></app-skeleton></td>
                     <td><app-skeleton width="55px" height="10px" radius="4px"></app-skeleton></td>
                     <td><app-skeleton width="40px" height="10px" radius="4px"></app-skeleton></td>
-                    <td><app-skeleton width="55px" height="10px" radius="4px"></app-skeleton></td>
-                    <td><app-skeleton width="55px" height="10px" radius="4px"></app-skeleton></td>
-                    <td><app-skeleton width="40px" height="10px" radius="4px"></app-skeleton></td>
-                    <td><app-skeleton width="55px" height="10px" radius="4px"></app-skeleton></td>
-                    <td><app-skeleton width="55px" height="10px" radius="4px"></app-skeleton></td>
-                    <td><app-skeleton width="40px" height="10px" radius="4px"></app-skeleton></td>
+                    <td><app-skeleton width="150px" height="10px" radius="4px"></app-skeleton></td>
                     <td><app-skeleton width="55px" height="20px" radius="999px"></app-skeleton></td>
-                    <td><app-skeleton width="130px" height="10px" radius="4px"></app-skeleton></td>
                     <td><app-skeleton width="70px" height="27px" radius="7px"></app-skeleton></td>
                   </tr>
                 }
@@ -277,28 +268,43 @@
         @if (findings().length === 0) { <div class="sr-empty-state">No irregularities identified for {{ activeAffiliateName() }}.</div> }
         @else {
           <section class="sr-table-card">
-            <div class="sr-group-header"><div class="sr-group-header-left"><div class="sr-group-marker"></div><span>Irregularities Review</span></div><span class="sr-group-count">{{ irregularitiesTotalCount() }} findings</span></div>
+            <div class="sr-group-header">
+              <div class="sr-group-header-left"><div class="sr-group-marker"></div><span>Irregularities Review</span></div>
+              <div class="sr-group-header-right">
+                <app-period-toggle
+                  [options]="periodToggleOptions"
+                  [selected]="irregularitiesPeriodView()"
+                  (selectedChange)="onIrregularitiesPeriodViewChange($event)"
+                ></app-period-toggle>
+                <span class="sr-group-count">{{ irregularitiesTotalCount() }} findings</span>
+              </div>
+            </div>
             <div class="sr-table-scroll">
               <table class="sr-table sr-table-irregularities">
-              <colgroup><col class="ir-code"><col class="ir-account"><col class="ir-mtd"><col class="ir-prior-mtd"><col class="ir-mom"><col class="ir-qtd"><col class="ir-prior-qtd"><col class="ir-qoq"><col class="ir-ytd"><col class="ir-prior-ytd"><col class="ir-yoy"><col class="ir-priority"><col class="ir-flag"><col class="ir-status"></colgroup>
-                <thead><tr><th>Account Code</th><th>Account</th><th>MTD</th><th>Prior Year MTD</th><th>MoM Delta</th><th>QTD</th><th>Prior Year QTD</th><th>QoQ Delta</th><th>YTD</th><th>Prior Year YTD</th><th>YoY Delta</th><th>Priority</th><th>Flag</th><th>Status</th></tr></thead>
+              <!-- CORRECT — 8 cols matching the 8 headers -->
+              <colgroup><col class="ir-code"><col class="ir-account"><col class="ir-value"><col class="ir-prior"><col class="ir-delta"><col class="ir-reasoning"><col class="ir-priority"><col class="ir-status"></colgroup>                <thead>
+                  <tr>
+                    <th>Account Code</th>
+                    <th>Account</th>
+                    <th>{{ irregularitiesColumnLabels().value }}</th>
+                    <th>{{ irregularitiesColumnLabels().prior }}</th>
+                    <th>{{ irregularitiesColumnLabels().delta }}</th>
+                    <th>Reasoning</th>
+                    <th>Priority</th>
+                    <th>Status</th>
+                  </tr>
+                </thead>
                 <tbody>
                   @for (row of findings(); track row.accountCode; let i = $index) {
                   <tr>
                     <td><span class="sr-account-code">{{ row.accountCode }}</span></td>
                     <td><span class="sr-item-name">{{ row.account }}</span></td>
-                    <td [class]="flagClass(row.colorLocation === 'currentPeriod', row.severityColor)"><span class="sr-number">{{ row.currentPeriod }}</span></td>
-                    <td><span class="sr-number sr-number-muted">{{ row.priorPeriod }}</span></td>
-                    <td [class]="flagClass(row.colorLocation === 'change', row.severityColor)"><span class="sr-number">{{ row.change }}</span></td>
-                    <td><span class="sr-number sr-number-muted">{{ row.qtd }}</span></td>
-                    <td><span class="sr-number sr-number-muted">{{ row.priorYearQtd }}</span></td>
-                    <td><span class="sr-number">{{ row.qoqDelta }}</span></td>
-                    <td><span class="sr-number sr-number-muted">{{ row.ytd }}</span></td>
-                    <td><span class="sr-number sr-number-muted">{{ row.priorYearYtd }}</span></td>
-                    <td><span class="sr-number">{{ row.yoyDelta }}</span></td>
+                    <td><span class="sr-number">{{ formatIrregularityAmount(findingValue(row)) }}</span></td>
+                    <td><span class="sr-number sr-number-muted">{{ formatIrregularityAmount(findingPrior(row)) }}</span></td>
+                    <td [class]="deltaTintClass(row)"><span class="sr-number">{{ findingDelta(row) ?? '—' }}</span></td>
+                    <td><span class="sr-reasoning-text" [title]="findingReasoning(row) ?? ''">{{ findingReasoning(row) ?? '—' }}</span></td>
                     <td><span class="sr-status-chip" [style.color]="priorityStyle(row.priority).color" [style.background]="priorityStyle(row.priority).background" [style.border]="'1px solid ' + priorityStyle(row.priority).border">{{ row.priority }}</span></td>
-                    <td><div class="sr-flag-cell"><span class="sr-severity-dot" [class.high]="row.severityColor === 'red'" [class.medium]="row.severityColor === 'yellow'"></span><span class="sr-flag-copy">{{ row.flag }}</span></div></td>
-                    <td><select class="sr-status-select" [style.background]="findingStatusStyle(row.status).background" [style.color]="findingStatusStyle(row.status).color" [style.border]="'1px solid ' + findingStatusStyle(row.status).border" [ngModel]="row.status" (ngModelChange)="onFindingStatusChange(i, $event)"><option value="Open">Open</option><option value="Investigate">Investigate</option><option value="Closed">Closed</option></select></td>
+                    <td><select class="sr-status-select" [style.background]="findingStatusStyle(row.status).background" [style.color]="findingStatusStyle(row.status).color" [style.border]="'1px solid ' + findingStatusStyle(row.status).border" [ngModel]="row.status" (ngModelChange)="requestFindingStatusChange(i, $event)"><option value="Open">Open</option><option value="Investigate">Investigate</option><option value="Closed">Closed</option></select></td>
                   </tr>
                 }
                 </tbody>
@@ -327,18 +333,16 @@
         }
       </div>
       <section class="sr-table-card sr-skeleton-card">
-        <div class="sr-group-header"><app-skeleton width="160px" height="11px" radius="4px"></app-skeleton><app-skeleton width="80px" height="9px" radius="4px"></app-skeleton></div>
+        <div class="sr-group-header"><app-skeleton width="160px" height="11px" radius="4px"></app-skeleton><app-skeleton width="130px" height="9px" radius="4px"></app-skeleton></div>
         <div class="sr-table-scroll">
           <table class="sr-table sr-table-coa">
-            <colgroup><col class="coa-account"><col class="coa-description"><col class="coa-month"><col class="coa-qtd"><col class="coa-ytd"><col class="coa-mapping"><col class="coa-confidence"><col class="coa-status"><col class="coa-rationale"><col class="coa-action"></colgroup>
-            <thead><tr><th>Affiliate Account</th><th>Description</th><th>Month</th><th>QTD</th><th>YTD</th><th>Current Group Mapping</th><th>Mapping Confidence</th><th>Mapping Status</th><th>Rationale</th><th>Action</th></tr></thead>
+            <colgroup><col class="coa-account"><col class="coa-description"><col class="coa-month"><col class="coa-mapping"><col class="coa-confidence"><col class="coa-status"><col class="coa-rationale"><col class="coa-action"></colgroup>
+            <thead><tr><th>Affiliate Account</th><th>Description</th><th>Month</th><th>Current Group Mapping</th><th>Mapping Confidence</th><th>Mapping Status</th><th>Rationale</th><th>Action</th></tr></thead>
             <tbody>
               @for (row of [1,2,3,4,5,6,7,8]; track row) {
                 <tr>
                   <td><app-skeleton width="55px" height="10px" radius="4px"></app-skeleton></td>
                   <td><app-skeleton width="130px" height="11px" radius="4px"></app-skeleton></td>
-                  <td><app-skeleton width="60px" height="10px" radius="4px"></app-skeleton></td>
-                  <td><app-skeleton width="60px" height="10px" radius="4px"></app-skeleton></td>
                   <td><app-skeleton width="60px" height="10px" radius="4px"></app-skeleton></td>
                   <td><app-skeleton width="150px" height="28px" radius="7px"></app-skeleton></td>
                   <td><app-skeleton width="80px" height="20px" radius="999px"></app-skeleton></td>
@@ -366,17 +370,27 @@
       @if (coaHasBlockers()) {<div class="sr-warning-banner">Mapping review cannot be completed: confirm all Low Confidence and Unmapped accounts before proceeding.</div>}
 
       <section class="sr-table-card">
-        <div class="sr-group-header"><div class="sr-group-header-left"><div class="sr-group-marker"></div><span>Group CoA Mapping</span></div><span class="sr-group-count">{{ coaSummary()?.counts?.accountsReviewed ?? 0 }} accounts</span></div>
+        <div class="sr-group-header">
+          <div class="sr-group-header-left"><div class="sr-group-marker"></div><span>Group CoA Mapping</span></div>
+          <div class="sr-group-header-right">
+            <app-period-toggle
+              [options]="periodToggleOptions"
+              [selected]="coaPeriodView()"
+              (selectedChange)="onCoaPeriodViewChange($event)"
+            ></app-period-toggle>
+            <span class="sr-group-count">{{ coaSummary()?.counts?.accountsReviewed ?? 0 }} accounts</span>
+          </div>
+        </div>
         <div class="sr-table-scroll">
           <table class="sr-table sr-table-coa">
             <colgroup>
-              @for (column of coaTableColumns(); track column.key) {
+              @for (column of displayCoaColumns(); track column.key) {
                 <col [class]="coaColumnClass(column.key)">
               }
             </colgroup>
             <thead>
               <tr>
-                @for (column of coaTableColumns(); track column.key) {
+                @for (column of displayCoaColumns(); track column.key) {
                   <th [class.amount-header]="column.type === 'amount'">{{ coaColumnLabel(column) }}</th>
                 }
               </tr>
@@ -384,7 +398,7 @@
             <tbody>
               @for (row of coaRows(); track row.rowId; let i = $index) {
                 <tr>
-                  @for (column of coaTableColumns(); track column.key) {
+                  @for (column of displayCoaColumns(); track column.key) {
                     @switch (column.key) {
                       @case ('affiliateAccount') {
                         <td><span class="sr-account-code">{{ row.code }}</span></td>
@@ -392,14 +406,8 @@
                       @case ('description') {
                         <td><span class="sr-item-name">{{ row.description }}</span></td>
                       }
-                      @case ('monthValue') {
-                        <td class="amount-cell"><span class="sr-number sr-number-muted">{{ row.monthValue }}</span></td>
-                      }
-                      @case ('qtdValue') {
-                        <td class="amount-cell"><span class="sr-number">{{ row.qtdValue }}</span></td>
-                      }
-                      @case ('ytdValue') {
-                        <td class="amount-cell"><span class="sr-number sr-number-muted">{{ row.ytdValue }}</span></td>
+                      @case ('periodValue') {
+                        <td class="amount-cell"><span class="sr-number sr-number-muted">{{ coaPeriodValue(row) }}</span></td>
                       }
                       @case ('currentGroupMapping') {
                         <td>
@@ -419,7 +427,12 @@
                         <td><span class="sr-status-chip" [style.color]="mappingConfidenceStyle(row.mappingConfidence).color" [style.background]="mappingConfidenceStyle(row.mappingConfidence).background" [style.border]="'1px solid ' + mappingConfidenceStyle(row.mappingConfidence).border">{{ row.mappingConfidence }}</span></td>
                       }
                       @case ('status') {
-                        <td><span class="sr-status-chip" [style.color]="reviewStatusStyle(row.status).color" [style.background]="reviewStatusStyle(row.status).background" [style.border]="'1px solid ' + reviewStatusStyle(row.status).border">{{ row.status }}</span></td>
+                        <td>
+                          <span class="sr-status-indicator">
+                            <span class="sr-status-indicator-dot" [style.background]="reviewStatusStyle(row.status).color"></span>
+                            <span class="sr-status-indicator-text" [style.color]="reviewStatusStyle(row.status).color">{{ row.status }}</span>
+                          </span>
+                        </td>
                       }
                       @case ('rationale') {
                         <td>
@@ -453,6 +466,19 @@
     <div class="sr-continue-row"><button type="button" class="sr-continue-button" (click)="goToCompliance()"><span>Continue to Compliance Monitoring</span><span class="sr-continue-arrow"><app-icon name="arrow-right" [size]="14" [strokeWidth]="2"></app-icon></span></button></div>
   </div>
 }
+
+  @if (pendingStatusChange()) {
+      <app-confirm-dialog
+        [style.--confirm-accent]="'var(--submission-accent)'"
+        title="Confirm Status Change?"
+        [segments]="pendingStatusChangeSegments()"
+        confirmLabel="Change Status"
+        confirmingLabel="Updating…"
+        [confirming]="statusChangeInFlight()"
+        (confirmed)="confirmFindingStatusChange()"
+        (cancelled)="cancelFindingStatusChange()"
+      ></app-confirm-dialog>
+    }
 
   @if (pendingCoaConfirmation()) {
     <app-confirm-dialog

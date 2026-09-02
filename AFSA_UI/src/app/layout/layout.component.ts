@@ -1,6 +1,8 @@
 import { Component, computed, effect, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
+import { NavigationEnd, Router, RouterLink, RouterOutlet } from '@angular/router';
+import { filter, map } from 'rxjs/operators';
+import { toSignal } from '@angular/core/rxjs-interop';
 import { IconComponent, IconName } from '../shared/icon/icon';
 import { LogoBadgeComponent } from '../shared/logo-badge/logo-badge';
 import { AuthService } from '../core/services/auth.service';
@@ -14,16 +16,23 @@ interface NavItem {
   selectionBackground: string;
   glow: string;
   disabled?: boolean;
+  /** Extra route prefixes that should also highlight this item, for pages
+   *  reached from it that don't have their own sidebar entry. */
+  alsoActiveOn?: string[];
 }
 
 const NAV_ITEMS: NavItem[] = [
   {
     path: '/home',
-    label: 'Home',
+    label: 'Homepage',
     icon: 'home',
     accent: '#00A3E0',
     selectionBackground: 'linear-gradient(135deg, #84BD00 0%, #00A3E0 100%)',
     glow: 'rgba(0, 163, 224, 0.22)',
+    // Group Variance Analysis / Financial Statements has no sidebar entry
+    // of its own -- it's reached via the "View Group Financial Statements"
+    // CTA on Home and has a "Back to Home" link, so Home stays highlighted.
+    alsoActiveOn: ['/statements'],
   },
   {
     path: '/submission',
@@ -108,12 +117,13 @@ const NAV_ITEMS: NavItem[] = [
 @Component({
   selector: 'app-layout',
   standalone: true,
-  imports: [CommonModule, RouterLink, RouterLinkActive, RouterOutlet, IconComponent, LogoBadgeComponent],
+  imports: [CommonModule, RouterLink, RouterOutlet, IconComponent, LogoBadgeComponent],
   templateUrl: './layout.component.html',
   styleUrl: './layout.component.scss',
 })
 export class LayoutComponent {
   private readonly responsive = inject(ResponsiveService);
+  private readonly router = inject(Router);
 
   readonly navItems = NAV_ITEMS;
   readonly collapsed = signal(false);
@@ -133,10 +143,22 @@ export class LayoutComponent {
   readonly showLabels = computed(() => this.isDrawerMode() || !this.collapsed());
   readonly currentUser;
 
+  /** Tracks the current URL reactively so sidebar active-state can react to
+   *  navigation without relying solely on an exact-path match -- lets a
+   *  single nav item (e.g. Home) also light up for related pages that have
+   *  no sidebar entry of their own (see NavItem.alsoActiveOn). */
+  private readonly currentUrl = toSignal(
+    this.router.events.pipe(
+      filter((e): e is NavigationEnd => e instanceof NavigationEnd),
+      map((e) => e.urlAfterRedirects),
+    ),
+    { initialValue: this.router.url },
+  );
+
   /** Set once the user manually toggles the rail, so we stop overriding their choice */
   private userToggledCollapse = false;
 
-  constructor(private readonly auth: AuthService, private readonly router: Router) {
+  constructor(private readonly auth: AuthService) {
     this.currentUser = this.auth.currentUser;
     this.applyTheme(this.darkMode());
 
@@ -155,6 +177,16 @@ export class LayoutComponent {
         this.drawerOpen.set(false);
       }
     });
+  }
+
+  /** True when this nav item should render as active: either the current
+   *  URL matches the item's own path, or it starts with one of the item's
+   *  extra alsoActiveOn prefixes. */
+  isItemActive(item: NavItem): boolean {
+    if (item.disabled || !item.path) return false;
+    const url = this.currentUrl();
+    if (url === item.path || url.startsWith(item.path + '/') || url.startsWith(item.path + '?')) return true;
+    return (item.alsoActiveOn ?? []).some((prefix) => url === prefix || url.startsWith(prefix + '/') || url.startsWith(prefix + '?'));
   }
 
   private readStoredTheme(): boolean {

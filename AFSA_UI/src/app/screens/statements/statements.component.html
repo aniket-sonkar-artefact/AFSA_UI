@@ -135,7 +135,7 @@
 
     <button type="button" class="st-expand-all" (click)="toggleExpandAll()">
       <app-icon name="expand" [size]="13" [strokeWidth]="2"></app-icon>
-      Expand All
+      {{ expandAll() ? 'Collapse All' : 'Expand All' }}
     </button>
   </section>
 
@@ -168,7 +168,7 @@
         </tr>
       </thead>
       <tbody>
-        @if (loading() && activeRows().length === 0) {
+        @if (loading() && visibleRows().length === 0) {
           @for (i of [1,2,3,4,5]; track i) {
             <tr class="st-skeleton-row">
               <td><app-skeleton width="85%" height="11px" radius="4px"></app-skeleton></td>
@@ -180,21 +180,28 @@
             </tr>
           }
         }
-        @for (row of activeRows(); track row.item) {
-          <tr [class.st-row-subtotal]="row.isSubtotal">
+        @for (row of visibleRows(); track row.rowId) {
+          <tr
+              [class.st-row-subtotal]="row.isSubtotal"
+              [class.st-row-parent]="row.depth === 0"
+              [class.st-row-child]="row.depth > 0"
+            >
             <td>
-              <span class="st-line-item">
-                @if (!row.isSubtotal) {
-                  <button type="button" class="st-row-chevron" (click)="toggleRow(row.item)">
+              <span class="st-line-item" [style.padding-left.px]="row.depth * 16">
+                @if (row.isExpandable) {
+                  <button type="button" class="st-row-chevron" (click)="toggleRow(row.rowId)">
                     <app-icon
                       name="chevron-down"
                       [size]="12"
                       [strokeWidth]="2"
-                      [style.transform]="isRowCollapsed(row.item) ? 'rotate(-90deg)' : 'rotate(0deg)'"
+                      [style.transform]="isRowCollapsed(row.rowId) ? 'rotate(-90deg)' : 'rotate(0deg)'"
                     ></app-icon>
                   </button>
                 }
                 {{ row.item }}
+                @if (row.noteReference) {
+                  <span class="st-note-ref">{{ row.noteReference }}</span>
+                }
               </span>
             </td>
             <td style="text-align: right"><span class="st-number">{{ formatNumber(row.current) }}</span></td>
@@ -206,13 +213,10 @@
               <span class="st-pct-pill" [ngClass]="varianceColorClass(row.color)">{{ row.varPct }}</span>
             </td>
             <td>
-              @if (row.analysis === null) {
-                <div class="st-analysis-skeleton">
-                  <app-skeleton width="92%" height="9px" radius="4px"></app-skeleton>
-                  <app-skeleton width="58%" height="9px" radius="4px"></app-skeleton>
-                </div>
-              } @else {
+              @if (row.analysis) {
                 <span class="st-analysis">{{ row.analysis }}</span>
+              } @else {
+                <span class="st-analysis st-analysis-empty">—</span>
               }
             </td>
           </tr>

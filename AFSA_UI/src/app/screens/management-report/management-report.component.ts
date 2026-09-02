@@ -11,6 +11,7 @@ import {
   fromApiPeriod,
 } from '../../core/services/variance.service';
 import { FinancialInsightsApiResponse, ManagementReportState } from '../../core/models/variance.model';
+import { ManagementReportProgressService } from '../../core/services/management-report-progress.service';
 
 /** NOTE ON THIS COMPONENT'S ORIGIN
  *  ---------------------------------------------------------------
@@ -75,7 +76,10 @@ export class ManagementReportComponent implements OnInit, OnDestroy {
 
   readonly reportFileName = computed(() => buildFileName(this.generatedPeriod() ?? this.period()));
 
-  constructor(private readonly varianceService: VarianceService, private readonly router: Router) {}
+  constructor(
+    private readonly varianceService: VarianceService,
+    private readonly router: Router,
+    private readonly managementReportProgress: ManagementReportProgressService,) {}
 
   ngOnInit(): void {
     /* No initial data fetch is required — generation readiness is derived
@@ -158,16 +162,6 @@ export class ManagementReportComponent implements OnInit, OnDestroy {
     });
   }
 
-  private finishReport(period: string): void {
-    const now = new Date();
-    const time = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-    this.generationStep.set(GENERATION_STEPS.length - 1);
-    this.generatedAt.set(`Today ${time}`);
-    this.generatedPeriod.set(period);
-    this.reportBasis.set(this.currentBasis());
-    this.reportState.set('ready');
-  }
-
   downloadManagementReport(): void {
     if (this.downloadUrl && !this.isDownloadUrlExpired()) {
       window.location.href = this.downloadUrl;
@@ -200,5 +194,16 @@ export class ManagementReportComponent implements OnInit, OnDestroy {
 
   toggleHistory(): void {
     this.historyCollapsed.update((prev) => !prev);
+  }
+
+  private finishReport(period: string): void {
+    const now = new Date();
+    const time = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    this.generationStep.set(GENERATION_STEPS.length - 1);
+    this.generatedAt.set(`Today ${time}`);
+    this.generatedPeriod.set(period);
+    this.reportBasis.set(this.currentBasis());
+    this.reportState.set('ready');
+    this.managementReportProgress.markReportGenerated();
   }
 }

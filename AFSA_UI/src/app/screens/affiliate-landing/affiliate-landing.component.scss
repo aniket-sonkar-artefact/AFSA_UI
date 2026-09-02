@@ -381,8 +381,13 @@
 
 .al-contact-fields {
   display: flex;
-  justify-content: space-between;
-  gap: 12px;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.al-contact-field-value {
+  word-break: break-word;
+  overflow-wrap: anywhere;
 }
 
 .al-contact-field-label {

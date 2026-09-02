@@ -5,12 +5,9 @@ import { environment } from '../../../environments/environment';
 import {
   ChecklistGroup,
   ChecklistStatus,
-  CoaAffiliate,
   CoaPage,
-  CoaRow,
   CoaSchema,
   CoaSummary,
-  FinanceAffiliate,
   Finding,
   FindingStatus,
   IrregularitiesPage,
@@ -42,13 +39,22 @@ interface ApiChecklistGroup {
 interface ApiFinding {
   accountCode: string;
   account: string;
-  currentPeriod: number | null;
-  priorPeriod: number | null;
-  change: string;
+  accountType: string;
+  mtd: number | null;
+  mtdPrior: number | null;
+  mtdDelta: string | null;
+  mtdDeltaObservation: string | null;
+  qtd: number | null;
+  qtdPrior: number | null;
+  qtdDelta: string | null;
+  qtdDeltaObservation: string | null;
+  ytd: number | null;
+  ytdPrior: number | null;
+  ytdDelta: string | null;
+  ytdDeltaObservation: string | null;
+  priority: 'High' | 'Medium' | 'Low';
   flag: string;
   status: string;
-  severityColor: 'red' | 'yellow';
-  colorLocation: 'currentPeriod' | 'change';
 }
 
 interface ApiIrregularitiesPage {
@@ -58,12 +64,6 @@ interface ApiIrregularitiesPage {
   totalCount: number;
   resultCount: number;
   totalPages: number;
-}
-
-interface ApiCoaAffiliate {
-  key: string;
-  name: string;
-  isDefault: boolean;
 }
 
 interface ApiCoaRow {
@@ -116,21 +116,25 @@ function toFindingStatus(status: string): FindingStatus {
   return 'Open';
 }
 
-function formatPeriodValue(value: number | null): string {
-  if (value === null || value === undefined) return '—';
-  return value.toLocaleString('en-US');
-}
-
 function mapFinding(row: ApiFinding): Finding {
   return {
     accountCode: row.accountCode,
     account: row.account,
-    currentPeriod: formatPeriodValue(row.currentPeriod),
-    priorPeriod: formatPeriodValue(row.priorPeriod),
-    change: row.change,
+    accountType: row.accountType,
+    mtd: row.mtd,
+    mtdPrior: row.mtdPrior,
+    mtdDelta: row.mtdDelta,
+    mtdDeltaObservation: row.mtdDeltaObservation,
+    qtd: row.qtd,
+    qtdPrior: row.qtdPrior,
+    qtdDelta: row.qtdDelta,
+    qtdDeltaObservation: row.qtdDeltaObservation,
+    ytd: row.ytd,
+    ytdPrior: row.ytdPrior,
+    ytdDelta: row.ytdDelta,
+    ytdDeltaObservation: row.ytdDeltaObservation,
+    priority: row.priority,
     flag: row.flag,
-    severityColor: row.severityColor,
-    colorLocation: row.colorLocation,
     status: toFindingStatus(row.status),
   };
 }
@@ -141,16 +145,6 @@ export class SubmissionReviewService {
   private readonly coaBase = `${environment.coaMappingApiUrl}/affiliate-review/coa-mapping`;
 
   constructor(private readonly http: HttpClient) {}
-
-  getFinanceAffiliates(): Observable<FinanceAffiliate[]> {
-    return this.http.get<ApiResponse<FinanceAffiliate[]>>(`${this.financeBase}/affiliates`).pipe(map((response) => response.data));
-  }
-
-  getCoaAffiliates(): Observable<CoaAffiliate[]> {
-    return this.http
-      .get<ApiResponse<{ items: ApiCoaAffiliate[]; defaultAffiliate: string }>>(`${this.coaBase}/affiliates`)
-      .pipe(map((response) => response.data.items));
-  }
 
   getChecklist(entityCode: string, periodKey = PERIOD_KEY): Observable<ChecklistGroup[]> {
     const params = new HttpParams().set('period_key', periodKey);
@@ -209,7 +203,7 @@ export class SubmissionReviewService {
   }
 
   getCoaSummary(affiliate: string): Observable<CoaSummary> {
-    const params = new HttpParams().set('affiliate', affiliate);
+    const params = new HttpParams().set('affiliate', 'sabic');
     return this.http.get<ApiResponse<CoaSummary>>(`${this.coaBase}/summary`, { params }).pipe(map((response) => response.data));
   }
 
@@ -218,7 +212,7 @@ export class SubmissionReviewService {
   }
 
   getCoaRows(affiliate: string, page = 1, pageSize = COA_PAGE_SIZE): Observable<CoaPage> {
-    const params = new HttpParams().set('affiliate', affiliate).set('page', page).set('pageSize', pageSize);
+    const params = new HttpParams().set('affiliate', 'sabic').set('page', page).set('pageSize', pageSize);
     return this.http
       .get<ApiResponse<ApiCoaPage>>(`${this.coaBase}/mappings`, { params })
       .pipe(map((response) => ({
@@ -251,5 +245,21 @@ export class SubmissionReviewService {
         affiliate,
         groupNode 
       }).pipe(map((response) => response.data));
+  }
+
+  updateFindingStatus(
+    entityCode: string,
+    accountCode: string,
+    status: FindingStatus,
+    periodKey = PERIOD_KEY,
+  ): Observable<{ accountCode: string; status: FindingStatus }> {
+    const params = new HttpParams().set('period_key', periodKey);
+    return this.http
+      .post<ApiResponse<{ accountCode: string; status: string }>>(
+        `${this.financeBase}/affiliate-submission-review/${encodeURIComponent(entityCode)}/irregularities-review/${encodeURIComponent(accountCode)}/status`,
+        { status },
+        { params },
+      )
+      .pipe(map((response) => ({ accountCode: response.data.accountCode, status: toFindingStatus(response.data.status) })));
   }
 }

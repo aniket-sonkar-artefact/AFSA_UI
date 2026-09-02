@@ -5,6 +5,8 @@ import { environment } from '../../../environments/environment';
 import { User } from '../models/user.model';
 import { getInitials } from '../utils/initials';
 import { deleteCookie, getCookie, setCookie } from '../utils/cookies';
+import { ComplianceProgressService } from './compliance-progress.service';
+import { ManagementReportProgressService } from './management-report-progress.service';
 
 /** Cookie name + lifetime for the mocked FE-only session (no backend auth yet). */
 const AUTH_COOKIE_NAME = 'afsa_auth_user';
@@ -44,13 +46,20 @@ export class AuthService {
    * mock session cookie and restore the "logged in" user from it, so a
    * reload doesn't bounce the user back to /login. Swap this for a real
    * GET {apiUrl}/auth/me call once a backend session exists.
+   *
+   * Note: this restore path intentionally does NOT reset
+   * ComplianceProgressService -- only a genuine fresh login (via
+   * setCurrentUser, below) does that, so reloading mid-session preserves
+   * whatever workflow progress was already there.
    */
-  constructor() {
-    const savedUserId = getCookie(AUTH_COOKIE_NAME);
-    const savedUser = savedUserId ? MOCK_USERS[savedUserId] : undefined;
-    if (savedUser) {
-      this.currentUserSignal.set({ ...savedUser, initials: getInitials(savedUser.name) });
-    }
+  constructor(
+    private readonly complianceProgress: ComplianceProgressService,
+    private readonly managementReportProgress: ManagementReportProgressService) {
+      const savedUserId = getCookie(AUTH_COOKIE_NAME);
+      const savedUser = savedUserId ? MOCK_USERS[savedUserId] : undefined;
+      if (savedUser) {
+        this.currentUserSignal.set({ ...savedUser, initials: getInitials(savedUser.name) });
+      }
   }
 
   /**
@@ -76,6 +85,12 @@ export class AuthService {
   setCurrentUser(user: User): void {
     this.currentUserSignal.set(user);
     setCookie(AUTH_COOKIE_NAME, user.id, AUTH_COOKIE_DAYS);
+
+    // A fresh login starts every client-only workflow progress fresh too,
+    // so this doesn't silently carry over across different users/sessions
+    // on the same browser.
+    this.complianceProgress.resetForNewSession();
+    this.managementReportProgress.resetForNewSession();
   }
 
   logout(): void {

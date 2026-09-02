@@ -1,4 +1,4 @@
-import { Component, OnDestroy, OnInit, AfterViewInit, ElementRef, QueryList, ViewChildren, computed, signal } from '@angular/core';
+import { Component, OnDestroy, AfterViewInit, ElementRef, QueryList, ViewChildren, computed, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { HttpErrorResponse } from '@angular/common/http';
@@ -8,38 +8,42 @@ import { IconComponent } from '../../shared/icon/icon';
 import { SkeletonComponent } from '../../shared/skeleton/skeleton.component';
 import {
   VarianceService,
-  mapApiRowToVarianceRow,
+  buildRowHierarchy,
+  fromApiPeriod,
   toApiPeriod,
 } from '../../core/services/variance.service';
-import { FinancialInsightsApiResponse, VarianceRow } from '../../core/models/variance.model';
+import { FinancialInsightsApiResponse, StatementType, VarianceRow } from '../../core/models/variance.model';
 
 /* =========================================================
    NOTE ON THIS COMPONENT
    ---------------------------------------------------------
    Reached only via the "View Group Financial Statements" CTA
-   card on the Home/Overview screen (not a sidebar nav item —
-   matches the approved design, where this lives one level
-   below Home rather than in the main navigation).
+   card on the Home/Overview screen (not a sidebar nav item).
 
    Data sourcing:
-   - Income Statement tab: real VarianceService data (same
-     group-variance-analysis endpoint used elsewhere in the
-     app), with a mock fallback matching the approved design's
-     exact figures if the API call fails.
+   - Income Statement AND Balance Sheet tabs: both call the real
+     group-variance-analysis endpoint (statement_type swaps between
+     them). The endpoint is synchronous -- the full row tree with
+     commentary comes back in the same POST response, so there is
+     no polling here (unlike Management Report generation).
+   - Row hierarchy/expand-collapse: driven by the API's real
+     parent_row_id / is_expandable fields via buildRowHierarchy(),
+     not name-based guessing.
    - "vs. Budget" figures on the 3 summary cards: no budget-
-     comparison endpoint exists anywhere in this app yet, so
-     these are presentation-only mock values pending a real
-     budget/actuals integration.
+     comparison endpoint exists anywhere in this app yet, so these
+     stay presentation-only mock values pending a real integration.
    - "vs. Prior Period" figures on the 3 summary cards: real,
      derived directly from the same variance rows as the table.
-   - Balance Sheet tab: no backing API exists; presentation-only
-     mock rows in the same shape as the Income Statement table.
    - Cash Flow Statement tab: intentionally locked/disabled,
      matching the approved design (no data source planned yet).
    - Monthly / Yearly period granularity: the underlying API only
      supports quarter-labelled periods (e.g. "Q1 2026"), so those
      two options show a "coming soon" toast rather than silently
      returning wrong data.
+   - If the API call fails (or the two selected periods are the
+     same, which the API rejects), each tab falls back to a small
+     mock row set matching the approved design's figures, converted
+     into the same VarianceRow shape as real data.
 ========================================================= */
 
 type StatementTab = 'income' | 'balance' | 'cashflow';
@@ -65,15 +69,56 @@ function extractErrorMessage(err: unknown, fallback: string): string {
   return fallback;
 }
 
+/** Converts a flat, pre-Figma mock row (no real hierarchy) into the same
+ *  VarianceRow shape real API data uses, so the table/summary-card logic
+ *  doesn't need a separate code path for the fallback case. */
+function mockRow(
+  item: string,
+  current: number,
+  comparison: number,
+  variance: number,
+  varPct: string,
+  color: 'green' | 'red' | 'neutral',
+  analysis: string,
+  isSubtotal = false,
+): VarianceRow {
+  return {
+    rowId: item.toLowerCase().replace(/[^a-z0-9]+/g, '_'),
+    parentRowId: null,
+    rowType: isSubtotal ? 'subtotal' : 'line_item',
+    item,
+    noteReference: null,
+    isExpandable: false,
+    depth: 0,
+    current,
+    comparison,
+    variance,
+    varPct,
+    color,
+    analysis,
+    isSubtotal,
+  };
+}
+
+const INCOME_STATEMENT_MOCK: VarianceRow[] = [
+  mockRow('Revenue and other income related to sales', 285000, 248525, 36475, '+14.7%', 'green', 'Combined top-line growth reflects both core pricing recovery and steady ancillary income.'),
+  mockRow('Operating costs', -184400, -171110, -13290, '-7.8%', 'red', 'Total operating costs grew slower than revenue, driving the gross margin expansion this period.'),
+  mockRow('Operating income', 100600, 77415, 23185, '+29.9%', 'green', 'Operating income growth was the strongest driver of group profitability this period.', true),
+  mockRow('Non-operating Costs', 2800, 2246, 554, '+24.7%', 'green', 'Net non-operating items were modestly favourable, adding a small uplift to pre-tax income.'),
+  mockRow('Income before income taxes and zakat', 103400, 79661, 23739, '+29.8%', 'green', 'Pre-tax income growth tracks closely with the operating income improvement.', true),
+  mockRow('Income taxes and zakat (Note 7)', -31600, -26555, -5045, '-19.0%', 'red', 'Effective tax and zakat rate held broadly consistent with the prior comparable period.'),
+  mockRow('Net income', 71800, 53106, 18694, '+35.2%', 'green', 'Net income growth outpaced revenue growth on the back of margin expansion and cost discipline.', true),
+];
+
 const BALANCE_SHEET_MOCK: VarianceRow[] = [
-  { item: 'Cash and cash equivalents', current: 45200, comparison: 42350, variance: 2850, varPct: '+6.7%', color: 'green', analysis: 'Cash position improved on stronger operating collections.' },
-  { item: 'Trade receivables', current: 96500, comparison: 88250, variance: 8250, varPct: '+9.3%', color: 'red', analysis: 'Higher receivables balance carried from Q4 close.' },
-  { item: 'Total current assets', current: 187300, comparison: 172100, variance: 15200, varPct: '+8.8%', color: 'green', analysis: 'Growth driven by cash and receivables balances.', isSubtotal: true },
-  { item: 'Property, plant and equipment', current: 412600, comparison: 405900, variance: 6700, varPct: '+1.7%', color: 'green', analysis: 'Modest capex additions during the period.' },
-  { item: 'Total assets', current: 599900, comparison: 578000, variance: 21900, varPct: '+3.8%', color: 'green', analysis: 'Overall balance sheet growth in line with operations.', isSubtotal: true },
-  { item: 'Trade payables', current: 74300, comparison: 71800, variance: 2500, varPct: '+3.5%', color: 'red', analysis: 'Payables grew broadly in line with purchasing volumes.' },
-  { item: 'Total liabilities', current: 265400, comparison: 258100, variance: 7300, varPct: '+2.8%', color: 'red', analysis: 'Liability growth remains below asset growth.', isSubtotal: true },
-  { item: "Total shareholders' equity", current: 334500, comparison: 319900, variance: 14600, varPct: '+4.6%', color: 'green', analysis: 'Equity growth driven by retained period earnings.', isSubtotal: true },
+  mockRow('Cash and cash equivalents', 45200, 42350, 2850, '+6.7%', 'green', 'Cash position improved on stronger operating collections.'),
+  mockRow('Trade receivables', 96500, 88250, 8250, '+9.3%', 'red', 'Higher receivables balance carried from Q4 close.'),
+  mockRow('Total current assets', 187300, 172100, 15200, '+8.8%', 'green', 'Growth driven by cash and receivables balances.', true),
+  mockRow('Property, plant and equipment', 412600, 405900, 6700, '+1.7%', 'green', 'Modest capex additions during the period.'),
+  mockRow('Total assets', 599900, 578000, 21900, '+3.8%', 'green', 'Overall balance sheet growth in line with operations.', true),
+  mockRow('Trade payables', 74300, 71800, 2500, '+3.5%', 'red', 'Payables grew broadly in line with purchasing volumes.'),
+  mockRow('Total liabilities', 265400, 258100, 7300, '+2.8%', 'red', 'Liability growth remains below asset growth.', true),
+  mockRow("Total shareholders' equity", 334500, 319900, 14600, '+4.6%', 'green', 'Equity growth driven by retained period earnings.', true),
 ];
 
 @Component({
@@ -83,16 +128,13 @@ const BALANCE_SHEET_MOCK: VarianceRow[] = [
   templateUrl: './statements.component.html',
   styleUrl: './statements.component.scss',
 })
-export class StatementsComponent implements OnInit, AfterViewInit, OnDestroy {
+export class StatementsComponent implements AfterViewInit, OnDestroy {
   @ViewChildren('tabBtn') private readonly tabBtnRefs!: QueryList<ElementRef<HTMLButtonElement>>;
   @ViewChildren('granBtn') private readonly granBtnRefs!: QueryList<ElementRef<HTMLButtonElement>>;
 
   private readonly tabRects = signal<{ left: number; width: number }[]>([]);
   private readonly granRects = signal<{ left: number; width: number }[]>([]);
 
-  /** Sliding-pill indicator positions -- measured once from the real
-   * rendered button geometry so the highlight can smoothly translate/resize
-   * between tabs of different widths instead of an instant colour swap. */
   readonly tabIndicatorStyle = computed(() => {
     const idx = ['income', 'balance', 'cashflow'].indexOf(this.activeTab());
     const rect = this.tabRects()[idx];
@@ -115,7 +157,6 @@ export class StatementsComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   ngAfterViewInit(): void {
-    // Wait one frame so layout/fonts have settled before measuring.
     requestAnimationFrame(() => this.measureIndicators());
     this.tabBtnRefs.changes.subscribe(() => requestAnimationFrame(() => this.measureIndicators()));
     this.granBtnRefs.changes.subscribe(() => requestAnimationFrame(() => this.measureIndicators()));
@@ -138,17 +179,67 @@ export class StatementsComponent implements OnInit, AfterViewInit, OnDestroy {
   readonly collapsedRows = signal<Set<string>>(new Set());
 
   readonly incomeRows = signal<VarianceRow[]>([]);
-  readonly loading = signal(true);
+  readonly balanceRows = signal<VarianceRow[]>([]);
+  readonly incomeLoading = signal(true);
+  readonly balanceLoading = signal(true);
 
-  readonly balanceRows = signal<VarianceRow[]>(BALANCE_SHEET_MOCK);
+  /** Tracks which "period|comparison" combo each tab's data was last
+   *  fetched for, so switching tabs doesn't refetch unless the filters
+   *  actually changed since that tab was last loaded. */
+  private incomeLoadedKey: string | null = null;
+  private balanceLoadedKey: string | null = null;
 
+  private get filterKey(): string {
+    return `${this.period()}|${this.comparison()}`;
+  }
+
+  readonly loading = computed(() => (this.activeTab() === 'balance' ? this.balanceLoading() : this.incomeLoading()));
+
+  /** Full hierarchical row set for whichever tab is active (flattened,
+   *  parent-before-children order, with depth already computed). */
   readonly activeRows = computed<VarianceRow[]>(() =>
     this.activeTab() === 'balance' ? this.balanceRows() : this.incomeRows(),
   );
 
-  private readonly revenueRow = computed(() => this.incomeRows().find((r) => r.item.toLowerCase().startsWith('revenue')));
-  private readonly operatingIncomeRow = computed(() => this.incomeRows().find((r) => r.item === 'Operating income'));
-  private readonly netIncomeRow = computed(() => this.incomeRows().find((r) => r.item === 'Net income'));
+  /** activeRows filtered so a collapsed row's descendants (at any depth) are
+   *  hidden. Safe to compute in a single forward pass because
+   *  buildRowHierarchy already guarantees parent-before-children order. */
+  readonly visibleRows = computed<VarianceRow[]>(() => {
+    const rows = this.activeRows();
+    const collapsed = this.collapsedRows();
+    const hiddenParents = new Set<string>();
+    const result: VarianceRow[] = [];
+
+    for (const row of rows) {
+      if (row.parentRowId && hiddenParents.has(row.parentRowId)) {
+        hiddenParents.add(row.rowId); // propagate hidden state to this row's own children too
+        continue;
+      }
+      result.push(row);
+      if (row.isExpandable && collapsed.has(row.rowId)) {
+        hiddenParents.add(row.rowId);
+      }
+    }
+    return result;
+  });
+
+  private findRow(predicate: (r: VarianceRow) => boolean): VarianceRow | undefined {
+    return this.activeRows().find(predicate);
+  }
+
+  private readonly revenueRow = computed(() => this.incomeRows().find((r) => r.item.toLowerCase().includes('revenue')));
+  private readonly operatingIncomeRow = computed(() => this.incomeRows().find((r) => r.item.toLowerCase() === 'operating income'));
+  private readonly netIncomeRow = computed(() => this.incomeRows().find((r) => r.item.toLowerCase() === 'net income'));
+
+  private readonly totalAssetsRow = computed(() =>
+    this.balanceRows().find((r) => r.rowType === 'total' && r.item.toLowerCase().includes('asset')),
+  );
+  private readonly totalLiabilitiesRow = computed(() =>
+    this.balanceRows().find((r) => r.rowType === 'total' && r.item.toLowerCase().includes('liabilit')),
+  );
+  private readonly totalEquityRow = computed(() =>
+    this.balanceRows().find((r) => r.rowType === 'total' && r.item.toLowerCase().includes('equity')),
+  );
 
   readonly incomeSummaryMetrics = computed<SummaryMetric[]>(() => [
     {
@@ -159,7 +250,7 @@ export class StatementsComponent implements OnInit, AfterViewInit, OnDestroy {
       vsBudget: '+4.8%',
       vsBudgetPositive: true,
       vsPrior: this.revenueRow()?.varPct ?? '—',
-      vsPriorPositive: true,
+      vsPriorPositive: (this.revenueRow()?.color ?? 'neutral') !== 'red',
     },
     {
       label: 'Operating Income',
@@ -169,7 +260,7 @@ export class StatementsComponent implements OnInit, AfterViewInit, OnDestroy {
       vsBudget: '+4.2%',
       vsBudgetPositive: true,
       vsPrior: this.operatingIncomeRow()?.varPct ?? '—',
-      vsPriorPositive: true,
+      vsPriorPositive: (this.operatingIncomeRow()?.color ?? 'neutral') !== 'red',
     },
     {
       label: 'Net Income',
@@ -179,60 +270,55 @@ export class StatementsComponent implements OnInit, AfterViewInit, OnDestroy {
       vsBudget: '+4.5%',
       vsBudgetPositive: true,
       vsPrior: this.netIncomeRow()?.varPct ?? '—',
-      vsPriorPositive: true,
+      vsPriorPositive: (this.netIncomeRow()?.color ?? 'neutral') !== 'red',
     },
   ]);
 
-  /* Balance Sheet has its own set of headline metrics (Total Assets / Total
-   * Liabilities / Total Equity) rather than reusing the Income Statement's
-   * Revenue / Operating Income / Net Income cards. Mock figures match the
-   * approved design pending a real balance-sheet summary endpoint.
+  /* Balance Sheet has its own headline metrics (Total Assets / Total
+   * Liabilities / Total Equity) now sourced from real rows when available.
+   * "vs. Budget" stays mock -- no budget endpoint exists.
    *
-   * Note the inverted "good direction" for Total Liabilities: a DECREASE in
-   * liabilities is favourable (shown green with a down arrow) and an
-   * INCREASE is unfavourable (shown red with an up arrow) -- the opposite
-   * of Assets/Equity/Income metrics, where up is favourable. */
-  readonly balanceSummaryMetrics: SummaryMetric[] = [
+   * Note the inverted "good direction" for Total Liabilities: a DECREASE is
+   * favourable there, the opposite of Assets/Equity. */
+  readonly balanceSummaryMetrics = computed<SummaryMetric[]>(() => [
     {
       label: 'Total Assets',
-      value: '412,600',
+      value: this.formatNumber(this.totalAssetsRow()?.current ?? 0),
       icon: 'layers',
       accent: '#0033A0',
       vsBudget: '+1.2%',
       vsBudgetPositive: true,
-      vsPrior: '+6.1%',
-      vsPriorPositive: true,
+      vsPrior: this.totalAssetsRow()?.varPct ?? '—',
+      vsPriorPositive: (this.totalAssetsRow()?.color ?? 'neutral') !== 'red',
     },
     {
       label: 'Total Liabilities',
-      value: '158,800',
+      value: this.formatNumber(this.totalLiabilitiesRow()?.current ?? 0),
       icon: 'scale',
       accent: '#C0504D',
       vsBudget: '-2.2%',
       vsBudgetPositive: true,
-      vsPrior: '+5.7%',
-      vsPriorPositive: false,
+      vsPrior: this.totalLiabilitiesRow()?.varPct ?? '—',
+      vsPriorPositive: (this.totalLiabilitiesRow()?.color ?? 'neutral') === 'red', // inverted: liabilities decreasing is good
     },
     {
       label: 'Total Equity',
-      value: '253,800',
+      value: this.formatNumber(this.totalEquityRow()?.current ?? 0),
       icon: 'clock',
       accent: '#8064A2',
       vsBudget: '+3.4%',
       vsBudgetPositive: true,
-      vsPrior: '+6.4%',
-      vsPriorPositive: true,
+      vsPrior: this.totalEquityRow()?.varPct ?? '—',
+      vsPriorPositive: (this.totalEquityRow()?.color ?? 'neutral') !== 'red',
     },
-  ];
+  ]);
 
   readonly summaryMetrics = computed<SummaryMetric[]>(() =>
-    this.activeTab() === 'balance' ? this.balanceSummaryMetrics : this.incomeSummaryMetrics(),
+    this.activeTab() === 'balance' ? this.balanceSummaryMetrics() : this.incomeSummaryMetrics(),
   );
 
-  constructor(private readonly varianceService: VarianceService, private readonly router: Router) {}
-
-  ngOnInit(): void {
-    this.refreshIncomeStatement();
+  constructor(private readonly varianceService: VarianceService, private readonly router: Router) {
+    this.fetchStatement('income');
   }
 
   ngOnDestroy(): void {
@@ -247,6 +333,10 @@ export class StatementsComponent implements OnInit, AfterViewInit, OnDestroy {
   setTab(tab: StatementTab): void {
     if (tab === 'cashflow') return; // locked — no data source yet
     this.activeTab.set(tab);
+    this.collapsedRows.set(new Set()); // fresh row set, fresh collapse state
+    if (tab === 'balance' && this.balanceLoadedKey !== this.filterKey) {
+      this.fetchStatement('balance');
+    }
   }
 
   setGranularity(g: Granularity): void {
@@ -258,19 +348,24 @@ export class StatementsComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   toggleExpandAll(): void {
-    this.expandAll.update((v) => !v);
-    this.collapsedRows.set(new Set());
+    const next = !this.expandAll();
+    this.expandAll.set(next);
+    if (next) {
+      this.collapsedRows.set(new Set());
+    } else {
+      this.collapsedRows.set(new Set(this.activeRows().filter((r) => r.isExpandable).map((r) => r.rowId)));
+    }
   }
 
-  isRowCollapsed(item: string): boolean {
-    return this.collapsedRows().has(item);
+  isRowCollapsed(rowId: string): boolean {
+    return this.collapsedRows().has(rowId);
   }
 
-  toggleRow(item: string): void {
+  toggleRow(rowId: string): void {
     this.collapsedRows.update((prev) => {
       const next = new Set(prev);
-      if (next.has(item)) next.delete(item);
-      else next.add(item);
+      if (next.has(rowId)) next.delete(rowId);
+      else next.add(rowId);
       return next;
     });
   }
@@ -293,126 +388,63 @@ export class StatementsComponent implements OnInit, AfterViewInit, OnDestroy {
   }
 
   onFiltersChanged(): void {
-    this.refreshIncomeStatement();
+    // Period changed -- both tabs' caches are now stale. Only refetch the
+    // one currently on screen; the other lazily refetches on next selection.
+    this.incomeLoadedKey = null;
+    this.balanceLoadedKey = null;
+    this.fetchStatement(this.activeTab() === 'balance' ? 'balance' : 'income');
   }
 
-  refreshIncomeStatement(): void {
+  private fetchStatement(tab: 'income' | 'balance'): void {
     this.varianceSub?.unsubscribe();
     this.varianceSub = null;
 
+    const statementType: StatementType = tab === 'balance' ? 'balance_sheet' : 'income_statement';
     const targetPeriod = toApiPeriod(this.period());
     const comparisonPeriod = toApiPeriod(this.comparison());
+    const setLoading = tab === 'balance' ? this.balanceLoading : this.incomeLoading;
+    const setRows = tab === 'balance' ? this.balanceRows : this.incomeRows;
+    const mock = tab === 'balance' ? BALANCE_SHEET_MOCK : INCOME_STATEMENT_MOCK;
 
     if (!targetPeriod || !comparisonPeriod || targetPeriod === comparisonPeriod) {
-      this.incomeRows.set(this.mockIncomeRows());
-      this.loading.set(false);
+      setRows.set(mock);
+      this.collapseAllExpandable(mock);
+      setLoading.set(false);
       return;
     }
 
-    this.loading.set(true);
-    this.incomeRows.set([]);
+    setLoading.set(true);
 
-    this.varianceSub = this.varianceService.startVarianceAnalysis(targetPeriod, comparisonPeriod).subscribe({
+    this.varianceSub = this.varianceService.getVarianceAnalysis(statementType, targetPeriod, comparisonPeriod).subscribe({
       next: (data) => {
-        this.incomeRows.set(data.rows.map(mapApiRowToVarianceRow));
-        this.varianceSub = this.varianceService.pollVarianceAnalysis(data.analysis_id).subscribe({
-          next: (poll) => {
-            if (poll.status === 'ready' || poll.status === 'failed') {
-              this.incomeRows.set(poll.rows.map(mapApiRowToVarianceRow));
-              this.loading.set(false);
-            }
-            if (poll.status === 'failed') {
-              this.incomeRows.set(this.mockIncomeRows());
-              this.loading.set(false);
-            }
-          },
-          error: () => {
-            this.incomeRows.set(this.mockIncomeRows());
-            this.loading.set(false);
-          },
-        });
+        const rows = buildRowHierarchy(data.rows);
+        setRows.set(rows);
+        this.collapseAllExpandable(rows);
+        this.currency.set(`${data.currency} (${data.unit === 'thousands' ? '000s' : data.unit})`);
+        this.period.set(fromApiPeriod(data.target_period));
+        this.comparison.set(fromApiPeriod(data.comparison_period));
+        if (tab === 'balance') this.balanceLoadedKey = this.filterKey;
+        else this.incomeLoadedKey = this.filterKey;
+        setLoading.set(false);
       },
       error: (err) => {
         void extractErrorMessage(err, '');
-        this.incomeRows.set(this.mockIncomeRows());
-        this.loading.set(false);
+        setRows.set(mock);
+        this.collapseAllExpandable(mock);
+        setLoading.set(false);
       },
     });
-  }
-
-  private mockIncomeRows(): VarianceRow[] {
-    return [
-      {
-        item: 'Revenue and other income related to sales',
-        current: 285000,
-        comparison: 248525,
-        variance: 36475,
-        varPct: '+14.7%',
-        color: 'green',
-        analysis: 'Combined top-line growth reflects both core pricing recovery and steady ancillary income.',
-      },
-      {
-        item: 'Operating costs',
-        current: -184400,
-        comparison: -171110,
-        variance: -13290,
-        varPct: '-7.8%',
-        color: 'red',
-        analysis: 'Total operating costs grew slower than revenue, driving the gross margin expansion this period.',
-      },
-      {
-        item: 'Operating income',
-        current: 100600,
-        comparison: 77415,
-        variance: 23185,
-        varPct: '+29.9%',
-        color: 'green',
-        analysis: 'Operating income growth was the strongest driver of group profitability this period.',
-        isSubtotal: true,
-      },
-      {
-        item: 'Non-operating Costs',
-        current: 2800,
-        comparison: 2246,
-        variance: 554,
-        varPct: '+24.7%',
-        color: 'green',
-        analysis: 'Net non-operating items were modestly favourable, adding a small uplift to pre-tax income.',
-      },
-      {
-        item: 'Income before income taxes and zakat',
-        current: 103400,
-        comparison: 79661,
-        variance: 23739,
-        varPct: '+29.8%',
-        color: 'green',
-        analysis: 'Pre-tax income growth tracks closely with the operating income improvement.',
-        isSubtotal: true,
-      },
-      {
-        item: 'Income taxes and zakat (Note 7)',
-        current: -31600,
-        comparison: -26555,
-        variance: -5045,
-        varPct: '-19.0%',
-        color: 'red',
-        analysis: 'Effective tax and zakat rate held broadly consistent with the prior comparable period.',
-      },
-      {
-        item: 'Net income',
-        current: 71800,
-        comparison: 53106,
-        variance: 18694,
-        varPct: '+35.2%',
-        color: 'green',
-        analysis: 'Net income growth outpaced revenue growth on the back of margin expansion and cost discipline.',
-        isSubtotal: true,
-      },
-    ];
   }
 
   private showToast(message: string): void {
     this.toast.set(message);
     window.setTimeout(() => this.toast.set(null), 3000);
+  }
+
+  /** Collapses every expandable row in a freshly loaded row set — the
+   * default state whenever the page or a new statement/period first loads. */
+  private collapseAllExpandable(rows: VarianceRow[]): void {
+    this.collapsedRows.set(new Set(rows.filter((r) => r.isExpandable).map((r) => r.rowId)));
+    this.expandAll.set(false);
   }
 }

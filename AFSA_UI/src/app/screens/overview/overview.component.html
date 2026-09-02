@@ -1,133 +1,10 @@
 <div class="overview">
-  <!-- ===================================================
-       GROUP FINANCIAL PERFORMANCE OVERVIEW
-  ==================================================== -->
-  <section class="ov-perf-header">
-    <div class="ov-perf-accent"></div>
-    <div>
-      <div class="ov-kicker">Group Performance</div>
-      <h1 class="ov-perf-title">Group Financial Performance Overview</h1>
-      <div class="ov-perf-subtitle">Aramco Group Health at a Glance &middot; Q1 2026 &middot; Group Consolidated</div>
+  @if (error()) {
+    <div class="ov-error-banner" role="alert">
+      <span>{{ error() }}</span>
+      <button type="button" (click)="retry()">Retry</button>
     </div>
-    <span class="ov-live-pill">
-      <span class="ov-live-dot"></span>
-      Live &middot; Updated 4 min ago
-    </span>
-  </section>
-
-  <section class="ov-metric-grid">
-    @if (loading()) {
-      @for (i of [1,2,3,4]; track i) {
-        <div class="ov-metric-card">
-          <div class="ov-metric-top">
-            <app-skeleton width="36px" height="36px" radius="10px"></app-skeleton>
-            <app-skeleton width="56px" height="18px" radius="999px"></app-skeleton>
-          </div>
-          <app-skeleton width="70%" height="26px" radius="4px"></app-skeleton>
-          <div style="margin-top:6px">
-            <app-skeleton width="50%" height="11px" radius="4px"></app-skeleton>
-          </div>
-        </div>
-      }
-    } @else {
-      @for (metric of performanceMetrics; track metric.label) {
-        <div class="ov-metric-card" [style.--metric-accent]="metric.accent">
-          <div class="ov-metric-top">
-            <div
-              class="ov-metric-icon"
-              [style.background]="'radial-gradient(circle, ' + metric.accent + '30 0%, ' + metric.accent + '12 65%, transparent 100%)'"
-              [style.color]="metric.accent"
-            >
-              <app-icon [name]="metric.icon" [size]="16" [strokeWidth]="1.8"></app-icon>
-            </div>
-            <span class="ov-metric-yoy">
-              <app-icon name="trending-up" [size]="11" [strokeWidth]="2.2"></app-icon>
-              {{ metric.yoy }}
-            </span>
-          </div>
-          <div class="ov-metric-label">{{ metric.label | uppercase }}</div>
-          <div class="ov-metric-value">{{ metric.value }}</div>
-          <div class="ov-metric-unit">{{ metric.unit }}</div>
-
-          <svg class="ov-sparkline" viewBox="0 0 100 34" preserveAspectRatio="none">
-            <defs>
-              <linearGradient [attr.id]="'ov-spark-fill-' + $index" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" [attr.stop-color]="metric.accent" stop-opacity="0.28" />
-                <stop offset="100%" [attr.stop-color]="metric.accent" stop-opacity="0" />
-              </linearGradient>
-            </defs>
-            <polygon [attr.points]="metric.sparklinePoints + ' 100,34 0,34'" [attr.fill]="'url(#ov-spark-fill-' + $index + ')'" />
-            <polyline [attr.points]="metric.sparklinePoints" [attr.stroke]="metric.accent" fill="none" stroke-width="2.4" />
-          </svg>
-        </div>
-      }
-    }
-  </section>
-
-  <!-- ===================================================
-       AFFILIATE PERFORMANCE + VIEW GROUP FINANCIAL STATEMENTS
-  ==================================================== -->
-  <section class="ov-affiliate-row">
-    <div class="ov-affiliate-card">
-      <div class="ov-affiliate-header">
-        <span class="ov-affiliate-marker"></span>
-        AFFILIATE PERFORMANCE &middot; Q1 2026
-      </div>
-
-      @if (loading()) {
-        @for (i of [1,2]; track i) {
-          <div class="ov-affiliate-row-skel">
-            <app-skeleton width="40px" height="40px" radius="10px"></app-skeleton>
-            <div style="flex:1">
-              <app-skeleton width="40%" height="14px" radius="4px"></app-skeleton>
-              <div style="margin-top:8px"><app-skeleton width="100%" height="6px" radius="4px"></app-skeleton></div>
-            </div>
-          </div>
-        }
-      } @else {
-        @for (affiliate of affiliatePerformance; track affiliate.code) {
-          <div class="ov-affiliate-entry">
-            <div class="ov-affiliate-top">
-              <div class="ov-affiliate-left">
-                <div class="ov-affiliate-logo" [style.background]="affiliate.accent + '1A'" [style.color]="affiliate.accent">
-                  {{ affiliate.code }}
-                </div>
-                <div>
-                  <div class="ov-affiliate-name">{{ affiliate.name }}</div>
-                  <div class="ov-affiliate-sector">{{ affiliate.sector }}</div>
-                </div>
-              </div>
-              <div class="ov-affiliate-figures">
-                <div class="ov-affiliate-revenue">{{ affiliate.revenue }}</div>
-                <div class="ov-affiliate-yoy">{{ affiliate.yoy }}</div>
-              </div>
-            </div>
-
-            <div class="ov-affiliate-track">
-              <div
-                class="ov-affiliate-fill"
-                [style.width.%]="affiliate.pctOfGroupRevenue"
-                [style.background]="affiliate.accent"
-              ></div>
-            </div>
-            <div class="ov-affiliate-pct-label">{{ affiliate.pctOfGroupRevenue }}% of group revenue</div>
-          </div>
-        }
-      }
-    </div>
-
-    <button type="button" class="ov-statements-cta" (click)="goToStatements()">
-      <div class="ov-statements-icon">
-        <app-icon name="file-text" [size]="18" [strokeWidth]="1.7"></app-icon>
-      </div>
-      <div class="ov-statements-title">View Group Financial Statements</div>
-      <div class="ov-statements-sub">Income Statement &middot; Balance Sheet &middot; Cash Flow &middot; Variance Analysis &mdash; Q1 2026</div>
-      <span class="ov-statements-open">
-        Open
-        <app-icon name="arrow-right" [size]="13" [strokeWidth]="2.1"></app-icon>
-      </span>
-    </button>
-  </section>
+  }
 
   <!-- ===================================================
        FINANCIAL REPORTING PROCESS OVERVIEW
@@ -137,15 +14,15 @@
     <div>
       <div class="ov-kicker">Financial Reporting Process</div>
       <h2 class="ov-process-title">Financial Reporting Process Overview</h2>
-      <div class="ov-process-subtitle">Current position across the full financial reporting lifecycle &middot; Q1 2026</div>
+      <div class="ov-process-subtitle">Current position across the full financial reporting lifecycle @if (periodLabel()) { &middot; {{ periodLabel() }} }</div>
     </div>
 
-    <div class="ov-legend">
-      <span class="ov-legend-item"><span class="ov-legend-dot ov-legend-complete"></span>Complete</span>
-      <span class="ov-legend-item"><span class="ov-legend-dot ov-legend-progress"></span>In Progress</span>
-      <span class="ov-legend-item"><span class="ov-legend-dot ov-legend-attention"></span>Attention</span>
-      <span class="ov-legend-item"><span class="ov-legend-dot ov-legend-pending"></span>Pending</span>
-    </div>
+    @if (!loading() && updatedAgo()) {
+      <span class="ov-live-pill">
+        <span class="ov-live-dot"></span>
+        Live &middot; {{ updatedAgo() }}
+      </span>
+    }
   </section>
 
   <section class="ov-stepper-card">
@@ -233,18 +110,6 @@
             <div class="ov-status-fill" [style.width.%]="card.percent" [style.background]="card.accent"></div>
           </div>
 
-          <div class="ov-status-meta">
-            @if (card.elapsed) {
-              <span [class.ov-status-over]="card.overSla">
-                <app-icon name="clock" [size]="11" [strokeWidth]="1.9"></app-icon>
-                {{ card.elapsed }} / SLA {{ card.sla }}
-                @if (card.overSla) { &mdash; over }
-              </span>
-            } @else {
-              <span><app-icon name="clock" [size]="11" [strokeWidth]="1.9"></app-icon> SLA: {{ card.sla }}</span>
-            }
-          </div>
-
           @if (card.pendingSteps > 0) {
             <div class="ov-status-pending-row">
               {{ card.pendingSteps }} pending step{{ card.pendingSteps !== 1 ? 's' : '' }}
@@ -254,5 +119,145 @@
         </button>
       }
     }
+  </section>
+
+  <!-- ===================================================
+       GROUP FINANCIAL PERFORMANCE OVERVIEW
+  ==================================================== -->
+  <section class="ov-perf-header">
+    <div class="ov-perf-accent"></div>
+    <div>
+      <div class="ov-kicker">Group Performance</div>
+      <h1 class="ov-perf-title">Group Financial Performance Overview</h1>
+      <div class="ov-perf-subtitle">
+        @if (loading()) {
+          <app-skeleton width="260px" height="12px" radius="4px"></app-skeleton>
+        } @else {
+          Aramco Group Health at a Glance &middot; {{ periodLabel() }} &middot; Group Consolidated
+        }
+      </div>
+    </div>
+  </section>
+
+  <section class="ov-metric-grid">
+    @if (loading()) {
+      @for (i of [1,2,3,4]; track i) {
+        <div class="ov-metric-card">
+          <div class="ov-metric-top">
+            <app-skeleton width="36px" height="36px" radius="10px"></app-skeleton>
+            <app-skeleton width="56px" height="18px" radius="999px"></app-skeleton>
+          </div>
+          <app-skeleton width="70%" height="26px" radius="4px"></app-skeleton>
+          <div style="margin-top:6px">
+            <app-skeleton width="50%" height="11px" radius="4px"></app-skeleton>
+          </div>
+        </div>
+      }
+    } @else {
+      @for (metric of performanceMetrics(); track metric.label; let i = $index) {
+        <div class="ov-metric-card" [style.--metric-accent]="metric.accent">
+          <div class="ov-metric-top">
+            <div
+              class="ov-metric-icon"
+              [style.background]="'radial-gradient(circle, ' + metric.accent + '30 0%, ' + metric.accent + '12 65%, transparent 100%)'"
+              [style.color]="metric.accent"
+            >
+              <app-icon [name]="metric.icon" [size]="16" [strokeWidth]="1.8"></app-icon>
+            </div>
+            <span class="ov-metric-yoy" [class.negative]="!metric.yoyPositive">
+              <app-icon [name]="metric.yoyPositive ? 'trending-up' : 'trending-down'" [size]="11" [strokeWidth]="2.2"></app-icon>
+              {{ metric.yoy }}
+            </span>
+          </div>
+          <div class="ov-metric-label">{{ metric.label | uppercase }}</div>
+          <div class="ov-metric-value">{{ metric.value }}</div>
+          <div class="ov-metric-unit">{{ metric.unit }}</div>
+
+          <svg class="ov-sparkline" viewBox="0 0 100 34" preserveAspectRatio="none">
+            <defs>
+              <linearGradient [attr.id]="'ov-spark-fill-' + i" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" [attr.stop-color]="metric.accent" stop-opacity="0.28" />
+                <stop offset="100%" [attr.stop-color]="metric.accent" stop-opacity="0" />
+              </linearGradient>
+            </defs>
+            <polygon [attr.points]="metric.sparklinePoints + ' 100,34 0,34'" [attr.fill]="'url(#ov-spark-fill-' + i + ')'" />
+            <polyline
+              [attr.points]="metric.sparklinePoints"
+              [attr.stroke]="metric.accent"
+              fill="none"
+              stroke-width="2.9"
+              vector-effect="non-scaling-stroke"
+            ></polyline>
+          </svg>
+        </div>
+      }
+    }
+  </section>
+
+  <!-- ===================================================
+       AFFILIATE PERFORMANCE + VIEW GROUP FINANCIAL STATEMENTS
+  ==================================================== -->
+  <section class="ov-affiliate-row">
+    <div class="ov-affiliate-card">
+      <div class="ov-affiliate-header">
+        <span class="ov-affiliate-marker"></span>
+        AFFILIATE PERFORMANCE @if (!loading() && periodLabel()) { &middot; {{ periodLabel() }} }
+      </div>
+
+      @if (loading()) {
+        @for (i of [1,2]; track i) {
+          <div class="ov-affiliate-row-skel">
+            <app-skeleton width="40px" height="40px" radius="10px"></app-skeleton>
+            <div style="flex:1">
+              <app-skeleton width="40%" height="14px" radius="4px"></app-skeleton>
+              <div style="margin-top:8px"><app-skeleton width="100%" height="6px" radius="4px"></app-skeleton></div>
+            </div>
+          </div>
+        }
+      } @else if (affiliatePerformance().length === 0) {
+        <div class="ov-empty-state">No affiliate performance data available.</div>
+      } @else {
+        @for (affiliate of affiliatePerformance(); track affiliate.code) {
+          <div class="ov-affiliate-entry">
+            <div class="ov-affiliate-top">
+              <div class="ov-affiliate-left">
+                <div class="ov-affiliate-logo" [style.background]="affiliate.accent + '1A'" [style.color]="affiliate.accent">
+                  {{ affiliate.code }}
+                </div>
+                <div>
+                  <div class="ov-affiliate-name">{{ affiliate.name }}</div>
+                  <div class="ov-affiliate-sector">{{ affiliate.sector }}</div>
+                </div>
+              </div>
+              <div class="ov-affiliate-figures">
+                <div class="ov-affiliate-revenue">{{ affiliate.revenue }}</div>
+                <div class="ov-affiliate-yoy" [class.negative]="!affiliate.yoyPositive">{{ affiliate.yoy }}</div>
+              </div>
+            </div>
+
+            <div class="ov-affiliate-track">
+              <div
+                class="ov-affiliate-fill"
+                [style.width.%]="affiliate.pctOfGroupRevenue"
+                [style.background]="affiliate.accent"
+              ></div>
+            </div>
+            <div class="ov-affiliate-pct-label">{{ affiliate.pctOfGroupRevenue }}% of group revenue</div>
+          </div>
+        }
+      }
+    </div>
+
+    <button type="button" class="ov-statements-cta" (click)="goToStatements()">
+      <div class="ov-statements-icon">
+        <app-icon name="file-text" [size]="18" [strokeWidth]="1.7"></app-icon>
+      </div>
+      <div class="ov-statements-title">View Group Financial Statements</div>
+      <div class="ov-statements-sub">Income Statement &middot; Balance Sheet &middot; Cash Flow &middot; Variance Analysis @if (periodLabel()) { &mdash; {{ periodLabel() }} }</div>
+      <span class="ov-statements-open">
+        Open
+        <app-icon name="arrow-right" [size]="13" [strokeWidth]="2.1"></app-icon>
+      </span>
+    </button>
   </section>
 </div>

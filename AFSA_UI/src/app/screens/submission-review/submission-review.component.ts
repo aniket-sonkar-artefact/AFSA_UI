@@ -8,25 +8,25 @@ import { delay } from 'rxjs/operators';
 import { IconComponent } from '../../shared/icon/icon';
 import { SkeletonComponent } from '../../shared/skeleton/skeleton.component';
 import { PaginationComponent } from '../../shared/pagination/pagination.component';
+import { ConfirmDialogComponent, ConfirmDialogSegment } from '../../shared/confirm-dialog/confirm-dialog.component';
+import { PeriodToggleComponent, PeriodToggleOption } from '../../shared/period-toggle/period-toggle.component';
 import { AuthService } from '../../core/services/auth.service';
 import { SubmissionReviewService } from '../../core/services/submission-review.service';
 import {
   ChecklistGroup,
   ChecklistStatus,
-  CoaAffiliate,
   CoaGroupNode,
   CoaRow,
   CoaSchema,
   CoaSummary,
-  FinanceAffiliate,
   Finding,
   FindingStatus,
   IrregularitiesSummary,
   UploadState,
 } from '../../core/models/submission-review.model';
-import { ConfirmDialogComponent, ConfirmDialogSegment } from '../../shared/confirm-dialog/confirm-dialog.component';
 
 type MainTab = 'completeness' | 'irregularities' | 'coa';
+type PeriodView = 'monthly' | 'quarterly' | 'yearly';
 
 const TAB_LABEL: Record<MainTab, string> = {
   completeness: 'Completeness Review',
@@ -39,6 +39,12 @@ const PERIOD_LABEL = 'Q1 2026';
 const TRIAL_BALANCE_NOT_READY_FALLBACK =
   'Irregularities review requires a complete Trial Balance submission for this period.';
 
+const PERIOD_TOGGLE_OPTIONS: PeriodToggleOption[] = [
+  { value: 'monthly', label: 'Monthly' },
+  { value: 'quarterly', label: 'Quarterly' },
+  { value: 'yearly', label: 'Yearly' },
+];
+
 interface IrregularitiesBlockedState {
   blocked: boolean;
   message: string;
@@ -49,13 +55,11 @@ const IRREGULARITIES_NOT_BLOCKED: IrregularitiesBlockedState = { blocked: false,
 /** NOTE ON THIS HEADER CONTACT/PENDING-ITEMS BLOCK
  * ---------------------------------------------------------
  * No backing endpoint exists yet for the affiliate's point-of-contact
- * details or a cross-tab "total pending items" count, so both are
- * mock data (deterministically seeded from the affiliate name, so the
- * same affiliate always shows the same mock contact rather than a
- * random one on every load). Wrapped in a simulated delay so the header
- * skeleton has something real to demonstrate; wire a real endpoint into
- * `loadHeaderInfo()` when one exists -- nothing else in the component
- * needs to change. */
+ * details, so it's mock data (deterministically seeded from the affiliate
+ * name, so the same affiliate always shows the same mock contact rather
+ * than a random one on every load). Wrapped in a simulated delay so the
+ * header skeleton has something real to demonstrate; wire a real endpoint
+ * into `loadHeaderInfo()` when one exists -- nothing else needs to change. */
 interface AffiliateContactInfo {
   name: string;
   role: string;
@@ -77,7 +81,7 @@ function mockContactFor(affiliateName: string): AffiliateContactInfo {
 
 function mockPendingCountFor(affiliateName: string): number {
   const sum = affiliateName.split('').reduce((acc, ch) => acc + ch.charCodeAt(0), 0);
-  return 4 + (sum % 12); // representative range, deterministic per affiliate
+  return 4 + (sum % 12);
 }
 
 /** Shape of the API's error envelope body, e.g.:
@@ -96,8 +100,6 @@ function getApiErrorCode(err: unknown): string | null {
   return null;
 }
 
-// The user-facing text lives on the envelope's top-level "message" field
-// (not errors[0].message, which tends to hold internal/diagnostic detail).
 function getApiErrorMessage(err: unknown, fallback: string): string {
   if (err instanceof HttpErrorResponse) {
     const body = err.error as ApiErrorBody | undefined;
@@ -109,7 +111,15 @@ function getApiErrorMessage(err: unknown, fallback: string): string {
 @Component({
   selector: 'app-submission-review',
   standalone: true,
-  imports: [CommonModule, FormsModule, IconComponent, SkeletonComponent, PaginationComponent,  ConfirmDialogComponent],
+  imports: [
+    CommonModule,
+    FormsModule,
+    IconComponent,
+    SkeletonComponent,
+    PaginationComponent,
+    ConfirmDialogComponent,
+    PeriodToggleComponent,
+  ],
   templateUrl: './submission-review.component.html',
   styleUrl: './submission-review.component.scss',
 })
@@ -119,12 +129,15 @@ export class SubmissionReviewComponent implements OnInit {
   readonly periodLabel = PERIOD_LABEL;
   readonly displayPeriod = computed(() => this.tab() === 'coa' ? (this.coaSummary()?.session.periodLabel ?? PERIOD_LABEL) : PERIOD_LABEL);
 
-  readonly financeAffiliates = signal<FinanceAffiliate[]>([]);
-  readonly coaAffiliates = signal<CoaAffiliate[]>([]);
+  readonly periodToggleOptions = PERIOD_TOGGLE_OPTIONS;
 
-  // Each tab that has its own affiliate dropdown gets its OWN affiliate
-  // signal, so switching affiliate on one tab never affects another tab's
-  // selection or data.
+  readonly tabToggleOptions = computed<PeriodToggleOption[]>(() =>
+    this.tabs.map((t) => ({ value: t, label: this.tabLabel[t] })),
+  );
+
+  // Every tab now shares one entity code -- the affiliate is chosen once on
+  // the Landing page and carried in via the route param. There is no
+  // affiliate list/dropdown on this screen anymore.
   readonly completenessAffiliate = signal<string>('');
   readonly irregularitiesAffiliate = signal<string>('');
   readonly coaAffiliate = signal<string>('');
@@ -138,55 +151,95 @@ export class SubmissionReviewComponent implements OnInit {
   readonly coaSchema = signal<CoaSchema | null>(null);
   readonly coaSummary = signal<CoaSummary | null>(null);
 
-  readonly pendingCoaConfirmation = signal<{
-  index: number;
-  accountCode: string;
-  description: string;
-  targetLabel: string;
-} | null>(null);
-
-readonly coaConfirmInFlight = signal(false);
-
-readonly pendingCoaConfirmationSegments = computed<ConfirmDialogSegment[]>(() => {
-  const p = this.pendingCoaConfirmation();
-  if (!p) return [];
-  return [
-    { text: 'Confirm mapping account ' },
-    { text: p.accountCode, emphasis: true },
-    { text: ` — ${p.description} to "` },
-    { text: p.targetLabel, emphasis: true },
-    { text: '". This will mark the mapping as resolved.' },
-  ];
-});
-
-  // Default to true so the skeleton renders immediately on first paint,
-  // instead of briefly showing the "loaded but empty" state (0 counts,
-  // "No completeness data returned for .") before the first fetch for
-  // that tab has even started.
   readonly completenessLoading = signal(true);
   readonly irregularitiesLoading = signal(true);
   readonly coaLoading = signal(true);
-  readonly affiliateLoading = signal(true);
   readonly error = signal<string | null>(null);
 
   readonly irregularitiesPage = signal(1);
   readonly irregularitiesTotalPages = signal(1);
   readonly irregularitiesTotalCount = signal(0);
-  // Set when the API returns TRIAL_BALANCE_NOT_READY for the selected
-  // affiliate — replaces the KPI cards + table with a disabled-state message.
   readonly irregularitiesBlocked = signal<IrregularitiesBlockedState>(IRREGULARITIES_NOT_BLOCKED);
   readonly coaPage = signal(1);
   readonly coaTotalPages = signal(1);
+
+  readonly pendingStatusChange = signal<{ index: number; row: Finding; newStatus: FindingStatus } | null>(null);
+  readonly statusChangeInFlight = signal(false);
+
+  readonly pendingStatusChangeSegments = computed<ConfirmDialogSegment[]>(() => {
+    const p = this.pendingStatusChange();
+    if (!p) return [];
+    return [
+      { text: 'Change status of ' },
+      { text: p.row.accountCode, emphasis: true },
+      { text: ` — ${p.row.account} from ` },
+      { text: p.row.status, emphasis: true },
+      { text: ' to ' },
+      { text: p.newStatus, emphasis: true },
+      { text: '?' },
+    ];
+  });
+
+  requestFindingStatusChange(index: number, status: FindingStatus): void {
+    const row = this.findings()[index];
+    // Since the <select> is bound one-way via [ngModel], not updating the
+    // row here means Angular will reset the dropdown back to the current
+    // status on the next change detection cycle if the person cancels.
+    if (!row || row.status === status) return;
+    this.pendingStatusChange.set({ index, row, newStatus: status });
+  }
+
+  cancelFindingStatusChange(): void {
+    if (this.statusChangeInFlight()) return;
+    this.pendingStatusChange.set(null);
+  }
+
+  confirmFindingStatusChange(): void {
+    const pending = this.pendingStatusChange();
+    if (!pending || this.statusChangeInFlight()) return;
+
+    const { index, row, newStatus } = pending;
+    this.statusChangeInFlight.set(true);
+
+    this.submissionReviewService
+      .updateFindingStatus(this.irregularitiesAffiliate(), row.accountCode, newStatus)
+      .subscribe({
+        next: () => {
+          const key = `${this.irregularitiesAffiliate()}:${row.accountCode}`;
+          this.findingStatusOverrides.update((prev) => ({ ...prev, [key]: newStatus }));
+          this.findings.update((rows) => rows.map((r, i) => (i === index ? { ...r, status: newStatus } : r)));
+          this.statusChangeInFlight.set(false);
+          this.pendingStatusChange.set(null);
+        },
+        error: (err) => {
+          this.handleError(err, 'Could not update the finding status.');
+          this.statusChangeInFlight.set(false);
+          this.pendingStatusChange.set(null);
+        },
+      });
+  }
+
+  // Monthly / Quarterly / Yearly toggle for each table. Purely a display
+  // remap over data already fetched -- switching never triggers a refetch.
+  readonly irregularitiesPeriodView = signal<PeriodView>('monthly');
+  readonly coaPeriodView = signal<PeriodView>('monthly');
+
+  readonly irregularitiesColumnLabels = computed(() => {
+    const view = this.irregularitiesPeriodView();
+    if (view === 'monthly') return { value: 'MTD', prior: 'Prior Year MTD', delta: 'MTD Delta' };
+    if (view === 'quarterly') return { value: 'QTD', prior: 'Prior Year QTD', delta: 'QTD Delta' };
+    return { value: 'YTD', prior: 'Prior Year YTD', delta: 'YTD Delta' };
+  });
+
+  readonly coaPeriodColumnBaseLabel = computed(() => {
+    const view = this.coaPeriodView();
+    return view === 'monthly' ? 'MTD' : view === 'quarterly' ? 'QTD' : 'YTD';
+  });
 
   readonly collapsedGroups = signal<Record<string, boolean>>({});
   readonly uploads = signal<Record<string, UploadState>>({});
   readonly findingStatusOverrides = signal<Record<string, FindingStatus>>({});
 
-  // -----------------------------------------------------------------------
-  // Tab load cache: tracks which affiliate's data has already been fetched
-  // for each tab, so revisiting a tab (without changing affiliate) does not
-  // refetch. Keyed by affiliate identifier (entityCode / coa key).
-  // -----------------------------------------------------------------------
   private readonly completenessLoadedFor = new Set<string>();
   private readonly irregularitiesLoadedFor = new Set<string>();
   private readonly coaLoadedFor = new Set<string>();
@@ -195,18 +248,16 @@ readonly pendingCoaConfirmationSegments = computed<ConfirmDialogSegment[]>(() =>
 
   /** Display name carried over via router state from the Affiliate Landing
    * page (e.g. "SABIC"), so the header shows exactly the name the person
-   * clicked rather than whatever entityName the affiliate API happens to
-   * return for that code (which may be a longer/legal name). Falls back to
-   * the API-provided name for direct/standalone visits with no state. */
+   * clicked. There is no affiliate-list endpoint to fall back on anymore --
+   * on a hard refresh (which loses router state), the header falls back to
+   * showing the raw entity code until the person navigates back through
+   * Landing again. */
   private readonly passedAffiliateName = (history.state as { affiliateName?: string } | undefined)?.affiliateName ?? null;
 
   readonly activeAffiliateName = computed(() => {
     if (this.passedAffiliateName) return this.passedAffiliateName;
-    if (this.tab() === 'coa') {
-      return this.coaAffiliates().find((a) => a.key === this.coaAffiliate())?.name ?? this.coaAffiliate();
-    }
-    const code = this.tab() === 'irregularities' ? this.irregularitiesAffiliate() : this.completenessAffiliate();
-    return this.financeAffiliates().find((a) => a.entityCode === code)?.entityName ?? code;
+    if (this.tab() === 'coa') return this.coaAffiliate();
+    return this.tab() === 'irregularities' ? this.irregularitiesAffiliate() : this.completenessAffiliate();
   });
 
   // ---- Header point-of-contact + pending-items badge (mock; see note above) ----
@@ -216,14 +267,8 @@ readonly pendingCoaConfirmationSegments = computed<ConfirmDialogSegment[]>(() =>
   private lastHeaderAffiliate: string | null = null;
 
   private readonly headerInfoEffect = effect(() => {
-    // Driven off the Completeness affiliate specifically -- it's the one
-    // set as soon as the page loads (from the landing page or the default
-    // "first affiliate"), so the header identity is stable and doesn't
-    // flicker as the person switches tabs. Prefers the name carried over
-    // from the landing page (see passedAffiliateName) so the contact card's
-    // "{name} Representative" matches the header title exactly.
     const code = this.completenessAffiliate();
-    const name = this.passedAffiliateName ?? this.financeAffiliates().find((a) => a.entityCode === code)?.entityName;
+    const name = this.passedAffiliateName ?? code;
     if (!name || name === this.lastHeaderAffiliate) return;
     this.lastHeaderAffiliate = name;
     this.loadHeaderInfo(name);
@@ -238,6 +283,10 @@ readonly pendingCoaConfirmationSegments = computed<ConfirmDialogSegment[]>(() =>
     });
   }
 
+  onTabToggleChange(value: string): void {
+    this.selectTab(value as MainTab);
+  }
+
   readonly checklistCounts = computed(() => {
     const allItems = this.checklist().flatMap((g) => g.items);
     return {
@@ -250,8 +299,6 @@ readonly pendingCoaConfirmationSegments = computed<ConfirmDialogSegment[]>(() =>
 
   readonly checklistStatCards = computed(() => {
     const counts = this.checklistCounts();
-    // "Required items" excludes Not Applicable -- those items simply aren't
-    // required, so they don't count toward the completeness percentage.
     const requiredTotal = counts.Complete + counts.Incomplete + counts.Missing;
     const completePct = requiredTotal > 0 ? Math.round((counts.Complete / requiredTotal) * 100) : 0;
     return [
@@ -280,10 +327,7 @@ readonly pendingCoaConfirmationSegments = computed<ConfirmDialogSegment[]>(() =>
   });
 
   getGroupNodeLabel(groupNodeCode: string | null): string {
-    if (!groupNodeCode) {
-      return '—';
-    }
-
+    if (!groupNodeCode) return '—';
     const node = this.groupNodes().find((item) => item.code === groupNodeCode);
     return node?.label ?? groupNodeCode;
   }
@@ -293,10 +337,6 @@ readonly pendingCoaConfirmationSegments = computed<ConfirmDialogSegment[]>(() =>
   }
 
   readonly irregularitiesTotal = computed(() => this.irregularitiesSummary()?.total ?? 0);
-
-  /** Purely presentational: the "X resolved · Y requiring review" detail
-   * line under the Total Irregularities card. Reuses the same summary data
-   * already fetched for irregularitiesStatusBreakdown -- no new fetch/logic. */
   readonly irregularitiesResolvedCount = computed(() => this.irregularitiesSummary()?.closed ?? 0);
   readonly irregularitiesRequiringReview = computed(() => this.irregularitiesTotal() - this.irregularitiesResolvedCount());
 
@@ -318,21 +358,6 @@ readonly pendingCoaConfirmationSegments = computed<ConfirmDialogSegment[]>(() =>
     ];
   });
 
-  // readonly irregularitiesStatCards = computed(() => {
-  //   const summary = this.irregularitiesSummary();
-  //   const total = summary?.totalIrregularities ?? 0;
-  //   const highPriority = summary?.highPriorityOpen ?? 0;
-  //   const investigating = summary?.underInvestigation ?? 0;
-  //   const closed = summary?.closed ?? 0;
-  //   return [
-  //     { label: 'Total Irregularities', value: total, color: 'var(--submission-accent)', attention: false },
-  //     { label: 'High Priority Open', value: highPriority, color: 'var(--submission-danger)', attention: highPriority > 0 },
-  //     { label: 'Under Investigation', value: investigating, color: 'var(--submission-info)', attention: false },
-  //     { label: 'Closed', value: closed, color: 'var(--submission-success)', attention: false },
-  //   ];
-  // });
-
-
   readonly coaOverviewCard = computed(() => {
     const counts = this.coaSummary()?.counts;
     const total = counts?.accountsReviewed ?? 0;
@@ -350,28 +375,60 @@ readonly pendingCoaConfirmationSegments = computed<ConfirmDialogSegment[]>(() =>
     };
   });
 
+  private readonly PERIOD_VALUE_KEYS = new Set(['monthValue', 'qtdValue', 'ytdValue']);
+
   readonly coaTableColumns = computed(() => this.coaSchema()?.tableColumns ?? []);
+
+  /** Collapses the schema's separate monthValue/qtdValue/ytdValue columns
+   *  into a single "periodValue" column whose label and cell content swap
+   *  based on the Monthly/Quarterly/Yearly toggle -- the same mechanism
+   *  used on the Irregularities table. If the schema doesn't define those
+   *  three keys (e.g. an older schema), the columns pass through untouched. */
+  readonly displayCoaColumns = computed(() => {
+    const columns = this.coaTableColumns();
+    const firstPeriodIndex = columns.findIndex((c) => this.PERIOD_VALUE_KEYS.has(c.key));
+    if (firstPeriodIndex === -1) return columns;
+
+    const survivors = columns.filter((c) => !this.PERIOD_VALUE_KEYS.has(c.key));
+    const insertAt = columns.slice(0, firstPeriodIndex).filter((c) => !this.PERIOD_VALUE_KEYS.has(c.key)).length;
+
+    const periodColumn = {
+      ...columns[firstPeriodIndex],
+      key: 'periodValue',
+      label: this.coaPeriodColumnBaseLabel(),
+    };
+
+    survivors.splice(insertAt, 0, periodColumn);
+    return survivors;
+  });
+
+  coaPeriodValue(row: CoaRow): string {
+    const view = this.coaPeriodView();
+    if (view === 'monthly') return row.monthValue;
+    if (view === 'quarterly') return row.qtdValue;
+    return row.ytdValue;
+  }
+
+  onCoaPeriodViewChange(view: string): void {
+    this.coaPeriodView.set(view as PeriodView);
+  }
+
   readonly coaUnits = computed(() => this.coaSchema()?.units ?? this.coaSummary()?.session.units ?? '');
   readonly coaPeriod = computed(() => this.coaSchema()?.period ?? this.coaSummary()?.session.periodLabel ?? PERIOD_LABEL);
 
   private coaConfidenceVocabulary = computed(() => this.coaSchema()?.mappingConfidences ?? []);
   private coaReviewStatusVocabulary = computed(() => this.coaSchema()?.reviewStatuses ?? []);
 
-  readonly coaHasBlockers = computed(() => {
-    // The completion banner is driven by review status, not confidence.
-    // lowConfidencePending remains the model's original classification and
-    // does not decrease when a reviewer resolves a row.
-    return (this.coaSummary()?.counts?.pending ?? 0) > 0;
-  });
+  readonly coaHasBlockers = computed(() => (this.coaSummary()?.counts?.pending ?? 0) > 0);
 
   readonly groupNodes = computed<CoaGroupNode[]>(() => this.coaSchema()?.groupNodes ?? []);
 
-  /** Entity code carried over from the new Affiliate Landing page (Step 1 of
-   *  the submission flow: /submission → pick an affiliate → /submission/review/:entityCode).
-   *  Direct visits to /submission/review with no param fall back to the
-   *  previous "first affiliate in the list" default, so this page still
-   *  works standalone. */
-  private preselectedEntityCode: string | null = null;
+  /** Entity code carried over from the Affiliate Landing page
+   *  (/submission → pick an affiliate → /submission/review/:entityCode).
+   *  This screen has no affiliate list of its own anymore -- a direct visit
+   *  with no entityCode redirects back to Landing rather than falling back
+   *  to any "first affiliate" default. */
+  private entityCode: string | null = null;
 
   constructor(
     private readonly submissionReviewService: SubmissionReviewService,
@@ -381,19 +438,27 @@ readonly pendingCoaConfirmationSegments = computed<ConfirmDialogSegment[]>(() =>
   ) {}
 
   ngOnInit(): void {
-    this.preselectedEntityCode = this.route.snapshot.paramMap.get('entityCode');
+    const entityCode = this.route.snapshot.paramMap.get('entityCode');
+    if (!entityCode) {
+      this.router.navigate(['/submission']);
+      return;
+    }
+
+    this.entityCode = entityCode;
+    this.completenessAffiliate.set(entityCode);
+    this.irregularitiesAffiliate.set(entityCode);
+    this.coaAffiliate.set(entityCode);
 
     // Schema is configuration for the CoA table, so fetch it once when the
     // screen starts rather than coupling it to a particular affiliate.
     this.loadCoaSchema();
-    this.loadAffiliateLists();
+    this.loadCompleteness();
   }
 
-  /** True when this page was reached via the Affiliate Landing page for a
-   *  specific affiliate (rather than a direct/standalone visit). Used to
-   *  show a small "change affiliate" breadcrumb back to the landing page. */
+  /** This screen is now unreachable without an entityCode (ngOnInit
+   *  redirects otherwise), so the "back to Landing" link is always shown. */
   get cameFromLanding(): boolean {
-    return !!this.preselectedEntityCode;
+    return true;
   }
 
   backToLanding(): void {
@@ -407,85 +472,10 @@ readonly pendingCoaConfirmationSegments = computed<ConfirmDialogSegment[]>(() =>
     });
   }
 
-  private loadAffiliateLists(): void {
-    this.affiliateLoading.set(true);
-    this.error.set(null);
-
-    this.submissionReviewService.getFinanceAffiliates().subscribe({
-      next: (affiliates) => {
-        this.financeAffiliates.set(affiliates);
-        if (affiliates.length) {
-          // Prefer the affiliate carried over from the landing page, when it
-          // still exists in the fetched list; otherwise fall back to the
-          // first affiliate exactly as before.
-          const preferredCode =
-            (this.preselectedEntityCode && affiliates.some((a) => a.entityCode === this.preselectedEntityCode)
-              ? this.preselectedEntityCode
-              : affiliates[0].entityCode);
-
-          if (!this.completenessAffiliate() || this.preselectedEntityCode) {
-            this.completenessAffiliate.set(preferredCode);
-            this.loadCompleteness();
-          }
-          // Irregularities defaults to the same affiliate but is not
-          // fetched yet — it lazily loads the first time that tab is visited.
-          if (!this.irregularitiesAffiliate() || this.preselectedEntityCode) {
-            this.irregularitiesAffiliate.set(preferredCode);
-          }
-        }
-      },
-      error: (err) => this.handleError(err, 'Could not load affiliate list for Completeness and Irregularities Review.'),
-    });
-
-    this.submissionReviewService.getCoaAffiliates().subscribe({
-      next: (affiliates) => {
-        this.coaAffiliates.set(affiliates);
-        const preferredKey = this.preselectedEntityCode && affiliates.some((a) => a.key === this.preselectedEntityCode)
-          ? this.preselectedEntityCode
-          : null;
-        const defaultAffiliate = preferredKey ?? affiliates.find((a) => a.isDefault)?.key ?? affiliates[0]?.key ?? '';
-        if ((!this.coaAffiliate() || preferredKey) && defaultAffiliate) this.coaAffiliate.set(defaultAffiliate);
-      },
-      error: (err) => this.handleError(err, 'Could not load affiliate list for CoA Mapping Review.'),
-      complete: () => this.affiliateLoading.set(false),
-    });
-  }
-
-  selectAffiliate(value: string): void {
-    this.error.set(null);
-
-    if (this.tab() === 'coa') {
-      this.coaAffiliate.set(value);
-      this.coaPage.set(1);
-      this.loadCoa();
-      return;
-    }
-
-    if (this.tab() === 'irregularities') {
-      this.irregularitiesAffiliate.set(value);
-      this.findingStatusOverrides.set({});
-      this.loadIrregularities(1);
-      return;
-    }
-
-    // completeness
-    this.uploads.set({});
-    this.collapsedGroups.set({});
-    this.completenessAffiliate.set(value);
-    this.loadCompleteness();
-  }
-
-  onAffiliateSelectChange(value: string): void {
-    this.selectAffiliate(value);
-  }
-
   selectTab(tab: MainTab): void {
     this.tab.set(tab);
     this.error.set(null);
 
-    // Only fetch if this tab has never loaded data for its own currently
-    // selected affiliate. Switching affiliates elsewhere (selectAffiliate)
-    // always fetches fresh data directly, independent of this cache.
     if (tab === 'completeness' && this.completenessAffiliate() && !this.completenessLoadedFor.has(this.completenessAffiliate())) {
       this.loadCompleteness();
     }
@@ -514,9 +504,6 @@ readonly pendingCoaConfirmationSegments = computed<ConfirmDialogSegment[]>(() =>
     return Boolean(this.collapsedGroups()[group]);
   }
 
-  /** "Expand All" button in the tabs row. Purely a convenience wrapper
-   * around the existing per-group collapse state -- toggles every group at
-   * once rather than introducing any new expand/collapse behaviour. */
   readonly allGroupsExpanded = computed(() => this.checklist().every((g) => !this.isCollapsed(g.group)));
 
   toggleExpandAll(): void {
@@ -534,6 +521,10 @@ readonly pendingCoaConfirmationSegments = computed<ConfirmDialogSegment[]>(() =>
     this.loadCoa(page);
   }
 
+  onIrregularitiesPeriodViewChange(view: string): void {
+    this.irregularitiesPeriodView.set(view as PeriodView);
+  }
+
   private loadCompleteness(): void {
     if (!this.completenessAffiliate()) return;
     const affiliate = this.completenessAffiliate();
@@ -541,9 +532,6 @@ readonly pendingCoaConfirmationSegments = computed<ConfirmDialogSegment[]>(() =>
     this.submissionReviewService.getChecklist(affiliate).subscribe({
       next: (checklist) => {
         this.checklist.set(checklist);
-        // Default every group to collapsed on load, matching the approved
-        // design. Doesn't touch collapse/expand behaviour itself -- just
-        // the starting state.
         const collapsed: Record<string, boolean> = {};
         checklist.forEach((g) => (collapsed[g.group] = true));
         this.collapsedGroups.set(collapsed);
@@ -563,19 +551,16 @@ readonly pendingCoaConfirmationSegments = computed<ConfirmDialogSegment[]>(() =>
     this.irregularitiesLoading.set(true);
     this.irregularitiesBlocked.set(IRREGULARITIES_NOT_BLOCKED);
 
-    // Findings (table rows) and the summary card counts come from two
-    // separate endpoints — the summary is authoritative for the KPI cards
-    // regardless of which page of findings is currently on screen.
     forkJoin({
       findings: this.submissionReviewService.getFindings(affiliate, page),
       summary: this.submissionReviewService.getIrregularitiesSummary(affiliate),
     }).subscribe({
       next: ({ findings, summary }) => {
         const overrides = this.findingStatusOverrides();
-        this.findings.set(findings.items.map((row, i) => this.mockExpandFinding({
+        this.findings.set(findings.items.map((row) => ({
           ...row,
           status: overrides[`${affiliate}:${row.accountCode}`] ?? row.status,
-        }, i)));
+        })));
         this.irregularitiesTotalPages.set(findings.totalPages);
         this.irregularitiesTotalCount.set(findings.totalCount);
         this.irregularitiesSummary.set(summary);
@@ -583,9 +568,6 @@ readonly pendingCoaConfirmationSegments = computed<ConfirmDialogSegment[]>(() =>
         this.irregularitiesLoadedFor.add(affiliate);
       },
       error: (err) => {
-        // forkJoin never fires `complete` after `error`, so loading/cache
-        // state has to be settled here too — otherwise the skeleton would
-        // stay on screen for any irregularities error, not just this one.
         this.irregularitiesLoading.set(false);
         this.irregularitiesLoadedFor.add(affiliate);
 
@@ -616,13 +598,8 @@ readonly pendingCoaConfirmationSegments = computed<ConfirmDialogSegment[]>(() =>
 
     this.submissionReviewService.getCoaRows(affiliate, page).subscribe({
       next: (result) => {
-        // Keep the server ordering. The API already returns rows ordered by
-        // QTD magnitude and pagination preserves that order.
         this.coaRows.set(result.items.map((row) => ({
           ...row,
-          // canConfirm is authoritative from /mappings. In particular,
-          // High/Low confidence rows can be confirmed; Unmapped stays disabled
-          // until a Group node is selected.
           pendingSelection: row.currentGroupNode,
           canConfirm: row.canConfirm,
         })));
@@ -640,9 +617,7 @@ readonly pendingCoaConfirmationSegments = computed<ConfirmDialogSegment[]>(() =>
     const classes: Record<string, string> = {
       affiliateAccount: 'coa-account',
       description: 'coa-description',
-      monthValue: 'coa-month',
-      qtdValue: 'coa-qtd',
-      ytdValue: 'coa-ytd',
+      periodValue: 'coa-month',
       currentGroupMapping: 'coa-mapping',
       mappingConfidence: 'coa-confidence',
       status: 'coa-status',
@@ -694,45 +669,55 @@ readonly pendingCoaConfirmationSegments = computed<ConfirmDialogSegment[]>(() =>
     return this.toneStyle(vocabulary?.tone ?? 'warning');
   }
 
-  // Driven directly by the API's severityColor now ('red' | 'yellow')
-  // instead of a client-derived 'High' | 'Medium' severity.
-  flagClass(active: boolean, severityColor: 'red' | 'yellow'): string {
-    if (!active) return '';
-    return severityColor === 'red' ? 'flag-high' : 'flag-medium';
-  }
-
-  // TEMP: Priority + the new QTD/YTD comparison fields aren't in the API yet.
-  // `??` only fills what's missing, so this quietly becomes a no-op (and can
-  // be deleted) once the backend adds real values — no other code changes.
-  private readonly MOCK_PRIORITIES: Array<'High' | 'Medium' | 'Low'> = ['High', 'Medium', 'Low'];
-
-  private mockExpandFinding(row: Finding, index: number): Finding {
-    return {
-      ...row,
-      qtd: row.qtd ?? row.currentPeriod,
-      priorYearQtd: row.priorYearQtd ?? row.priorPeriod,
-      qoqDelta: row.qoqDelta ?? row.change,
-      ytd: row.ytd ?? row.currentPeriod,
-      priorYearYtd: row.priorYearYtd ?? row.priorPeriod,
-      yoyDelta: row.yoyDelta ?? row.change,
-      priority: row.priority ?? this.MOCK_PRIORITIES[index % this.MOCK_PRIORITIES.length],
-    };
-  }
-
   priorityStyle(priority: string | undefined) {
     if (priority === 'High') return this.toneStyle('danger');
     if (priority === 'Medium') return this.toneStyle('warning');
     return this.toneStyle('info');
   }
 
-  /* ---------- Finding status is intentionally client-side until PATCH exists ---------- */
+  /* ---------- Irregularities: period-toggle-driven row accessors ---------- */
 
-  onFindingStatusChange(index: number, status: FindingStatus): void {
-    const row = this.findings()[index];
-    if (!row) return;
-    const key = `${this.irregularitiesAffiliate()}:${row.accountCode}`;
-    this.findingStatusOverrides.update((prev) => ({ ...prev, [key]: status }));
-    this.findings.update((rows) => rows.map((r, i) => (i === index ? { ...r, status } : r)));
+  findingValue(row: Finding): number | null {
+    const view = this.irregularitiesPeriodView();
+    if (view === 'monthly') return row.mtd;
+    if (view === 'quarterly') return row.qtd;
+    return row.ytd;
+  }
+
+  findingPrior(row: Finding): number | null {
+    const view = this.irregularitiesPeriodView();
+    if (view === 'monthly') return row.mtdPrior;
+    if (view === 'quarterly') return row.qtdPrior;
+    return row.ytdPrior;
+  }
+
+  findingDelta(row: Finding): string | null {
+    const view = this.irregularitiesPeriodView();
+    if (view === 'monthly') return row.mtdDelta;
+    if (view === 'quarterly') return row.qtdDelta;
+    return row.ytdDelta;
+  }
+
+  findingReasoning(row: Finding): string | null {
+    const view = this.irregularitiesPeriodView();
+    if (view === 'monthly') return row.mtdDeltaObservation;
+    if (view === 'quarterly') return row.qtdDeltaObservation;
+    return row.ytdDeltaObservation;
+  }
+
+  formatIrregularityAmount(value: number | null): string {
+    if (value === null || value === undefined) return '—';
+    const abs = Math.abs(value).toLocaleString('en-US');
+    return value < 0 ? `(${abs})` : abs;
+  }
+
+  /** Delta cell tint, driven by priority per the current design: High = red
+   *  tint, Medium = amber tint, Low = untinted. Reuses the existing
+   *  .flag-high / .flag-medium background classes. */
+  deltaTintClass(row: Finding): string {
+    if (row.priority === 'High') return 'flag-high';
+    if (row.priority === 'Medium') return 'flag-medium';
+    return '';
   }
 
   /* ---------- CoA mapping ---------- */
@@ -756,7 +741,58 @@ readonly pendingCoaConfirmationSegments = computed<ConfirmDialogSegment[]>(() =>
       : r));
   }
 
-  confirmCoaMapping(index: number, onSettled?: () => void): void {
+  /* ---------- CoA "Confirm Mapping" confirmation dialog ---------- */
+
+  readonly pendingCoaConfirmation = signal<{
+    index: number;
+    accountCode: string;
+    description: string;
+    targetLabel: string;
+  } | null>(null);
+  readonly coaConfirmInFlight = signal(false);
+
+  readonly pendingCoaConfirmationSegments = computed<ConfirmDialogSegment[]>(() => {
+    const p = this.pendingCoaConfirmation();
+    if (!p) return [];
+    return [
+      { text: 'Confirm mapping account ' },
+      { text: p.accountCode, emphasis: true },
+      { text: ` — ${p.description} to "` },
+      { text: p.targetLabel, emphasis: true },
+      { text: '". This will mark the mapping as resolved.' },
+    ];
+  });
+
+  requestConfirmCoaMapping(index: number): void {
+    const row = this.coaRows()[index];
+    if (!row || !row.canConfirm || !row.pendingSelection) return;
+
+    this.pendingCoaConfirmation.set({
+      index,
+      accountCode: row.code,
+      description: row.description,
+      targetLabel: this.mappingLabel(row),
+    });
+  }
+
+  cancelCoaConfirmation(): void {
+    if (this.coaConfirmInFlight()) return;
+    this.pendingCoaConfirmation.set(null);
+  }
+
+  confirmCoaMappingFromDialog(): void {
+    const pending = this.pendingCoaConfirmation();
+    if (!pending || this.coaConfirmInFlight()) return;
+
+    this.coaConfirmInFlight.set(true);
+    this.confirmCoaMapping(pending.index, () => {
+      this.coaConfirmInFlight.set(false);
+      this.pendingCoaConfirmation.set(null);
+    });
+  }
+  
+
+  private confirmCoaMapping(index: number, onSettled?: () => void): void {
     const row = this.coaRows()[index];
     const groupNode = row?.pendingSelection;
     if (!row || !groupNode) {
@@ -822,34 +858,6 @@ readonly pendingCoaConfirmationSegments = computed<ConfirmDialogSegment[]>(() =>
     if (!file) return;
     input.value = '';
     this.startUpload(key, groupName, itemLabel, file);
-  }
-
-  requestConfirmCoaMapping(index: number): void {
-  const row = this.coaRows()[index];
-  if (!row || !row.canConfirm || !row.pendingSelection) return;
-
-  this.pendingCoaConfirmation.set({
-      index,
-      accountCode: row.code,
-      description: row.description,
-      targetLabel: this.mappingLabel(row),
-    });
-  }
-
-cancelCoaConfirmation(): void {
-  if (this.coaConfirmInFlight()) return;
-  this.pendingCoaConfirmation.set(null);
-}
-
-confirmCoaMappingFromDialog(): void {
-  const pending = this.pendingCoaConfirmation();
-  if (!pending || this.coaConfirmInFlight()) return;
-
-  this.coaConfirmInFlight.set(true);
-    this.confirmCoaMapping(pending.index, () => {
-      this.coaConfirmInFlight.set(false);
-      this.pendingCoaConfirmation.set(null);
-    });
   }
 
   private startUpload(key: string, groupName: string, itemLabel: string, file: File): void {

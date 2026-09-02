@@ -326,6 +326,20 @@
               </div>
             }
 
+            <button
+              type="button"
+              class="compliance-acknowledge-button"
+              [class.acknowledged]="selectedNoteAcknowledged()"
+              [disabled]="selectedNoteAcknowledged()"
+              (click)="acknowledgeSelectedNote()"
+            >
+              @if (selectedNoteAcknowledged()) {
+                <app-icon name="check" [size]="13" [strokeWidth]="2.2"></app-icon>
+                Acknowledged
+              } @else {
+                Acknowledge
+              }
+            </button>
           </div>
         }
 

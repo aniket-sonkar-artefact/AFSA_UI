@@ -59,11 +59,10 @@
         } @else {
           <a
             class="afsa-nav-item"
+            [class.active]="isItemActive(item)"
             [routerLink]="item.path"
-            routerLinkActive="active"
-            #rla="routerLinkActive"
             [style.--item-accent]="item.accent"
-            [style.box-shadow]="rla.isActive ? ('0 5px 14px ' + item.glow + ', 0 0 0 2px ' + item.glow) : 'none'"
+            [style.box-shadow]="isItemActive(item) ? ('0 5px 14px ' + item.glow + ', 0 0 0 2px ' + item.glow) : 'none'"
             [title]="!showLabels() ? item.label : null"
           >
             <span class="afsa-nav-selection" [style.background]="item.selectionBackground"></span>

@@ -977,3 +977,38 @@
     transition: none !important;
   }
 }
+
+.compliance-acknowledge-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: 100%;
+  min-height: 38px;
+  margin-top: 2px;
+  border: 1px solid var(--compliance-accent);
+  border-radius: 9px;
+  background: var(--compliance-accent);
+  color: #FFFFFF;
+  font-family: 'Maven Pro', sans-serif;
+  font-size: 10.5px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background-color 180ms ease, transform 180ms ease, box-shadow 180ms ease;
+
+  &:hover:not(:disabled) {
+    transform: translateY(-1px);
+    background: var(--compliance-accent-hover);
+    box-shadow: 0 6px 14px rgba(192, 80, 77, 0.16);
+  }
+
+  &.acknowledged,
+  &:disabled {
+    border-color: var(--compliance-success-border);
+    background: var(--compliance-success-soft);
+    color: var(--compliance-success);
+    cursor: default;
+    transform: none;
+    box-shadow: none;
+  }
+}

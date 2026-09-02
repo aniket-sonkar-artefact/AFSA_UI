@@ -1,45 +1,40 @@
 import { Component, OnInit, computed, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
-import { forkJoin, of } from 'rxjs';
-import { catchError, map } from 'rxjs/operators';
+import { catchError, of } from 'rxjs';
 import { IconComponent, IconName } from '../../shared/icon/icon';
 import { SkeletonComponent } from '../../shared/skeleton/skeleton.component';
-import { SubmissionReviewService } from '../../core/services/submission-review.service';
-import { IntegrityService } from '../../core/services/integrity.service';
-import { ComplianceService } from '../../core/services/compliance.service';
+import { HomeService } from '../../core/services/home.service';
+import { HomeApiData, HomeApiKpiValue } from '../../core/models/home.model';
+import { ComplianceProgressService } from '../../core/services/compliance-progress.service';
+import { ManagementReportProgressService } from '../../core/services/management-report-progress.service';
 
 /* =========================================================
    NOTE ON THIS REWRITE
    ---------------------------------------------------------
-   This component was rebuilt from scratch to match the exact
-   approved Figma screens (Group Financial Performance Overview /
-   Affiliate Performance / Financial Reporting Process Overview),
-   replacing the previous KPI-row + capability-card layout entirely.
+   Fully backed by POST /api/v1/home now. All previous mock data
+   (performance metrics, affiliate performance, workflow status
+   cards/stepper) and the old multi-service fan-out (Submission,
+   Integrity, Compliance) are gone -- the Home endpoint returns
+   everything this screen needs in one call, including per-agent
+   workflow progress that used to be estimated client-side.
 
-   Data sourcing, by section:
-   - Group Financial Performance metrics (Revenue/Net Profit/EBITDA/
-     Cash Position) and Affiliate Performance (SABIC/Petrorabigh):
-     no backing API exists for these figures anywhere in the app,
-     so they are presentation-layer mock data (matching the approved
-     design's figures) pending a real financial-summary endpoint.
-   - Financial Reporting Process status cards: percentages for
-     Affiliate Submission Reviewer, Compliance Monitoring &
-     Benchmarking, and Financial Statement Integrity are computed
-     from REAL data already available via the existing services
-     (SubmissionReviewService, ComplianceService, IntegrityService).
-     Management Report Generator has no "progress" concept (it's an
-     on-demand generation action), so it is presented at its natural
-     default: Pending / 0%.
-   - SLA timers ("2h 14m / SLA 4h") have no backing time-tracking
-     API anywhere in this app and are presentation-only.
+   Two things this API does NOT provide, so they're omitted rather
+   than fabricated (as the old mock did):
+   - Per-card SLA / elapsed time -- no timing data exists upstream.
+   - "Coming soon" pipeline stages (Preliminary Results, Intercompany
+     Elimination, Cash Flow Analysis, FS Translation) have no agent_key
+     yet, so they stay hardcoded as locked/coming-soon stepper nodes.
 ========================================================= */
+
+const PERIOD = '2026Q1';
 
 interface PerformanceMetric {
   label: string;
   value: string;
   unit: string;
   yoy: string;
+  yoyPositive: boolean;
   icon: IconName;
   accent: string;
   sparklinePoints: string;
@@ -51,6 +46,7 @@ interface AffiliatePerformanceRow {
   sector: string;
   revenue: string;
   yoy: string;
+  yoyPositive: boolean;
   pctOfGroupRevenue: number;
   accent: string;
 }
@@ -69,9 +65,6 @@ interface StatusCard {
   status: StageStatus;
   statusLabel: string;
   percent: number;
-  elapsed: string;
-  sla: string;
-  overSla: boolean;
   pendingSteps: number;
   route: string;
   accent: string;
@@ -80,71 +73,171 @@ interface StatusCard {
 const ATTENTION_ACCENT = '#C0504D';
 
 /** Attention/alert states always render red regardless of the module's own
- * brand color -- matches the approved design, where "Requires Attention"
- * is a universal alarm color, not a per-module identity color. */
+ * brand color -- "Requires Attention" is a universal alarm color, not a
+ * per-module identity color. */
 function effectiveAccent(status: StageStatus, moduleAccent: string): string {
   return status === 'attention' ? ATTENTION_ACCENT : moduleAccent;
 }
 
-const PERFORMANCE_METRICS: PerformanceMetric[] = [
-  {
-    label: 'Group Revenue',
-    value: '285,000',
-    unit: 'SAR (000s)',
-    yoy: '+14.9% YoY',
-    icon: 'camera',
-    accent: '#0033A0',
-    sparklinePoints: '0,30 20,26 40,24 60,18 80,14 100,4',
-  },
-  {
-    label: 'Net Profit',
-    value: '71,800',
-    unit: 'SAR (000s)',
-    yoy: '+23.8% YoY',
-    icon: 'dollar',
-    accent: '#00A3E0',
-    sparklinePoints: '0,32 20,28 40,22 60,20 80,10 100,3',
-  },
-  {
-    label: 'EBITDA',
-    value: '98,500',
-    unit: 'SAR (000s)',
-    yoy: '+19.4% YoY',
-    icon: 'trending-up',
-    accent: '#00843D',
-    sparklinePoints: '0,30 20,25 40,23 60,16 80,12 100,4',
-  },
-  {
-    label: 'Group Cash Position',
-    value: '45,200',
-    unit: 'SAR (000s)',
-    yoy: '+6.7% YoY',
-    icon: 'archive',
-    accent: '#84BD00',
-    sparklinePoints: '0,20 20,22 40,18 60,16 80,10 100,6',
-  },
+function toStageStatus(status: string): StageStatus {
+  switch (status.toLowerCase()) {
+    case 'complete':
+    case 'completed':
+      return 'complete';
+    case 'in_progress':
+    case 'in-progress':
+      return 'in-progress';
+    case 'attention':
+    case 'needs_attention':
+    case 'requires_attention':
+      return 'attention';
+    default:
+      return 'pending';
+  }
+}
+
+function stageStatusLabel(status: StageStatus): string {
+  switch (status) {
+    case 'complete': return 'Complete';
+    case 'in-progress': return 'In Progress';
+    case 'attention': return 'Requires Attention';
+    case 'pending': return 'Pending';
+    default: return 'Coming Soon';
+  }
+}
+
+interface KpiDisplayConfig {
+  label: string;
+  icon: IconName;
+  accent: string;
+}
+
+const KPI_DISPLAY_CONFIG: Record<string, KpiDisplayConfig> = {
+  group_revenue: { label: 'Group Revenue', icon: 'dollar', accent: '#0033A0' },
+  net_profit: { label: 'Net Profit', icon: 'trending-up', accent: '#00A3E0' },
+  ebitda: { label: 'EBITDA', icon: 'trending-up', accent: '#00843D' },
+  group_cash_position: { label: 'Group Cash Position', icon: 'archive', accent: '#84BD00' },
+};
+
+function humanizeId(id: string): string {
+  return id.split('_').map((w) => w[0]?.toUpperCase() + w.slice(1)).join(' ');
+}
+
+function kpiDisplayConfig(id: string): KpiDisplayConfig {
+  return KPI_DISPLAY_CONFIG[id] ?? { label: humanizeId(id), icon: 'trending-up', accent: '#64748B' };
+}
+
+interface AffiliateDisplayConfig {
+  code: string;
+  sector: string;
+  accent: string;
+}
+
+/** Keyed by the API's affiliate "name" field (case-insensitive), since the
+ *  response no longer includes an entityCode to map from. */
+const AFFILIATE_DISPLAY_CONFIG: Record<string, AffiliateDisplayConfig> = {
+  sabic: { code: 'SBC', sector: 'Chemicals & Materials', accent: '#00A3E0' },
+  petro: { code: 'PR', sector: 'Refining & Petrochemicals', accent: '#1F497D' },
+};
+
+function affiliateDisplayConfig(name: string): AffiliateDisplayConfig {
+  return (
+    AFFILIATE_DISPLAY_CONFIG[name.toLowerCase()] ?? {
+      code: name.slice(0, 3).toUpperCase(),
+      sector: '—',
+      accent: '#64748B',
+    }
+  );
+}
+
+interface StageOrderEntry {
+  key: string | null;
+  label: string;
+  route: string | null;
+  accent: string;
+}
+
+/** Fixed pipeline order. Entries with a null key have no backing agent yet
+ *  and always render as locked "coming-soon" stepper nodes. */
+const STAGE_ORDER: StageOrderEntry[] = [
+  { key: 'affiliate_submission_reviewer', label: 'Affiliate Submission Reviewer', route: '/submission', accent: '#1F497D' },
+  { key: null, label: 'Preliminary Results Solution', route: null, accent: '#64748B' },
+  { key: null, label: 'Intercompany Elimination & Reconciliation', route: null, accent: '#64748B' },
+  { key: null, label: 'Cash Flow Statement Analysis & Review', route: null, accent: '#64748B' },
+  { key: 'compliance_monitoring_benchmarking', label: 'Compliance Monitoring & Benchmarking', route: '/ifrs', accent: '#C0504D' },
+  { key: 'management_report_generator', label: 'Management Report Generator', route: '/mgmtreport', accent: '#8064A2' },
+  { key: 'financial_statement_integrity_formatting', label: 'Financial Statement Integrity and Formatting', route: '/integrity', accent: '#4BACC6' }, // was missing "_formatting"
+  { key: null, label: 'FS Translation & Terminology Management', route: null, accent: '#64748B' },
 ];
 
-const AFFILIATE_PERFORMANCE: AffiliatePerformanceRow[] = [
-  {
-    code: 'SBC',
-    name: 'SABIC',
-    sector: 'Chemicals & Materials',
-    revenue: 'SAR 150M',
-    yoy: '+18.3% YoY',
-    pctOfGroupRevenue: 52.6,
-    accent: '#00A3E0',
-  },
-  {
-    code: 'PR',
-    name: 'Petrorabigh',
-    sector: 'Refining & Petrochemicals',
-    revenue: 'SAR 135M',
-    yoy: '+11.2% YoY',
-    pctOfGroupRevenue: 47.4,
-    accent: '#1F497D',
-  },
-];
+function findValue(values: HomeApiKpiValue[], period: string): number | null {
+  return values.find((v) => v.period === period)?.value ?? null;
+}
+
+function computeYoy(current: number, prior: number): number | null {
+  if (!prior) return null;
+  return ((current - prior) / prior) * 100;
+}
+
+function formatYoy(yoy: number): string {
+  return `${yoy >= 0 ? '+' : ''}${yoy.toFixed(1)}% YoY`;
+}
+
+function formatThousands(value: number): string {
+  return Math.round(value).toLocaleString('en-US');
+}
+
+function formatCompactSar(value: number): string {
+  const millions = value / 1_000_000;
+  return `SAR ${millions.toFixed(millions >= 100 ? 0 : 1)}M`;
+}
+
+function formatPeriodLabel(periodKey: string): string {
+  const m = periodKey.match(/^(\d{4})Q(\d+)$/);
+  return m ? `Q${m[2]} ${m[1]}` : periodKey;
+}
+
+/** Builds an SVG polyline (viewBox "0 0 100 34") entirely from the KPI's
+ *  own historical values -- however many periods the API returns. Higher
+ *  values render closer to the top, matching the original hand-authored
+ *  mock curves, but the shape now genuinely reflects the data. */
+function buildSparklinePoints(values: HomeApiKpiValue[]): string {
+  if (!values.length) return '0,34 100,34';
+  const sorted = [...values].sort((a, b) => a.period.localeCompare(b.period));
+  const nums = sorted.map((v) => v.value);
+  const min = Math.min(...nums);
+  const max = Math.max(...nums);
+  const range = max - min || 1;
+  const stepX = sorted.length > 1 ? 100 / (sorted.length - 1) : 0;
+
+  return sorted
+    .map((v, i) => {
+      const x = sorted.length > 1 ? i * stepX : 50;
+      const y = 30 - ((v.value - min) / range) * 26;
+      return `${x.toFixed(1)},${y.toFixed(1)}`;
+    })
+    .join(' ');
+}
+
+/** "2026-09-01 17:22:07 KSA" -- KSA is UTC+3 with no DST. */
+function parseKsaTimestamp(raw: string): Date | null {
+  const match = raw.match(/^(\d{4})-(\d{2})-(\d{2})[ T](\d{2}):(\d{2}):(\d{2})/);
+  if (!match) return null;
+  const [, y, mo, d, h, mi, s] = match;
+  return new Date(Date.UTC(+y, +mo - 1, +d, +h - 3, +mi, +s));
+}
+
+function formatRelativeTime(raw: string): string {
+  const date = parseKsaTimestamp(raw);
+  if (!date) return '';
+  const diffMin = Math.round((Date.now() - date.getTime()) / 60000);
+  if (diffMin < 1) return 'Updated just now';
+  if (diffMin < 60) return `Updated ${diffMin} min ago`;
+  const diffHr = Math.round(diffMin / 60);
+  if (diffHr < 24) return `Updated ${diffHr} hr${diffHr !== 1 ? 's' : ''} ago`;
+  const diffDay = Math.round(diffHr / 24);
+  return `Updated ${diffDay} day${diffDay !== 1 ? 's' : ''} ago`;
+}
 
 @Component({
   selector: 'app-overview',
@@ -154,167 +247,134 @@ const AFFILIATE_PERFORMANCE: AffiliatePerformanceRow[] = [
   styleUrl: './overview.component.scss',
 })
 export class OverviewComponent implements OnInit {
-  readonly performanceMetrics = PERFORMANCE_METRICS;
-  readonly affiliatePerformance = AFFILIATE_PERFORMANCE;
-
   readonly loading = signal(true);
   readonly error = signal<string | null>(null);
+  private readonly homeData = signal<HomeApiData | null>(null);
 
-  private readonly overviewData = signal<{ irregularities: number; coaPending: number }[]>([]);
-  private readonly integrityScore = signal<number | null>(null);
-  private readonly complianceScore = signal<number | null>(null);
-
-  readonly affiliateSubmissionPercent = computed<number>(() => {
-    const rows = this.overviewData();
-    if (!rows.length) return 64; // representative default until affiliates load
-    const totalIssues = rows.reduce((sum, r) => sum + r.irregularities + r.coaPending, 0);
-    // Rough completeness proxy: fewer open issues relative to affiliate count => higher completion.
-    const pct = Math.max(8, 100 - totalIssues * 4);
-    return Math.min(96, pct);
+  readonly periodLabel = computed(() => (this.homeData() ? formatPeriodLabel(this.homeData()!.period) : ''));
+  readonly updatedAgo = computed(() => {
+    const workflow = this.homeData()?.workflow ?? [];
+    if (!workflow.length) return '';
+    const latest = workflow.reduce((max, w) => (w.updated_at > max ? w.updated_at : max), workflow[0].updated_at);
+    return formatRelativeTime(latest);
   });
 
-  readonly compliancePercent = computed<number>(() => this.complianceScore() ?? 100);
-  readonly integrityPercent = computed<number>(() => this.integrityScore() ?? 78);
+  readonly performanceMetrics = computed<PerformanceMetric[]>(() => {
+  const data = this.homeData();
+  if (!data) return [];
 
-  readonly statusCards = computed<StatusCard[]>(() => [
-    {
-      label: 'Affiliate Submission Reviewer',
-      status: 'in-progress',
-      statusLabel: 'In Progress',
-      percent: this.affiliateSubmissionPercent(),
-      elapsed: '2h 14m',
-      sla: '4h',
-      overSla: false,
-      pendingSteps: 2,
-      route: '/submission',
-      accent: effectiveAccent('in-progress', '#1F497D'),
-    },
-    {
-      label: 'Compliance Monitoring & Benchmarking',
-      status: 'complete',
-      statusLabel: 'Complete',
-      percent: this.compliancePercent(),
-      elapsed: '1h 48m',
-      sla: '3h',
-      overSla: false,
-      pendingSteps: 0,
-      route: '/ifrs',
-      accent: effectiveAccent('complete', '#C0504D'),
-    },
-    {
-      label: 'Management Report Generator',
-      status: 'pending',
-      statusLabel: 'Pending',
-      percent: 0,
-      elapsed: '',
-      sla: '2h',
-      overSla: false,
-      pendingSteps: 2,
-      route: '/mgmtreport',
-      accent: effectiveAccent('pending', '#8064A2'),
-    },
-    {
-      label: 'Financial Statement Integrity and Formatting',
-      status: 'attention',
-      statusLabel: 'Requires Attention',
-      percent: this.integrityPercent(),
-      elapsed: '3h 12m',
-      sla: '3h',
-      overSla: true,
-      pendingSteps: 2,
-      route: '/integrity',
-      accent: effectiveAccent('attention', '#4BACC6'),
-    },
-  ]);
+  return data.kpis.map((kpi) => {
+    const config = kpiDisplayConfig(kpi.id);
+    return {
+      label: config.label,
+      value: formatThousands(kpi.current_value / 1000),
+      unit: data.unit,
+      yoy: formatYoy(kpi.yoy_pct),
+      yoyPositive: kpi.yoy_pct >= 0,
+      icon: config.icon,
+      accent: config.accent,
+      sparklinePoints: buildSparklinePoints(kpi.values),
+    };
+  });
+});
+
+readonly affiliatePerformance = computed<AffiliatePerformanceRow[]>(() => {
+    const data = this.homeData();
+    if (!data || !data.affiliates.length) return [];
+
+    const totalRevenue = data.affiliates.reduce((sum, a) => sum + a.current_value, 0) || 1;
+
+    return [...data.affiliates]
+      .sort((a, b) => b.current_value - a.current_value)
+      .map((a) => {
+        const config = affiliateDisplayConfig(a.name);
+        return {
+          code: config.code,
+          name: a.name,
+          sector: config.sector,
+          revenue: formatCompactSar(a.current_value),
+          yoy: formatYoy(a.yoy_pct),
+          yoyPositive: a.yoy_pct >= 0,
+          pctOfGroupRevenue: Math.round((a.current_value / totalRevenue) * 1000) / 10,
+          accent: config.accent,
+        };
+      });
+  });
+
+  readonly statusCards = computed<StatusCard[]>(() => {
+    const data = this.homeData();
+    if (!data) return [];
+    const workflowMap = new Map(data.workflow.map((w) => [w.agent_key, w]));
+
+    return STAGE_ORDER.filter((s) => s.key !== null).map((s) => {
+      const item = workflowMap.get(s.key!);
+      const status = item ? toStageStatus(item.status) : 'pending';
+
+      let percent = item?.progress_pct ?? 0;
+      if (s.key === 'compliance_monitoring_benchmarking') {
+        percent = this.complianceProgress.progressPercent();
+      } else if (s.key === 'management_report_generator') {
+        percent = this.managementReportProgress.progressPercent();
+      }
+
+      return {
+        label: s.label,
+        status,
+        statusLabel: stageStatusLabel(status),
+        percent,
+        pendingSteps: item?.pending_steps ?? 0,
+        route: s.route!,
+        accent: effectiveAccent(status, s.accent),
+      };
+    });
+  });
 
   readonly reportingStages = computed<ReportingStage[]>(() => {
-    const cards = this.statusCards();
-    const statusFor = (label: string) => cards.find((c) => c.label === label)?.status ?? 'coming-soon';
-    return [
-      { label: 'Affiliate Submission Reviewer', route: '/submission', status: statusFor('Affiliate Submission Reviewer'), accent: effectiveAccent(statusFor('Affiliate Submission Reviewer'), '#1F497D') },
-      { label: 'Preliminary Results Solution', route: null, status: 'coming-soon', accent: '#64748B' },
-      { label: 'Intercompany Elimination & Reconciliation', route: null, status: 'coming-soon', accent: '#64748B' },
-      { label: 'Cash Flow Statement Analysis & Review', route: null, status: 'coming-soon', accent: '#64748B' },
-      { label: 'Compliance Monitoring & Benchmarking', route: '/ifrs', status: statusFor('Compliance Monitoring & Benchmarking'), accent: effectiveAccent(statusFor('Compliance Monitoring & Benchmarking'), '#C0504D') },
-      { label: 'Management Report Generator', route: '/mgmtreport', status: statusFor('Management Report Generator'), accent: effectiveAccent(statusFor('Management Report Generator'), '#8064A2') },
-      { label: 'Financial Statement Integrity and Formatting', route: '/integrity', status: statusFor('Financial Statement Integrity and Formatting'), accent: effectiveAccent(statusFor('Financial Statement Integrity and Formatting'), '#4BACC6') },
-      { label: 'FS Translation & Terminology Management', route: null, status: 'coming-soon', accent: '#64748B' },
-    ];
+    const data = this.homeData();
+    const workflowMap = new Map((data?.workflow ?? []).map((w) => [w.agent_key, w]));
+
+    return STAGE_ORDER.map((s) => {
+      if (!s.key) {
+        return { label: s.label, route: null, status: 'coming-soon' as StageStatus, accent: '#64748B' };
+      }
+      const item = workflowMap.get(s.key);
+      const status = item ? toStageStatus(item.status) : 'coming-soon';
+      return { label: s.label, route: s.route, status, accent: effectiveAccent(status, s.accent) };
+    });
   });
 
   constructor(
-    private readonly submissionReviewService: SubmissionReviewService,
-    private readonly integrityService: IntegrityService,
-    private readonly complianceService: ComplianceService,
+    private readonly homeService: HomeService,
     private readonly router: Router,
+    private readonly complianceProgress: ComplianceProgressService,
+    private readonly managementReportProgress: ManagementReportProgressService,
   ) {}
 
   ngOnInit(): void {
-    this.loadOverview();
+    this.loadHome();
   }
 
-  private loadOverview(): void {
+  private loadHome(): void {
     this.loading.set(true);
     this.error.set(null);
 
-    this.submissionReviewService
-      .getFinanceAffiliates()
+    this.homeService
+      .getHome(PERIOD)
       .pipe(
-        catchError((error) => {
-          console.error('Failed to load affiliates', error);
-          return of([]);
+        catchError((err) => {
+          console.error(err);
+          this.error.set('Could not load the group performance overview.');
+          return of(null);
         }),
       )
-      .subscribe((affiliates) => {
-        if (!affiliates.length) {
-          this.overviewData.set([]);
-          this.loadSecondaryData();
-          return;
-        }
-
-        const affiliateRequests = affiliates.map((affiliate) =>
-          forkJoin({
-            irregularities: this.submissionReviewService
-              .getIrregularitiesSummary(affiliate.entityCode)
-              .pipe(catchError(() => of({ totalIrregularities: 0, highPriorityOpen: 0, underInvestigation: 0, closed: 0 }))),
-            coa: this.submissionReviewService.getCoaSummary(affiliate.entityCode).pipe(catchError(() => of(null))),
-          }).pipe(
-            map(({ irregularities, coa }) => ({
-              irregularities: 12 - irregularities.closed,
-              coaPending: (coa?.counts.lowConfidencePending ?? 0) + (coa?.counts.unmappedPending ?? 0),
-            })),
-          ),
-        );
-
-        forkJoin(affiliateRequests).subscribe({
-          next: (results) => {
-            this.overviewData.set(results);
-            this.loadSecondaryData();
-          },
-          error: () => {
-            this.error.set('Unable to load affiliate submission data.');
-            this.loadSecondaryData();
-          },
-        });
+      .subscribe((data) => {
+        this.loading.set(false);
+        if (data) this.homeData.set(data);
       });
   }
 
-  private loadSecondaryData(): void {
-    forkJoin({
-      integrity: this.integrityService.getSummary().pipe(catchError(() => of(null))),
-      compliance: this.complianceService.getNotes().pipe(catchError(() => of(null))),
-    }).subscribe(({ integrity, compliance }) => {
-      if (integrity) {
-        const { checks } = integrity;
-        const totalChecked = checks.crossReference.checked + checks.footing.checked;
-        const totalPassed = checks.crossReference.passed + checks.footing.passed;
-        this.integrityScore.set(totalChecked > 0 ? Math.round((totalPassed / totalChecked) * 100) : null);
-      }
-      if (compliance) {
-        this.complianceScore.set(Math.round(compliance.averageComplianceScore));
-      }
-      this.loading.set(false);
-    });
+  retry(): void {
+    this.loadHome();
   }
 
   goToStatements(): void {

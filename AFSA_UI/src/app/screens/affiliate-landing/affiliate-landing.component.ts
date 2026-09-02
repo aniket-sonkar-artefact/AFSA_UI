@@ -1,32 +1,26 @@
 import { Component, OnInit, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
-import { Observable, delay, of } from 'rxjs';
+import { catchError, of } from 'rxjs';
 import { IconComponent } from '../../shared/icon/icon';
 import { SkeletonComponent } from '../../shared/skeleton/skeleton.component';
+import { AffiliateOverviewService } from '../../core/services/affiliate-overview.service';
+import { AffiliateOverviewMetric, AffiliateOverviewRowApi } from '../../core/models/affiliate-overview.model';
 
 /* =========================================================
    NOTE ON THIS REWRITE
    ---------------------------------------------------------
-   Rebuilt to match the approved "Affiliate Submission Overview"
-   design (header + 3 overall KPI cards + affiliate table with a
-   hover point-of-contact card), replacing the previous card-grid
-   layout entirely.
+   Now backed by the real overview endpoint:
+   GET /api/v1/affiliate-submission-review/overview?period_key={period_key}
 
-   DATA SOURCING: no backing endpoint exists yet that returns this
-   combined shape (per-affiliate completeness/irregularities/CoA
-   percentages + point-of-contact details in one call), so this
-   screen currently calls a local mock function
-   (`fetchAffiliateOverview`) that returns the exact same shape a
-   real endpoint would, wrapped in `delay(...)` to simulate network
-   latency. The loading skeleton is driven off the same `loading`
-   signal either way.
-
-   TO SWITCH TO A REAL API: replace the body of `fetchAffiliateOverview()`
-   with an HttpClient call returning `Observable<AffiliateOverviewResponse>`
-   -- nothing else in this component needs to change, since `loadOverview()`
-   already just subscribes to whatever that method returns.
+   The endpoint does not return per-affiliate point-of-contact details or a
+   pending-items breakdown, so those two pieces stay mock data
+   (deterministically seeded from the affiliate's entityName, same approach
+   used on the Submission Review header) until a real endpoint exists for
+   them. Nothing else on this screen is mocked anymore.
 ========================================================= */
+
+const PERIOD_KEY = '2026Q1';
 
 interface OverallMetric {
   label: string;
@@ -64,76 +58,43 @@ interface AffiliateRow {
   pending: AffiliatePendingItems;
 }
 
-interface AffiliateOverviewResponse {
-  overallMetrics: OverallMetric[];
-  affiliates: AffiliateRow[];
+/* ---------- Mock contact / pending items (see file header note) ---------- */
+
+function mockContactFor(affiliateName: string): AffiliateContact {
+  const slug = affiliateName.toLowerCase().replace(/[^a-z0-9]+/g, '');
+  return {
+    name: `${affiliateName} Representative`,
+    role: 'Finance Submission Point of Contact',
+    company: affiliateName,
+    email: `xxx.xxx@${slug || 'affiliate'}.com`,
+    phone: '+966 5X XXX XXXX',
+  };
 }
 
-function mockAffiliateOverview(): AffiliateOverviewResponse {
+/** Pending items per category are NOT mocked — they're the real
+ *  "not yet done" counts the API already gives us (denominator - numerator)
+ *  for each metric. Only the point-of-contact card below is mock data. */
+function pendingItemsFor(row: AffiliateOverviewRowApi): AffiliatePendingItems {
   return {
-    overallMetrics: [
-      {
-        label: 'Overall Submission Completeness',
-        percent: 81,
-        detail: '17 of 21 required submission items complete',
-        accent: '#B5651D',
-      },
-      {
-        label: 'Overall Irregularities',
-        percent: 0,
-        detail: '0 of 6 irregularities resolved',
-        accent: '#C0504D',
-      },
-      {
-        label: 'Overall CoA Mapping',
-        percent: 96,
-        detail: '127 of 132 mappings high-confidence or resolved',
-        accent: '#00843D',
-      },
-    ],
-    affiliates: [
-      {
-        code: 'SA',
-        name: 'SABIC',
-        entityCode: 'SA01',
-        period: 'Q1 2026',
-        completenessPercent: 64,
-        completenessFraction: '7/11 complete',
-        irregularitiesPercent: 0,
-        irregularitiesFraction: '0/4 resolved',
-        coaMappingPercent: 95,
-        coaMappingFraction: '63/66 mapped',
-        contact: {
-          name: 'SABIC Representative',
-          role: 'Finance Submission Point of Contact',
-          company: 'SABIC',
-          email: 'xxx.xxx@sabic.com',
-          phone: '+966 5X XXX XXXX',
-        },
-        pending: { submission: 4, irregularities: 4, mappings: 3 },
-      },
-      {
-        code: 'PE',
-        name: 'PetroRabigh',
-        entityCode: 'PE02',
-        period: 'Q1 2026',
-        completenessPercent: 100,
-        completenessFraction: '10/10 complete',
-        irregularitiesPercent: 0,
-        irregularitiesFraction: '0/2 resolved',
-        coaMappingPercent: 97,
-        coaMappingFraction: '64/66 mapped',
-        contact: {
-          name: 'PetroRabigh Representative',
-          role: 'Finance Submission Point of Contact',
-          company: 'PetroRabigh',
-          email: 'xxx.xxx@petrorabigh.com',
-          phone: '+966 5X XXX XXXX',
-        },
-        pending: { submission: 0, irregularities: 2, mappings: 2 },
-      },
-    ],
+    submission: row.submissionCompleteness.denominator - row.submissionCompleteness.numerator,
+    irregularities: row.irregularities.denominator - row.irregularities.numerator,
+    mappings: row.coaMapping.denominator - row.coaMapping.numerator,
   };
+}
+
+function avatarInitials(affiliateName: string): string {
+  const words = affiliateName.trim().split(/\s+/).filter(Boolean);
+  if (words.length >= 2) return (words[0][0] + words[1][0]).toUpperCase();
+  return affiliateName.slice(0, 2).toUpperCase();
+}
+
+function formatPeriodLabel(periodKey: string): string {
+  const m = periodKey.match(/^(\d{4})Q(\d+)$/);
+  return m ? `Q${m[2]} ${m[1]}` : periodKey;
+}
+
+function fractionLabel(metric: AffiliateOverviewMetric, suffix: string): string {
+  return `${metric.numerator}/${metric.denominator} ${suffix}`;
 }
 
 @Component({
@@ -152,7 +113,10 @@ export class AffiliateLandingComponent implements OnInit {
   /** Which affiliate row's point-of-contact popover is currently shown. */
   readonly hoveredEntityCode = signal<string | null>(null);
 
-  constructor(private readonly router: Router) {}
+  constructor(
+    private readonly router: Router,
+    private readonly affiliateOverviewService: AffiliateOverviewService,
+  ) {}
 
   ngOnInit(): void {
     this.loadOverview();
@@ -162,23 +126,59 @@ export class AffiliateLandingComponent implements OnInit {
     this.loading.set(true);
     this.error.set(null);
 
-    this.fetchAffiliateOverview().subscribe({
-      next: (data) => {
-        this.overallMetrics.set(data.overallMetrics);
-        this.affiliates.set(data.affiliates);
+    this.affiliateOverviewService
+      .getOverview(PERIOD_KEY)
+      .pipe(
+        catchError((err) => {
+          console.error(err);
+          this.error.set('Could not load the affiliate submission overview.');
+          return of(null);
+        }),
+      )
+      .subscribe((data) => {
         this.loading.set(false);
-      },
-      error: () => {
-        this.error.set('Could not load the affiliate submission overview.');
-        this.loading.set(false);
-      },
-    });
-  }
+        if (!data) return;
 
-  /** Mock data source -- see file header note for how to swap this for a
-   * real HttpClient call without touching the rest of the component. */
-  private fetchAffiliateOverview(): Observable<AffiliateOverviewResponse> {
-    return of(mockAffiliateOverview()).pipe(delay(700));
+        const periodLabel = formatPeriodLabel(data.period);
+
+        this.overallMetrics.set([
+          {
+            label: 'Overall Submission Completeness',
+            percent: data.submissionCompleteness.percentage,
+            detail: `${data.submissionCompleteness.numerator} of ${data.submissionCompleteness.denominator} required submission items complete`,
+            accent: '#B5651D',
+          },
+          {
+            label: 'Overall Irregularities',
+            percent: data.irregularities.percentage,
+            detail: `${data.irregularities.numerator} of ${data.irregularities.denominator} irregularities resolved`,
+            accent: '#C0504D',
+          },
+          {
+            label: 'Overall CoA Mapping',
+            percent: data.coaMapping.percentage,
+            detail: `${data.coaMapping.numerator} of ${data.coaMapping.denominator} mappings high-confidence or resolved`,
+            accent: '#00843D',
+          },
+        ]);
+
+        this.affiliates.set(
+          data.affiliates.map((row) => ({
+            code: avatarInitials(row.entityName),
+            name: row.entityName,
+            entityCode: row.entityCode,
+            period: periodLabel,
+            completenessPercent: row.submissionCompleteness.percentage,
+            completenessFraction: fractionLabel(row.submissionCompleteness, 'complete'),
+            irregularitiesPercent: row.irregularities.percentage,
+            irregularitiesFraction: fractionLabel(row.irregularities, 'resolved'),
+            coaMappingPercent: row.coaMapping.percentage,
+            coaMappingFraction: fractionLabel(row.coaMapping, 'mapped'),
+            contact: mockContactFor(row.entityName),
+            pending: pendingItemsFor(row.entityName ? row : row),
+          })),
+        );
+      });
   }
 
   showContact(entityCode: string): void {

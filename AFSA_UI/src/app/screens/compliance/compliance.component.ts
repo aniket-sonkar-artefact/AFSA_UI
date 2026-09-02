@@ -15,6 +15,7 @@ import {
   NoteSchema,
   NoteTableData,
 } from '../../core/models/compliance.model';
+import { ComplianceProgressService } from '../../core/services/compliance-progress.service';
 
 const PAGE_SIZE = 50;
 
@@ -112,6 +113,7 @@ export class ComplianceComponent implements OnInit {
   constructor(
     private readonly complianceService: ComplianceService,
     private readonly router: Router,
+    private readonly complianceProgress: ComplianceProgressService,
     readonly responsive: ResponsiveService,
   ) {}
 
@@ -138,6 +140,8 @@ export class ComplianceComponent implements OnInit {
 
         this.period.set(res.period);
         this.notes.set(res.notes);
+
+        this.complianceProgress.setContext(res.period, res.notes.length);
 
         this.ifrsNotesCheckedCount.set(res.ifrsNotesCheckedCount);
         this.compliantNotesCount.set(res.compliantNotesCount);
@@ -309,6 +313,7 @@ export class ComplianceComponent implements OnInit {
 
         this.checkResultsByNote.set(succeeded);
         this.checkFailedNoteIds.set(failedIds);
+        this.complianceProgress.markCheckPhaseComplete();
 
         const scores = Object.values(succeeded).map((r) => r.complianceConfidence);
         if (scores.length) {
@@ -321,6 +326,17 @@ export class ComplianceComponent implements OnInit {
           this.checkError.set('Compliance checks failed for all notes.');
         }
       });
+  }
+
+  readonly selectedNoteAcknowledged = computed(() => {
+    const id = this.selectedNoteId();
+    return id ? this.complianceProgress.isNoteAcknowledged(id) : false;
+  });
+
+  acknowledgeSelectedNote(): void {
+    const id = this.selectedNoteId();
+    if (!id) return;
+    this.complianceProgress.acknowledgeNote(id);
   }
 
   /**

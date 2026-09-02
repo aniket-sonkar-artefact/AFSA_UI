@@ -554,3 +554,47 @@
   from { opacity: 0; transform: translateY(8px); }
   to { opacity: 1; transform: translateY(0); }
 }
+
+.st-note-ref {
+  margin-left: 6px;
+  padding: 1px 5px;
+  border-radius: 4px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+  font-size: 8.5px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.st-analysis-empty {
+  color: var(--text-faint, var(--text-muted));
+}
+
+/* Expandable parent rows (Revenue, Operating costs, Non-operating income/(costs))
+   read bold even when they're not a subtotal/total row. */
+.st-row-parent td {
+  font-weight: 700;
+}
+
+.st-row-parent .st-line-item {
+  font-weight: 700;
+}
+
+/* Any nested child row (depth > 0) stays visually lighter than its parent,
+   regardless of whether the parent itself is bold. */
+.st-row-child td {
+  font-weight: 400;
+}
+
+.st-row-child .st-line-item {
+  font-weight: 400;
+  color: var(--text-secondary);
+}
+
+/* Subtotal/total rows keep taking priority over both of the above — a
+   subtotal that happens to also be expandable (or nested) still reads bold. */
+.st-row-subtotal td,
+.st-row-subtotal .st-line-item {
+  font-weight: 750;
+}

@@ -17,20 +17,22 @@ export interface CoaAffiliate {
 export interface Finding {
   accountCode: string;
   account: string;
-  currentPeriod: string;
-  priorPeriod: string;
-  change: string;
+  accountType: string;
+  mtd: number | null;
+  mtdPrior: number | null;
+  mtdDelta: string | null;
+  mtdDeltaObservation: string | null;
+  qtd: number | null;
+  qtdPrior: number | null;
+  qtdDelta: string | null;
+  qtdDeltaObservation: string | null;
+  ytd: number | null;
+  ytdPrior: number | null;
+  ytdDelta: string | null;
+  ytdDeltaObservation: string | null;
+  priority: 'High' | 'Medium' | 'Low';
   flag: string;
-  severityColor: 'red' | 'yellow';
-  colorLocation: 'currentPeriod' | 'change';
   status: FindingStatus;
-  qtd?: string;
-  priorYearQtd?: string;
-  qoqDelta?: string;
-  ytd?: string;
-  priorYearYtd?: string;
-  yoyDelta?: string;
-  priority?: 'High' | 'Medium' | 'Low' | string;
 }
 
 export interface IrregularitiesPage {

@@ -7,6 +7,7 @@ import {
   FinancialInsightsApiResponse,
   ManagementReportData,
   ReadinessItem,
+  StatementType,
   VarianceAnalysisData,
   VarianceApiRow,
   VarianceRow,
@@ -28,10 +29,8 @@ export const READINESS_ITEMS: ReadinessItem[] = [
   { label: 'Reporting context confirmed', detail: 'Group Consolidated' },
 ];
 
-/** How often to poll the GET status endpoints while an analysis/report is running. */
+/** How often to poll the GET status endpoint while a management report is running. */
 const POLL_INTERVAL_MS = 5000;
-
-const SUBTOTAL_LINE_ITEMS = new Set(['gross profit', 'operating profit', 'net profit', 'total assets', 'total liabilities', 'total equity']);
 
 /** UI select shows "Q1 2026" — the API wants "2026Q1". */
 export function toApiPeriod(label: string): string | null {
@@ -49,24 +48,65 @@ export function fromApiPeriod(apiPeriod: string): string {
   return `Q${quarter} ${year}`;
 }
 
-function formatVarPct(row: VarianceApiRow): string {
-  if (row.variance_pct === null || row.comparison_value_sar_thousands === 0) return 'N/A';
-  const sign = row.variance_pct >= 0 ? '+' : '';
-  return `${sign}${row.variance_pct.toFixed(1)}%`;
+function formatVarPct(pct: number | null): string {
+  if (pct === null) return 'N/A';
+  const sign = pct >= 0 ? '+' : '';
+  return `${sign}${pct.toFixed(1)}%`;
 }
 
-/** Maps one Financial Insights API row onto the table's existing UI-row shape. */
-export function mapApiRowToVarianceRow(row: VarianceApiRow): VarianceRow {
+/** No explicit color field exists on the real API row -- direction is
+ *  derived from the sign of variance_pct instead. */
+function varianceColor(pct: number | null): 'green' | 'red' | 'neutral' {
+  if (pct === null || pct === 0) return 'neutral';
+  return pct > 0 ? 'green' : 'red';
+}
+
+/** Maps one API row onto the table's UI-row shape (depth applied separately
+ *  by buildRowHierarchy). */
+export function mapApiRowToVarianceRow(row: VarianceApiRow, depth = 0): VarianceRow {
   return {
-    item: row.line_item,
+    rowId: row.row_id,
+    parentRowId: row.parent_row_id,
+    rowType: row.row_type,
+    item: row.label,
+    noteReference: row.note_reference,
+    isExpandable: row.is_expandable,
+    depth,
     current: row.current_value_sar_thousands,
     comparison: row.comparison_value_sar_thousands,
     variance: row.variance_sar_thousands,
-    varPct: formatVarPct(row),
+    varPct: formatVarPct(row.variance_pct),
+    color: varianceColor(row.variance_pct),
     analysis: row.analysis,
-    color: row.color,
-    isSubtotal: SUBTOTAL_LINE_ITEMS.has(row.line_item.trim().toLowerCase()),
+    isSubtotal: row.row_type === 'subtotal' || row.row_type === 'total',
   };
+}
+
+/**
+ * Flattens the API's parent_row_id tree into document order (each parent
+ * immediately followed by its own children, depth-first), computing an
+ * indentation depth along the way. The table renders this as a single flat
+ * list; expand/collapse then hides a row's descendants by filtering this
+ * same flattened order (see StatementsComponent.visibleRows).
+ */
+export function buildRowHierarchy(apiRows: VarianceApiRow[]): VarianceRow[] {
+  const sorted = [...apiRows].sort((a, b) => a.display_order - b.display_order);
+  const byParent = new Map<string | null, VarianceApiRow[]>();
+  for (const row of sorted) {
+    const key = row.parent_row_id;
+    if (!byParent.has(key)) byParent.set(key, []);
+    byParent.get(key)!.push(row);
+  }
+
+  const result: VarianceRow[] = [];
+  const walk = (parentId: string | null, depth: number) => {
+    for (const child of byParent.get(parentId) ?? []) {
+      result.push(mapApiRowToVarianceRow(child, depth));
+      walk(child.row_id, depth + 1);
+    }
+  };
+  walk(null, 0);
+  return result;
 }
 
 @Injectable({ providedIn: 'root' })
@@ -76,41 +116,28 @@ export class VarianceService {
   constructor(private readonly http: HttpClient) {}
 
   /* =========================================================================
-   * Group Variance Analysis — POST /group-variance-analysis, GET .../{id}
+   * Group Variance Analysis — POST /group-variance-analysis
+   * Synchronous: the full row tree (with commentary) comes back in the same
+   * response body, so there is no separate GET/poll step for this endpoint.
    * ======================================================================= */
 
-  /** POST /group-variance-analysis — table rows come back immediately, analysis: null per row. */
-  startVarianceAnalysis(targetPeriod: string, comparisonPeriod: string): Observable<VarianceAnalysisData> {
+  getVarianceAnalysis(
+    statementType: StatementType,
+    targetPeriod: string,
+    comparisonPeriod: string,
+  ): Observable<VarianceAnalysisData> {
     return this.http
       .post<FinancialInsightsApiResponse<VarianceAnalysisData>>(`${this.base}/group-variance-analysis`, {
+        statement_type: statementType,
         target_period: targetPeriod,
         comparison_period: comparisonPeriod,
       })
       .pipe(map((res) => res.data));
   }
 
-  /** GET /group-variance-analysis/{id} — one status check. */
-  getVarianceAnalysisStatus(analysisId: string): Observable<VarianceAnalysisData> {
-    return this.http
-      .get<FinancialInsightsApiResponse<VarianceAnalysisData>>(`${this.base}/group-variance-analysis/${analysisId}`)
-      .pipe(map((res) => res.data));
-  }
-
-  /**
-   * Polls GET /group-variance-analysis/{id} every POLL_INTERVAL_MS until the
-   * per-row Gemini commentary is fully populated (status "ready") or the job
-   * fails, emitting each intermediate snapshot along the way so the caller
-   * can update the table's "Analyzing…" cells as they resolve.
-   */
-  pollVarianceAnalysis(analysisId: string): Observable<VarianceAnalysisData> {
-    return timer(0, POLL_INTERVAL_MS).pipe(
-      switchMap(() => this.getVarianceAnalysisStatus(analysisId)),
-      takeWhile((data) => data.status === 'queued' || data.status === 'running', true),
-    );
-  }
-
   /* =========================================================================
    * Management Report PPTX — POST /management-reports, GET .../{id}
+   * (unrelated endpoint, unchanged)
    * ======================================================================= */
 
   startManagementReport(targetPeriod: string): Observable<ManagementReportData> {
@@ -127,17 +154,10 @@ export class VarianceService {
       .pipe(map((res) => res.data));
   }
 
-  /**
-   * Polls GET /management-reports/{id} every POLL_INTERVAL_MS until the
-   * PPTX is ready (with a fresh download_url, valid ~15 minutes) or the
-   * job fails.
-   */
   pollManagementReport(reportId: string): Observable<ManagementReportData> {
     return timer(0, POLL_INTERVAL_MS).pipe(
       switchMap(() => this.getManagementReportStatus(reportId)),
       takeWhile((data) => data.status === 'queued' || data.status === 'running', true),
     );
   }
-
-
 }
