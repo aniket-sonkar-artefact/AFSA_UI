@@ -8,6 +8,7 @@ import { TeamProfileService } from '../../core/services/team-profile.service';
 import { AuthService } from '../../core/services/auth.service';
 import { DemoAccount } from '../../core/models/demo-account.model';
 import { ResponsiveService } from '../../core/services/responsive.service';
+import { ARAMCO_LOGO_WHITE_DATA_URI } from '../../shared/aramco-logo.constant';
 
 @Component({
   selector: 'app-login',
@@ -21,6 +22,7 @@ import { ResponsiveService } from '../../core/services/responsive.service';
   styleUrl: './login.component.scss',
 })
 export class LoginComponent implements OnInit {
+    readonly aramcoLogoDataUri = ARAMCO_LOGO_WHITE_DATA_URI;
   private readonly responsive = inject(ResponsiveService);
 
   /**
@@ -102,12 +104,12 @@ export class LoginComponent implements OnInit {
   }
 
   /**
-   * Select a demo account.
+   * Select a demo account. Clicking an already-selected account deselects it.
    */
   selectAccount(id: string, event: MouseEvent): void {
     event.stopPropagation();
 
-    this.selectedId.set(id);
+    this.selectedId.update((current) => (current === id ? null : id));
   }
 
   /**

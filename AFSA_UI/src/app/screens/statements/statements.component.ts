@@ -13,6 +13,8 @@ import {
   toApiPeriod,
 } from '../../core/services/variance.service';
 import { FinancialInsightsApiResponse, StatementType, VarianceRow } from '../../core/models/variance.model';
+import { AgentStatusCueComponent } from '../../shared/agent-status-cue/agent-status-cue.component';
+import { SpecialistAgentComponent } from '../../shared/specialist-agent/specialist-agent.component';
 
 /* =========================================================
    NOTE ON THIS COMPONENT
@@ -124,7 +126,7 @@ const BALANCE_SHEET_MOCK: VarianceRow[] = [
 @Component({
   selector: 'app-statements',
   standalone: true,
-  imports: [CommonModule, FormsModule, IconComponent, SkeletonComponent],
+  imports: [CommonModule, FormsModule, IconComponent, SkeletonComponent, AgentStatusCueComponent, SpecialistAgentComponent],
   templateUrl: './statements.component.html',
   styleUrl: './statements.component.scss',
 })
@@ -134,6 +136,25 @@ export class StatementsComponent implements AfterViewInit, OnDestroy {
 
   private readonly tabRects = signal<{ left: number; width: number }[]>([]);
   private readonly granRects = signal<{ left: number; width: number }[]>([]);
+
+  readonly agentContextLabel = computed(() => {
+  const statementLabel = this.activeTab() === 'balance' ? 'Balance Sheet' : 'Income Statement';
+    return `${statementLabel} · ${this.period()} vs ${this.comparison()}`;
+  });
+
+  readonly agentBriefing =
+    'I reviewed the income statement and identified 8 material variances. 6 are supported by the available financial and business-driver evidence. 2 movements still require management context before I finalize the commentary.';
+
+  readonly agentSummary = '6 explained · 2 need management context';
+
+  readonly agentSuggestions = [
+    'Show the unresolved movements',
+    'Explain what input you need',
+    'Keep unresolved commentary open',
+  ];
+
+  readonly agentAttentionText =
+    '2 material income-statement movements do not have sufficient business-driver context. I will keep their commentary open while the remaining explained variances continue downstream.';
 
   readonly tabIndicatorStyle = computed(() => {
     const idx = ['income', 'balance', 'cashflow'].indexOf(this.activeTab());

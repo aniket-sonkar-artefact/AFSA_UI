@@ -24,11 +24,11 @@ const AUTH_COOKIE_DAYS = 7;
 const MOCK_USERS: Record<string, User> = {
   usr_2001: {
     id: 'usr_2001',
-    name: 'FC&RD Analyst',
-    email: 'analyst@aramco.com',
+    name: 'Lynn Mansour',
+    email: 'FC&RD.Analyst@aramco.com',
     role: 'finance-analyst',
     roleLabel: 'Finance Analyst',
-    title: 'Analyst',
+    title: 'FC&RD Analyst',
     initials: 'NC',
   }
 };

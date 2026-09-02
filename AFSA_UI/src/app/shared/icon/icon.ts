@@ -37,7 +37,15 @@ export type IconName =
   | 'translate'
   | 'scale'
   | 'trending-down'
-  | 'user';
+  | 'user'
+  | 'sparkles'
+  | 'bell'
+  | 'help-circle' 
+  | 'trophy'
+  | 'trophy'
+  | 'dollar-sign'
+  | 'line-chart'
+  | 'banknote';
 
 @Component({
   selector: 'app-icon',
@@ -212,7 +220,41 @@ export type IconName =
           <circle cx="12" cy="8" r="4" />
           <path d="M4 21c0-4.4 3.6-7 8-7s8 2.6 8 7" />
         </ng-container>
-      </ng-container>
+        <ng-container *ngSwitchCase="'sparkles'">
+          <path d="m12 3 1.4 4.2L18 9l-4.6 1.8L12 15l-1.4-4.2L6 9l4.6-1.8L12 3Z" />
+          <path d="m19 15 .7 2.1L22 18l-2.3.9L19 21l-.7-2.1L16 18l2.3-.9L19 15Z" />
+        </ng-container>
+        <ng-container *ngSwitchCase="'bell'">
+          <path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9" />
+          <path d="M10 21h4" />
+        </ng-container>
+        <ng-container *ngSwitchCase="'help-circle'">
+          <circle cx="12" cy="12" r="9" />
+          <path d="M9.8 9a2.35 2.35 0 1 1 3.92 1.74c-.9.76-1.72 1.23-1.72 2.76" />
+          <path d="M12 17h.01" />
+        </ng-container>
+        <ng-container *ngSwitchCase="'trophy'">
+          <path d="M8 21h8" />
+          <path d="M12 17v4" />
+          <path d="M7 4h10v5a5 5 0 0 1-10 0Z" />
+          <path d="M7 5H4a2 2 0 0 0 0 4h3" />
+          <path d="M17 5h3a2 2 0 0 1 0 4h-3" />
+        </ng-container>
+        <ng-container *ngSwitchCase="'dollar-sign'">
+          <path d="M12 1v22" />
+          <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
+        </ng-container>
+        <ng-container *ngSwitchCase="'line-chart'">
+          <path d="M3 3v18h18" />
+          <path d="M7 14l3-3 3 3 5-6" />
+        </ng-container>
+        <ng-container *ngSwitchCase="'banknote'">
+          <rect x="2" y="6" width="20" height="12" rx="2" />
+          <circle cx="12" cy="12" r="2" />
+          <path d="M6 12h.01" />
+          <path d="M18 12h.01" />
+        </ng-container>
+        </ng-container>
     </svg>
   `,
 })

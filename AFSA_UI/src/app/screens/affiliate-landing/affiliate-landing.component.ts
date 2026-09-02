@@ -6,6 +6,9 @@ import { IconComponent } from '../../shared/icon/icon';
 import { SkeletonComponent } from '../../shared/skeleton/skeleton.component';
 import { AffiliateOverviewService } from '../../core/services/affiliate-overview.service';
 import { AffiliateOverviewMetric, AffiliateOverviewRowApi } from '../../core/models/affiliate-overview.model';
+import { AgentStatusCueComponent } from '../../shared/agent-status-cue/agent-status-cue.component';
+import { SpecialistAgentComponent } from '../../shared/specialist-agent/specialist-agent.component';
+import { PETRORABIGH_LOGO_DATA_URI, SABIC_LOGO_DATA_URI } from '../../shared/affiliate-logos.constant';
 
 /* =========================================================
    NOTE ON THIS REWRITE
@@ -46,6 +49,7 @@ interface AffiliatePendingItems {
 interface AffiliateRow {
   code: string;
   name: string;
+  logo: string;
   entityCode: string;
   period: string;
   completenessPercent: number;
@@ -88,6 +92,18 @@ function avatarInitials(affiliateName: string): string {
   return affiliateName.slice(0, 2).toUpperCase();
 }
 
+/** Matches the real affiliate logo asset by name substring -- returns an
+ *  empty string for any affiliate without a known logo, so the template can
+ *  fall back to the initials badge instead of a broken image. */
+const AFFILIATE_LOGO_BY_ENTITY_CODE: Record<string, string> = {
+  '2010': SABIC_LOGO_DATA_URI,
+  '2380': PETRORABIGH_LOGO_DATA_URI,
+};
+
+function affiliateLogoFor(entityCode: string): string {
+  return AFFILIATE_LOGO_BY_ENTITY_CODE[entityCode] ?? '';
+}
+
 function formatPeriodLabel(periodKey: string): string {
   const m = periodKey.match(/^(\d{4})Q(\d+)$/);
   return m ? `Q${m[2]} ${m[1]}` : periodKey;
@@ -100,7 +116,7 @@ function fractionLabel(metric: AffiliateOverviewMetric, suffix: string): string 
 @Component({
   selector: 'app-affiliate-landing',
   standalone: true,
-  imports: [CommonModule, IconComponent, SkeletonComponent],
+  imports: [CommonModule, IconComponent, SkeletonComponent, AgentStatusCueComponent, SpecialistAgentComponent],
   templateUrl: './affiliate-landing.component.html',
   styleUrl: './affiliate-landing.component.scss',
 })
@@ -109,6 +125,11 @@ export class AffiliateLandingComponent implements OnInit {
   readonly error = signal<string | null>(null);
   readonly overallMetrics = signal<OverallMetric[]>([]);
   readonly affiliates = signal<AffiliateRow[]>([]);
+
+  readonly agentBriefing =
+    'I am monitoring affiliate submission readiness, managing missing-input follow-ups, tracking affiliate responses and rerunning the affected checks as new files arrive. Routine affiliate interaction stays autonomous; I will only involve Finance when an exception requires judgment.';
+
+  readonly agentSuggestions = ['Show current follow-up status', 'What happens next?'];
 
   /** Which affiliate row's point-of-contact popover is currently shown. */
   readonly hoveredEntityCode = signal<string | null>(null);
@@ -166,6 +187,7 @@ export class AffiliateLandingComponent implements OnInit {
           data.affiliates.map((row) => ({
             code: avatarInitials(row.entityName),
             name: row.entityName,
+            logo: affiliateLogoFor(row.entityCode),
             entityCode: row.entityCode,
             period: periodLabel,
             completenessPercent: row.submissionCompleteness.percentage,
@@ -175,7 +197,7 @@ export class AffiliateLandingComponent implements OnInit {
             coaMappingPercent: row.coaMapping.percentage,
             coaMappingFraction: fractionLabel(row.coaMapping, 'mapped'),
             contact: mockContactFor(row.entityName),
-            pending: pendingItemsFor(row.entityName ? row : row),
+            pending: pendingItemsFor(row),
           })),
         );
       });

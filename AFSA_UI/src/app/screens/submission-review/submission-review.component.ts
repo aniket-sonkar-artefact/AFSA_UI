@@ -24,6 +24,8 @@ import {
   IrregularitiesSummary,
   UploadState,
 } from '../../core/models/submission-review.model';
+import { AgentStatusCueComponent } from '../../shared/agent-status-cue/agent-status-cue.component';
+import { SpecialistAgentComponent } from '../../shared/specialist-agent/specialist-agent.component';
 
 type MainTab = 'completeness' | 'irregularities' | 'coa';
 type PeriodView = 'monthly' | 'quarterly' | 'yearly';
@@ -119,6 +121,8 @@ function getApiErrorMessage(err: unknown, fallback: string): string {
     PaginationComponent,
     ConfirmDialogComponent,
     PeriodToggleComponent,
+    AgentStatusCueComponent,
+    SpecialistAgentComponent,
   ],
   templateUrl: './submission-review.component.html',
   styleUrl: './submission-review.component.scss',
@@ -134,6 +138,11 @@ export class SubmissionReviewComponent implements OnInit {
   readonly tabToggleOptions = computed<PeriodToggleOption[]>(() =>
     this.tabs.map((t) => ({ value: t, label: this.tabLabel[t] })),
   );
+
+  readonly agentBriefing =
+    'I am monitoring affiliate submission readiness, managing missing-input follow-ups, tracking affiliate responses and rerunning the affected checks as new files arrive. Routine affiliate interaction stays autonomous; I will only involve Finance when an exception requires judgment.';
+
+  readonly agentSuggestions = ['Show current follow-up status', 'What happens next?'];
 
   // Every tab now shares one entity code -- the affiliate is chosen once on
   // the Landing page and carried in via the route param. There is no

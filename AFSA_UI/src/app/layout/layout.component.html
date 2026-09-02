@@ -85,6 +85,15 @@
             <div class="afsa-user-name">{{ currentUser()?.name || 'Aniket Sonkar' }}</div>
             <div class="afsa-user-group" [title]="currentUser()?.roleLabel">{{ currentUser()?.roleLabel || 'Finance User' }}</div>
           </div>
+          <button
+            type="button"
+            class="afsa-sidebar-settings-button"
+            title="Settings"
+            aria-label="Settings"
+            disabled
+          >
+            <app-icon name="settings" [size]="14" [strokeWidth]="1.8"></app-icon>
+          </button>
         }
       </div>
 
@@ -96,37 +105,164 @@
       </button>
 
       @if (showLabels()) {
-        <div class="afsa-powered-by">Powered By Aramco - PoC Environment</div>
+        <div class="afsa-aramco-branding">
+          <span class="afsa-aramco-powered-text">Powered by</span>
+          <span class="afsa-aramco-logo-wrap">
+            <img [src]="aramcoLogoColorDataUri" alt="Aramco" class="afsa-logo-light" />
+            <img [src]="aramcoLogoWhiteDataUri" alt="" class="afsa-logo-dark" aria-hidden="true" />
+          </span>
+        </div>
       }
     </div>
   </aside>
 
   <!-- Main -->
   <div class="afsa-main-shell" [style.margin-left.px]="sidebarWidth()" [style.width]="'calc(100% - ' + sidebarWidth() + 'px)'">
-    <header class="afsa-topbar">
+  <header class="afsa-topbar">
+    <div class="afsa-topbar-left">
       <div class="afsa-context">
         @if (isDrawerMode()) {
           <button class="afsa-icon-button afsa-menu-trigger" title="Open menu" (click)="toggleDrawer()">
             <app-icon name="menu" [size]="17"></app-icon>
           </button>
         }
-        <span class="afsa-context-primary">Consolidated Group</span>
-        <span class="afsa-context-dot afsa-context-dot-hideable">&middot;</span>
-        <span class="afsa-context-secondary afsa-context-secondary-hideable">Q1 2026</span>
-        <span class="afsa-status-pill afsa-status-warning">In Review</span>
       </div>
 
-      <div class="afsa-topbar-actions">
+      <div class="afsa-global-search">
+        <div class="afsa-global-search-field">
+          <app-icon name="search" [size]="15" [strokeWidth]="1.9"></app-icon>
+          <input
+            type="text"
+            [ngModel]="searchQuery()"
+            (ngModelChange)="searchQuery.set($event)"
+            (focus)="onSearchFocus()"
+            (blur)="onSearchBlur()"
+            placeholder="Search workspace"
+            aria-label="Search workspace"
+          />
+        </div>
+
+        @if (showSearchDropdown()) {
+          <div class="afsa-topbar-dropdown afsa-search-results open">
+            @if (searchResults().length > 0) {
+              @for (item of searchResults(); track item.path) {
+                <button
+                  type="button"
+                  class="afsa-search-result"
+                  (mousedown)="$event.preventDefault()"
+                  (click)="selectSearchResult(item)"
+                >
+                  <app-icon name="search" [size]="13" [strokeWidth]="1.9"></app-icon>
+                  <span>{{ item.label }}</span>
+                </button>
+              }
+            } @else {
+              <div class="afsa-search-empty">No workspace matches "{{ searchQuery() }}".</div>
+            }
+          </div>
+        }
+      </div>
+    </div>
+
+    <div class="afsa-topbar-actions">
+      <!-- AFRA orchestrator badge — mock data for now; the full orchestrator
+          panel (Plan/Activity/Approvals/Messages) is a separate, larger
+          follow-up build. -->
+      <!-- <div class="afsa-orch-badge" title="AFRA Orchestrator">
+        <span class="afsa-orch-icon">
+          <app-icon name="sparkles" [size]="13" [strokeWidth]="2"></app-icon>
+        </span>
+        <span class="afsa-orch-label">AFRA</span>
+        <span class="afsa-orch-live-dot"></span>
+        <span class="afsa-orch-count">3 running</span>
+        <span class="afsa-orch-chevron">
+          <app-icon name="chevron-right" [size]="13" [strokeWidth]="2"></app-icon>
+        </span>
+      </div> -->
+      <app-afsa-orchestrator></app-afsa-orchestrator>
+      <div class="afsa-topbar-menu-wrap">
         <button
           class="afsa-icon-button"
-          (click)="toggleDarkMode()"
-          [title]="darkMode() ? 'Switch to Light Mode' : 'Switch to Dark Mode'"
+          [class.active]="notificationsOpen()"
+          type="button"
+          (click)="toggleNotifications()"
+          title="Notifications"
+          aria-label="Notifications"
+          [attr.aria-expanded]="notificationsOpen()"
         >
-          <app-icon [name]="darkMode() ? 'sun' : 'moon'"></app-icon>
+          <app-icon name="bell" [size]="16" [strokeWidth]="1.8"></app-icon>
+          @if (!notificationsRead()) {
+            <span class="afsa-notification-dot"></span>
+          }
         </button>
-        <div class="afsa-avatar" [title]="currentUser()?.name">{{ currentUser()?.initials || '' }}</div>
+
+        <div
+          class="afsa-topbar-dropdown afsa-notifications-dropdown"
+          [class.open]="notificationsOpen()"
+          [attr.aria-hidden]="!notificationsOpen()"
+        >
+          <div class="afsa-menu-heading">Notifications</div>
+          @if (!notificationsRead()) {
+            <div class="afsa-notification-item">
+              <strong>Affiliate submission</strong>
+              PetroRabigh has one submission item requiring follow-up.
+            </div>
+            <div class="afsa-notification-item">
+              <strong>Irregularities review</strong>
+              High-priority findings are ready for finance review.
+            </div>
+            <div class="afsa-notification-item">
+              <strong>IFRS compliance</strong>
+              Compliance checks can continue on the remaining notes.
+            </div>
+            <button type="button" class="afsa-menu-action" (click)="markAllNotificationsRead()">
+              Mark all as read
+            </button>
+          } @else {
+            <div class="afsa-search-empty">You are all caught up.</div>
+          }
+        </div>
       </div>
-    </header>
+
+      <button
+        class="afsa-icon-button"
+        (click)="toggleDarkMode(); notificationsOpen.set(false); helpOpen.set(false)"
+        [title]="darkMode() ? 'Switch to Light Mode' : 'Switch to Dark Mode'"
+      >
+        <app-icon [name]="darkMode() ? 'sun' : 'moon'"></app-icon>
+      </button>
+
+      <div class="afsa-topbar-menu-wrap">
+        <button
+          class="afsa-icon-button"
+          [class.active]="helpOpen()"
+          type="button"
+          (click)="toggleHelp()"
+          title="Help"
+          aria-label="Help"
+          [attr.aria-expanded]="helpOpen()"
+        >
+          <app-icon name="help-circle" [size]="16" [strokeWidth]="1.8"></app-icon>
+        </button>
+
+        <div
+          class="afsa-topbar-dropdown afsa-help-dropdown"
+          [class.open]="helpOpen()"
+          [attr.aria-hidden]="!helpOpen()"
+        >
+          <div class="afsa-menu-heading">Help</div>
+          <div class="afsa-help-hero">
+            <strong>Using the AFRA Orchestrator</strong>
+            <span>View the execution plan, track agent activity, review decisions, or ask AFRA to adapt the workflow.</span>
+          </div>
+          <button type="button" class="afsa-menu-action" disabled>
+            <app-icon name="help-circle" [size]="13" [strokeWidth]="1.9"></app-icon>
+            Open AFRA Orchestrator — coming soon
+          </button>
+        </div>
+      </div>
+    </div>
+  </header>
 
     <main class="afsa-page">
       <router-outlet></router-outlet>

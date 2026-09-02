@@ -8,6 +8,18 @@
 $ease: cubic-bezier(0.22, 1, 0.36, 1);
 $accent: #84bd00;
 
+@property --login-border-angle {
+  syntax: '<angle>';
+  initial-value: 0deg;
+  inherits: false;
+}
+
+@keyframes loginBorderOrbit {
+  to {
+    --login-border-angle: 360deg;
+  }
+}
+
 .login-shell {
   --rail-collapsed: 96px;
   --rail-expanded: 565px;
@@ -362,8 +374,9 @@ $accent: #84bd00;
 .account-badge {
   flex-shrink: 0;
   padding: 2px 9px;
+  border: 2px rgba(234, 235, 232, 0.062) solid;
   border-radius: 999px;
-  background: rgba(53, 224, 181, 0.14);
+  background: rgba(132, 189, 0, 0.14);
   color: $accent;
   font-size: 10px;
   font-weight: 700;
@@ -462,7 +475,7 @@ $accent: #84bd00;
   flex-shrink: 0; /* these stay put; only the list gives up space */
 }
 
-/* Card header: "Secure Workspace" eyebrow + "Log in" heading, with a shield
+/* Card header: "Secure Workspace" eyebrow + "Sign in" heading, with a shield
    icon on the right — shown at every breakpoint now that the glass card is
    the universal design (see the compact block for the tighter spacing it
    uses in the stacked layout). */
@@ -519,31 +532,19 @@ $accent: #84bd00;
   gap: 14px;
   min-height: 0;
   overflow-y: auto;
-  overflow-x: hidden;
-  padding-right: 6px;   /* room for the scrollbar so items don't shift */
-  margin-right: -6px;   /* ...and pull it back so alignment matches before */
+  overflow-x: visible;
 
-  /* Firefox */
-  scrollbar-width: thin;
-  scrollbar-color: rgba(53, 224, 181, 0.4) rgba(255, 255, 255, 0.05);
+  /* Padding + matching negative margin gives the active border ring's -2px
+     bleed room to render without being clipped by the scroll container,
+     while keeping the list's own visual position/alignment unchanged. */
+  padding: 3px;
+  margin: -3px;
 
-  /* Chrome/Safari/Edge */
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+
   &::-webkit-scrollbar {
-    width: 6px;
-  }
-
-  &::-webkit-scrollbar-track {
-    background: rgba(255, 255, 255, 0.04);
-    border-radius: 999px;
-  }
-
-  &::-webkit-scrollbar-thumb {
-    background: rgba(53, 224, 181, 0.35);
-    border-radius: 999px;
-
-    &:hover {
-      background: rgba(53, 224, 181, 0.55);
-    }
+    display: none;
   }
 }
 
@@ -559,6 +560,8 @@ $accent: #84bd00;
   box-shadow: none;
   cursor: pointer;
   text-align: left;
+  position: relative;
+  isolation: isolate;
   transform: translateY(0);
   font-family: 'Maven Pro', sans-serif;
   transition:
@@ -568,10 +571,39 @@ $accent: #84bd00;
     transform 170ms ease;
 
   &.active {
-    border: 1.5px solid $accent;
-    background: rgba(53, 224, 181, 0.12);
-    box-shadow: 0 0 0 3px rgba(53, 224, 181, 0.1);
-    transform: translateY(-1px);
+    border: 1.5px solid transparent;
+    background: rgba(132, 189, 0, 0.12);
+    box-shadow:
+      0 0 0 3px rgba(132, 189, 0, 0.1),
+      inset 0 1px 0 rgba(255, 255, 255, 0.06);
+    transform: translateY(0);
+  }
+
+  &.active::before {
+    content: '';
+    position: absolute;
+    inset: -2px;
+    border-radius: 17px;
+    padding: 1.5px;
+    background: conic-gradient(
+      from var(--login-border-angle),
+      transparent 0deg 30deg,
+      rgba(132, 189, 0, 0) 30deg,
+      $accent 42deg,
+      $accent 98deg,
+      rgba(132, 189, 0, 0) 110deg,
+      transparent 110deg 210deg,
+      rgba(0, 163, 224, 0) 210deg,
+      #00a3e0 222deg,
+      #00a3e0 278deg,
+      rgba(0, 163, 224, 0) 290deg,
+      transparent 290deg 360deg
+    );
+    -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    animation: loginBorderOrbit 2.8s linear infinite;
+    pointer-events: none;
   }
 
   &:hover:not(.active) {
@@ -590,21 +622,17 @@ $accent: #84bd00;
   align-items: center;
   justify-content: center;
   border-radius: 11px;
-  border: 1px solid rgba(255, 255, 255, 0.18);
-  background: rgba(255, 255, 255, 0.08);
-  color: $accent;
-  font-size: 11px;
-  font-weight: 700;
+  border: none;
+  background: linear-gradient(135deg, #84bd00 0%, #00a3e0 100%);
+  color: #fff;
+  font-size: 10.5px;
+  font-weight: 800;
+  letter-spacing: -0.015em;
+  box-shadow: 0 4px 14px rgba(132, 189, 0, 0.28);
   transition: all 180ms ease;
 
   &.long {
     font-size: 9px;
-  }
-
-  .team-btn.active & {
-    border: 1px solid $accent;
-    background: $accent;
-    color: #04110d;
   }
 }
 
@@ -691,29 +719,54 @@ $accent: #84bd00;
   transition:
     background 180ms ease,
     box-shadow 180ms ease,
+    color 180ms ease,
     transform 180ms ease;
 
   &:not(:disabled) {
-    background: #fff;
-    color: #0f172a;
+    background: $accent;
+    color: #fff;
     cursor: pointer;
-    box-shadow: 0 10px 26px rgba(0, 0, 0, 0.3);
+    box-shadow: 0 9px 28px rgba(132, 189, 0, 0.3);
 
     &:hover {
-      background: #84bd00;
+      background: #0033a0;
       color: #fff;
       transform: translateY(-2px);
-      box-shadow: 0 14px 32px rgba(0, 163, 224, 0.35);
+      box-shadow: 0 14px 36px rgba(0, 51, 160, 0.34);
     }
+  }
+
+  &:disabled {
+    background: rgba(255, 255, 255, 0.09);
+    color: rgba(255, 255, 255, 0.28);
+    box-shadow: none;
+    cursor: default;
   }
 }
 
 .powered-by {
-  text-align: center;
+  flex-shrink: 0;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  gap: 8px;
+}
+
+.powered-by-text {
   color: rgba(255, 255, 255, 0.45);
   font-size: 11px;
   font-weight: 600;
   letter-spacing: 0.025em;
+  white-space: nowrap;
+}
+
+.powered-by-logo {
+  display: block;
+  height: 25px;
+  width: auto;
+  object-fit: contain;
+  opacity: 0.88;
+  flex-shrink: 0;
 }
 
 /* =====================================================
@@ -943,5 +996,11 @@ $accent: #84bd00;
 
   .rail-expanded {
     padding: 24px 16px calc(22px + var(--safe-bottom));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .team-btn.active::before {
+     animation: loginBorderOrbit 1.2s linear infinite;
   }
 }

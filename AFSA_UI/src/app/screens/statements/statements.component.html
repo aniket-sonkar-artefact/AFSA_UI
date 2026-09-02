@@ -1,7 +1,7 @@
 <div class="st-page">
   <button type="button" class="st-back" (click)="backToOverview()">
     <app-icon name="chevron-left" [size]="14" [strokeWidth]="2"></app-icon>
-    Back to Home
+    Back to Homepage
   </button>
 
   <section class="st-header-card">
@@ -16,6 +16,14 @@
     </h1>
     <div class="st-subtitle">Group Consolidated &middot; {{ period() }} vs {{ comparison() }} &middot; {{ currency() }}</div>
   </section>
+
+  <app-agent-status-cue
+    agentName="Variance Analysis Agent"
+    accent="var(--st-accent)"
+    status="Human input required"
+    [summary]="agentSummary"
+    tone="attention"
+  ></app-agent-status-cue>
 
   <!-- ===================================================
        STATEMENT TABS
@@ -230,6 +238,18 @@
     </div>
   </section>
 </div>
+
+<app-specialist-agent
+  agentName="Variance Analysis Agent"
+  roleLabel="Variance Analysis"
+  [contextLabel]="agentContextLabel()"
+  accent="#8064A2"
+  [briefing]="agentBriefing"
+  [suggestions]="agentSuggestions"
+  statusLabel="Investigating autonomously"
+  attentionLabel="Human input required"
+  [attentionText]="agentAttentionText"
+></app-specialist-agent>
 
 @if (toast()) {
   <div class="st-toast">

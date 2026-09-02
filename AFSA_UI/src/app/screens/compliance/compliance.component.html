@@ -33,6 +33,13 @@
     <div class="error-banner">{{ notesError() }}</div>
   }
 
+  <app-agent-status-cue
+    agentName="Compliance Monitoring Agent"
+    accent="var(--compliance-accent)"
+    status="Monitoring autonomously"
+    [summary]="agentSummary()"
+  ></app-agent-status-cue>
+
   <!-- ===================================================
        KPI ROW
   ==================================================== -->
@@ -361,3 +368,13 @@
     </div>
   }
 </div>
+
+ <app-specialist-agent
+    agentName="Compliance Monitoring Agent"
+    roleLabel="IFRS compliance"
+    [contextLabel]="agentContextLabel()"
+    accent="var(--compliance-accent)"
+    [briefing]="agentBriefing()"
+    [suggestions]="agentSuggestions"
+    statusLabel="Monitoring compliance"
+  ></app-specialist-agent>

@@ -14,6 +14,13 @@
     </div>
   </section>
 
+  <app-agent-status-cue
+    agentName="Management Reporting Agent"
+    accent="var(--variance-accent)"
+    status="Queued autonomously"
+    summary="Inputs ready · autonomous generation queued"
+  ></app-agent-status-cue>
+
   <div class="mr-tab-content">
     <div class="management-primary-grid">
       <!-- LEFT COLUMN -->
@@ -209,6 +216,16 @@
     </div>
   </div>
 </div>
+
+  <app-specialist-agent
+    agentName="Management Reporting Agent"
+    roleLabel="Report generation"
+    [contextLabel]="agentContextLabel()"
+    accent="var(--variance-accent)"
+    [briefing]="agentBriefing"
+    [suggestions]="agentSuggestions"
+    statusLabel="Queued for automation"
+  ></app-specialist-agent>
 
 @if (toast()) {
   <div class="mr-toast">

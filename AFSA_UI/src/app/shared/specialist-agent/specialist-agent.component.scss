@@ -1,0 +1,465 @@
+:host {
+  position: fixed;
+  right: 22px;
+  bottom: 22px;
+  width: 0;
+  height: 0;
+  z-index: 170;
+  font-family: 'Maven Pro', sans-serif;
+  color: var(--text-primary);
+  pointer-events: none;
+}
+
+.specialist-agent-trigger {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  width: 50px;
+  height: 50px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: 1px solid color-mix(in srgb, var(--specialist-accent) 30%, var(--border));
+  border-radius: 16px;
+  background: color-mix(in srgb, var(--card) 95%, transparent);
+  box-shadow: 0 14px 34px rgba(15, 23, 42, 0.16), inset 0 1px 0 rgba(255, 255, 255, 0.42);
+  backdrop-filter: blur(16px) saturate(1.1);
+  -webkit-backdrop-filter: blur(16px) saturate(1.1);
+  cursor: pointer;
+  pointer-events: auto;
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0) scale(1);
+  transition: transform 220ms cubic-bezier(0.22, 1, 0.36, 1), box-shadow 180ms ease, border-color 180ms ease, opacity 160ms ease;
+
+  &:hover {
+    transform: translateY(-2px);
+    border-color: color-mix(in srgb, var(--specialist-accent) 58%, var(--border));
+    box-shadow: 0 18px 40px rgba(15, 23, 42, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.5);
+  }
+
+  &.is-hidden {
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transform: translateY(5px) scale(0.985);
+    transition: opacity 150ms ease, transform 190ms cubic-bezier(0.22, 1, 0.36, 1), visibility 0s linear 190ms;
+  }
+}
+
+.specialist-agent-trigger-icon,
+.specialist-agent-avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  color: var(--specialist-accent);
+  background: color-mix(in srgb, var(--specialist-accent) 10%, transparent);
+  border: 1px solid color-mix(in srgb, var(--specialist-accent) 24%, transparent);
+}
+
+.specialist-agent-trigger-icon {
+  width: 34px;
+  height: 34px;
+  border-radius: 11px;
+  transition: transform 220ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.specialist-agent-trigger:hover .specialist-agent-trigger-icon {
+  transform: scale(1.06);
+}
+
+.specialist-agent-float-badge {
+  position: absolute;
+  top: -5px;
+  right: -5px;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  box-sizing: border-box;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid var(--card);
+  background: #d68a1f;
+  color: #fff;
+  font-size: 8.5px;
+  font-weight: 850;
+  box-shadow: 0 4px 10px rgba(15, 23, 42, 0.16);
+  animation: specialistAgentBadgeIn 220ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes specialistAgentBadgeIn {
+  from { opacity: 0; transform: scale(0.72); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+.specialist-agent-live-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  background: var(--specialist-accent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--specialist-accent) 12%, transparent);
+}
+
+.specialist-agent-panel {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  width: min(390px, calc(100vw - 30px));
+  height: min(570px, calc(100vh - 44px));
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border: 1px solid color-mix(in srgb, var(--specialist-accent) 24%, var(--border));
+  border-radius: 18px;
+  background: var(--card);
+  box-shadow: 0 24px 64px rgba(15, 23, 42, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.4);
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transform: translateY(10px) scale(0.985);
+  transform-origin: right bottom;
+  transition: opacity 190ms ease, transform 240ms cubic-bezier(0.22, 1, 0.36, 1), visibility 0s linear 240ms;
+
+  &.open {
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+    transform: translateY(0) scale(1);
+    transition-delay: 0s;
+  }
+}
+
+.specialist-agent-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 13px 14px 12px;
+  border-bottom: 1px solid var(--border);
+  background: linear-gradient(135deg, color-mix(in srgb, var(--specialist-accent) 8%, transparent), transparent 55%), var(--card);
+}
+
+.specialist-agent-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 12px;
+}
+
+.specialist-agent-header-copy {
+  min-width: 0;
+  flex: 1;
+}
+
+.specialist-agent-eyebrow {
+  font-size: 8.5px;
+  font-weight: 850;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--specialist-accent);
+  margin-bottom: 2px;
+}
+
+.specialist-agent-name {
+  font-size: 12.5px;
+  font-weight: 820;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.specialist-agent-status {
+  display: inline-grid;
+  grid-template-columns: 6px minmax(0, 1fr);
+  align-items: center;
+  column-gap: 6px;
+  margin-top: 3px;
+  max-width: 100%;
+  font-size: 9.5px;
+  line-height: 1.25;
+  color: var(--text-faint);
+}
+
+.specialist-agent-status-text {
+  min-width: 0;
+  display: block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.specialist-agent-close {
+  width: 30px;
+  height: 30px;
+  border-radius: 9px;
+  border: 1px solid var(--border);
+  background: var(--card);
+  color: var(--text-faint);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: color 160ms ease, border-color 160ms ease, background 160ms ease;
+
+  &:hover {
+    color: var(--text-primary);
+    border-color: color-mix(in srgb, var(--specialist-accent) 35%, var(--border));
+    background: color-mix(in srgb, var(--specialist-accent) 6%, var(--card));
+  }
+}
+
+.specialist-agent-context {
+  padding: 9px 14px;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg-app, var(--surface));
+}
+
+.specialist-agent-context-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 8px;
+  border-radius: 999px;
+  font-size: 9.5px;
+  font-weight: 750;
+  color: var(--specialist-accent);
+  background: color-mix(in srgb, var(--specialist-accent) 8%, transparent);
+  border: 1px solid color-mix(in srgb, var(--specialist-accent) 18%, transparent);
+}
+
+.specialist-agent-scroll {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  background: radial-gradient(circle at 100% 0%, color-mix(in srgb, var(--specialist-accent) 5%, transparent), transparent 28%), var(--card);
+}
+
+.specialist-agent-briefing-wrap,
+.specialist-agent-message.agent {
+  align-self: flex-start;
+  max-width: 91%;
+}
+
+.specialist-agent-message.user {
+  align-self: flex-end;
+  max-width: 86%;
+}
+
+.specialist-agent-briefing-label {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin: 0 0 5px 2px;
+  font-size: 8.5px;
+  font-weight: 820;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--specialist-accent);
+}
+
+.specialist-agent-bubble {
+  padding: 10px 11px;
+  border-radius: 13px;
+  font-size: 11px;
+  line-height: 1.5;
+  white-space: pre-line;
+}
+
+.specialist-agent-message,
+.specialist-agent-attention,
+.specialist-agent-suggestions {
+  animation: specialistAgentItemIn 240ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes specialistAgentItemIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.specialist-agent-briefing-wrap .specialist-agent-bubble,
+.specialist-agent-message.agent .specialist-agent-bubble {
+  color: var(--text-primary);
+  border: 1px solid color-mix(in srgb, var(--specialist-accent) 18%, var(--border));
+  background: color-mix(in srgb, var(--specialist-accent) 5%, var(--bg-app, var(--surface)));
+  border-top-left-radius: 5px;
+}
+
+.specialist-agent-message.user .specialist-agent-bubble {
+  color: #fff;
+  border: 1px solid var(--specialist-accent);
+  background: var(--specialist-accent);
+  border-top-right-radius: 5px;
+}
+
+.specialist-agent-attention {
+  align-self: stretch;
+  padding: 10px 11px;
+  border-radius: 12px;
+  border: 1px solid color-mix(in srgb, #b54708 30%, var(--border));
+  background: color-mix(in srgb, #b54708 7%, var(--card));
+}
+
+.specialist-agent-attention-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 4px;
+  font-size: 8.5px;
+  font-weight: 850;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: #b54708;
+}
+
+:host-context(html[data-theme='dark']) {
+  .specialist-agent-attention {
+    border-color: rgba(240, 179, 94, 0.28);
+    background: rgba(240, 179, 94, 0.08);
+  }
+  .specialist-agent-attention-label {
+    color: #f0b35e;
+  }
+}
+
+.specialist-agent-attention-copy {
+  font-size: 10.5px;
+  line-height: 1.45;
+  color: var(--text-secondary);
+}
+
+.specialist-agent-suggestions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 1px;
+}
+
+.specialist-agent-suggestion {
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 6px 9px;
+  background: var(--card);
+  color: var(--text-secondary);
+  font-family: inherit;
+  font-size: 9.5px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: border-color 150ms ease, color 150ms ease, background 150ms ease;
+
+  &:hover {
+    border-color: color-mix(in srgb, var(--specialist-accent) 38%, var(--border));
+    color: var(--specialist-accent);
+    background: color-mix(in srgb, var(--specialist-accent) 5%, var(--card));
+  }
+}
+
+.specialist-agent-thinking {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 15px;
+
+  span {
+    width: 4px;
+    height: 4px;
+    border-radius: 999px;
+    background: var(--specialist-accent);
+    animation: specialistAgentDot 900ms ease-in-out infinite;
+
+    &:nth-child(2) { animation-delay: 120ms; }
+    &:nth-child(3) { animation-delay: 240ms; }
+  }
+}
+
+@keyframes specialistAgentDot {
+  0%, 60%, 100% { opacity: 0.35; transform: translateY(0); }
+  30% { opacity: 1; transform: translateY(-2px); }
+}
+
+.specialist-agent-input-row {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 10px 11px 11px;
+  border-top: 1px solid var(--border);
+  background: var(--card);
+}
+
+.specialist-agent-input {
+  min-width: 0;
+  flex: 1;
+  height: 36px;
+  box-sizing: border-box;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--bg-app, var(--surface));
+  color: var(--text-primary);
+  padding: 0 10px;
+  font-family: inherit;
+  font-size: 10.5px;
+  outline: none;
+  transition: border-color 160ms ease, box-shadow 160ms ease;
+
+  &:focus {
+    border-color: color-mix(in srgb, var(--specialist-accent) 60%, var(--border));
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--specialist-accent) 9%, transparent);
+  }
+}
+
+.specialist-agent-send {
+  width: 36px;
+  height: 36px;
+  border: 0;
+  border-radius: 10px;
+  background: var(--specialist-accent);
+  color: #fff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: transform 150ms ease, filter 150ms ease;
+
+  &:hover:not(:disabled) {
+    transform: translateY(-1px);
+    filter: brightness(0.95);
+  }
+
+  &:disabled {
+    cursor: default;
+    opacity: 0.45;
+  }
+}
+
+@media (max-width: 640px) {
+  :host {
+    right: 12px;
+    bottom: 12px;
+  }
+  .specialist-agent-panel {
+    width: calc(100vw - 24px);
+    height: min(620px, calc(100vh - 24px));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .specialist-agent-panel,
+  .specialist-agent-message,
+  .specialist-agent-attention,
+  .specialist-agent-suggestions,
+  .specialist-agent-thinking span {
+    animation: none !important;
+  }
+  .specialist-agent-trigger,
+  .specialist-agent-close,
+  .specialist-agent-suggestion,
+  .specialist-agent-send {
+    transition: none !important;
+  }
+}

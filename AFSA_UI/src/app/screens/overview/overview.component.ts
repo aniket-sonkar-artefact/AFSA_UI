@@ -8,6 +8,8 @@ import { HomeService } from '../../core/services/home.service';
 import { HomeApiData, HomeApiKpiValue } from '../../core/models/home.model';
 import { ComplianceProgressService } from '../../core/services/compliance-progress.service';
 import { ManagementReportProgressService } from '../../core/services/management-report-progress.service';
+import { AuthService } from '../../core/services/auth.service';
+import { PETRORABIGH_LOGO_DATA_URI, SABIC_LOGO_DATA_URI } from '../../shared/affiliate-logos.constant';
 
 /* =========================================================
    NOTE ON THIS REWRITE
@@ -44,12 +46,49 @@ interface AffiliatePerformanceRow {
   code: string;
   name: string;
   sector: string;
+  logo: string;
   revenue: string;
   yoy: string;
   yoyPositive: boolean;
   pctOfGroupRevenue: number;
   accent: string;
+  isTopContributor: boolean;
 }
+
+interface PendingStep {
+  label: string;
+  assignee: string;
+  role: string;
+  priority: 'High' | 'Medium' | 'Low';
+}
+
+/** No backing API for SLA timers or pending-step detail exists yet -- both
+ *  stay static mock, keyed by the same agent_key used everywhere else. */
+const SLA_MOCK: Record<string, { elapsed: string | null; sla: string; overSla: boolean }> = {
+  affiliate_submission_reviewer: { elapsed: '2h 14m', sla: '4h', overSla: false },
+  compliance_monitoring_benchmarking: { elapsed: '1h 48m', sla: '3h', overSla: false },
+  management_report_generator: { elapsed: null, sla: '2h', overSla: false },
+  financial_statement_integrity_formatting: { elapsed: '3h 12m', sla: '3h', overSla: true },
+};
+
+const PENDING_STEPS_MOCK: Record<string, PendingStep[]> = {
+  affiliate_submission_reviewer: [
+    { label: 'CoA Mapping Review', assignee: 'Mohammed K.', role: 'FC&AG', priority: 'High' },
+    { label: 'Irregularity Sign-off', assignee: 'Ahmed S.', role: 'FC&AG', priority: 'High' },
+  ],
+  compliance_monitoring_benchmarking: [
+    { label: 'Disclosure Exception Review', assignee: 'Lynn M.', role: 'FC&RD Analyst', priority: 'High' },
+    { label: 'Final Compliance Sign-off', assignee: 'Finance Reviewer', role: 'FC&RD', priority: 'Medium' },
+  ],
+  management_report_generator: [
+    { label: 'Final Review & Approval', assignee: 'Salma H.', role: 'Finance Director', priority: 'High' },
+    { label: 'Report Generation', assignee: 'System', role: 'Automated', priority: 'Low' },
+  ],
+  financial_statement_integrity_formatting: [
+    { label: 'Cross-Reference Exception Review', assignee: 'Noor A.', role: 'FRG', priority: 'High' },
+    { label: 'Footing Exception Sign-off', assignee: 'Khalid M.', role: 'FRG', priority: 'Medium' },
+  ],
+};
 
 type StageStatus = 'in-progress' | 'complete' | 'pending' | 'attention' | 'coming-soon';
 
@@ -61,6 +100,7 @@ interface ReportingStage {
 }
 
 interface StatusCard {
+  agentKey: string; // new
   label: string;
   status: StageStatus;
   statusLabel: string;
@@ -68,6 +108,9 @@ interface StatusCard {
   pendingSteps: number;
   route: string;
   accent: string;
+  elapsed: string | null; // new
+  sla: string; // new
+  overSla: boolean; // new
 }
 
 const ATTENTION_ACCENT = '#C0504D';
@@ -113,10 +156,10 @@ interface KpiDisplayConfig {
 }
 
 const KPI_DISPLAY_CONFIG: Record<string, KpiDisplayConfig> = {
-  group_revenue: { label: 'Group Revenue', icon: 'dollar', accent: '#0033A0' },
-  net_profit: { label: 'Net Profit', icon: 'trending-up', accent: '#00A3E0' },
-  ebitda: { label: 'EBITDA', icon: 'trending-up', accent: '#00843D' },
-  group_cash_position: { label: 'Group Cash Position', icon: 'archive', accent: '#84BD00' },
+  group_revenue: { label: 'Group Revenue', icon: 'camera', accent: '#0033A0' },
+  net_profit: { label: 'Net Profit', icon: 'dollar-sign', accent: '#00A3E0' },
+  ebitda: { label: 'EBITDA', icon: 'line-chart', accent: '#00843D' },
+  group_cash_position: { label: 'Group Cash Position', icon: 'banknote', accent: '#84BD00' },
 };
 
 function humanizeId(id: string): string {
@@ -131,13 +174,12 @@ interface AffiliateDisplayConfig {
   code: string;
   sector: string;
   accent: string;
+  logo: string;
 }
 
-/** Keyed by the API's affiliate "name" field (case-insensitive), since the
- *  response no longer includes an entityCode to map from. */
 const AFFILIATE_DISPLAY_CONFIG: Record<string, AffiliateDisplayConfig> = {
-  sabic: { code: 'SBC', sector: 'Chemicals & Materials', accent: '#00A3E0' },
-  petro: { code: 'PR', sector: 'Refining & Petrochemicals', accent: '#1F497D' },
+  sabic: { code: 'SBC', sector: 'Chemicals & Materials', accent: '#00A3E0', logo: SABIC_LOGO_DATA_URI },
+  petro: { code: 'PR', sector: 'Refining & Petrochemicals', accent: '#1F497D', logo: PETRORABIGH_LOGO_DATA_URI },
 };
 
 function affiliateDisplayConfig(name: string): AffiliateDisplayConfig {
@@ -146,6 +188,7 @@ function affiliateDisplayConfig(name: string): AffiliateDisplayConfig {
       code: name.slice(0, 3).toUpperCase(),
       sector: '—',
       accent: '#64748B',
+      logo: '',
     }
   );
 }
@@ -286,20 +329,35 @@ readonly affiliatePerformance = computed<AffiliatePerformanceRow[]>(() => {
 
     return [...data.affiliates]
       .sort((a, b) => b.current_value - a.current_value)
-      .map((a) => {
+      .map((a, index) => {
         const config = affiliateDisplayConfig(a.name);
         return {
           code: config.code,
           name: a.name,
           sector: config.sector,
+          logo: config.logo,
           revenue: formatCompactSar(a.current_value),
           yoy: formatYoy(a.yoy_pct),
           yoyPositive: a.yoy_pct >= 0,
           pctOfGroupRevenue: Math.round((a.current_value / totalRevenue) * 1000) / 10,
           accent: config.accent,
+          isTopContributor: index === 0, // sorted desc, so index 0 is always the top revenue contributor
         };
       });
   });
+
+  readonly expandedCardKey = signal<string | null>(null);
+
+  readonly expandedCard = computed(() => this.statusCards().find((c) => c.agentKey === this.expandedCardKey()) ?? null);
+
+  togglePendingSteps(agentKey: string, event: Event): void {
+    event.stopPropagation();
+    this.expandedCardKey.update((current) => (current === agentKey ? null : agentKey));
+  }
+
+  pendingStepsFor(agentKey: string): PendingStep[] {
+    return PENDING_STEPS_MOCK[agentKey] ?? [];
+  }
 
   readonly statusCards = computed<StatusCard[]>(() => {
     const data = this.homeData();
@@ -317,7 +375,10 @@ readonly affiliatePerformance = computed<AffiliatePerformanceRow[]>(() => {
         percent = this.managementReportProgress.progressPercent();
       }
 
+      const sla = SLA_MOCK[s.key!] ?? { elapsed: null, sla: '—', overSla: false };
+
       return {
+        agentKey: s.key!,
         label: s.label,
         status,
         statusLabel: stageStatusLabel(status),
@@ -325,9 +386,12 @@ readonly affiliatePerformance = computed<AffiliatePerformanceRow[]>(() => {
         pendingSteps: item?.pending_steps ?? 0,
         route: s.route!,
         accent: effectiveAccent(status, s.accent),
+        elapsed: sla.elapsed,
+        sla: sla.sla,
+        overSla: sla.overSla,
       };
     });
-  });
+});
 
   readonly reportingStages = computed<ReportingStage[]>(() => {
     const data = this.homeData();
@@ -347,12 +411,19 @@ readonly affiliatePerformance = computed<AffiliatePerformanceRow[]>(() => {
     private readonly homeService: HomeService,
     private readonly router: Router,
     private readonly complianceProgress: ComplianceProgressService,
+    private readonly authService: AuthService,
     private readonly managementReportProgress: ManagementReportProgressService,
   ) {}
 
   ngOnInit(): void {
     this.loadHome();
   }
+
+  readonly welcomeName = computed(() => {
+    const fullName = this.authService.currentUser()?.name?.trim() ?? '';
+    const firstName = fullName.split(/\s+/)[0];
+    return firstName || 'there';
+  });
 
   private loadHome(): void {
     this.loading.set(true);

@@ -11,6 +11,13 @@
     </div>
   </section>
 
+  <app-agent-status-cue
+    agentName="Affiliate Submission Agent"
+    accent="#1F497D"
+    status="Monitoring affiliates"
+    summary="Affiliate follow-ups monitored automatically"
+  ></app-agent-status-cue>
+
   <!-- ===================================================
        OVERALL METRIC CARDS
   ==================================================== -->
@@ -90,7 +97,13 @@
             >
               <td>
                 <div class="al-affiliate-cell">
-                  <div class="al-avatar">{{ row.code }}</div>
+                 <div class="al-avatar">
+                    @if (row.logo) {
+                      <img [src]="row.logo" [alt]="row.name" />
+                    } @else {
+                      {{ row.code }}
+                    }
+                  </div>
                   <div>
                     <div class="al-affiliate-name">{{ row.name }}</div>
                     <div class="al-affiliate-period">{{ row.period }}</div>
@@ -199,3 +212,13 @@
     }
   </section>
 </div>
+
+<app-specialist-agent
+  agentName="Affiliate Submission Agent"
+  roleLabel="Affiliate follow-up"
+  contextLabel="Affiliate Submission Overview"
+  accent="#1F497D"
+  [briefing]="agentBriefing"
+  [suggestions]="agentSuggestions"
+  statusLabel="Following up automatically"
+></app-specialist-agent>

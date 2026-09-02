@@ -159,13 +159,13 @@
 }
 
 .al-count-pill {
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 650;
-  color: var(--text-secondary);
-  background: var(--surface);
-  border: 1px solid var(--border);
+  color: var(--navy, #1F497D);
+  background: color-mix(in srgb, var(--navy, #1F497D) 6%, var(--card));
+  border: 1px solid color-mix(in srgb, var(--navy, #1F497D) 18%, var(--border));
   border-radius: 999px;
-  padding: 5px 12px;
+  padding: 3px 9px;
   white-space: nowrap;
 }
 
@@ -223,14 +223,24 @@
   width: 36px;
   height: 36px;
   border-radius: 10px;
-  background: var(--navy-soft, rgba(31, 73, 125, 0.12));
+  background: #fff;
+  border: 1px solid rgba(0, 0, 0, 0.09);
   color: var(--navy, #1F497D);
   display: flex;
   align-items: center;
   justify-content: center;
+  padding: 5px;
+  box-sizing: border-box;
   font-weight: 750;
   font-size: 12px;
   flex-shrink: 0;
+}
+
+.al-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
 }
 
 .al-affiliate-name {
@@ -288,9 +298,9 @@
 .al-fill-red { background: var(--red, #C0504D); }
 
 .al-row-cta {
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
   border: 1px solid var(--border);
   background: var(--surface);
   color: var(--text-secondary);
@@ -298,12 +308,13 @@
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+  transition: border-color 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
 
   &:hover {
-    background: var(--navy, #1F497D);
+    background: #fff;
     border-color: var(--navy, #1F497D);
-    color: #fff;
+    color: var(--navy, #93b4dd);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--navy, #1F497D) 15%, transparent);
   }
 }
 
@@ -311,20 +322,20 @@
 
 .al-contact-popover {
   position: absolute;
-  top: calc(100% + 10px);
+  bottom: calc(100% + 10px); 
   left: 0;
-  width: 300px;
+  width: 350px;
   z-index: 30;
   background: var(--card);
   border: 1px solid var(--border);
   border-radius: 12px;
   box-shadow: var(--shadow-md);
-  padding: 16px;
+  padding: 24px;
   animation: al-popover-in 0.16s ease both;
 }
 
 @keyframes al-popover-in {
-  from { opacity: 0; transform: translateY(-4px); }
+  from { opacity: 0; transform: translateY(4px); }
   to { opacity: 1; transform: translateY(0); }
 }
 
@@ -333,7 +344,7 @@
   font-weight: 750;
   letter-spacing: 0.06em;
   text-transform: uppercase;
-  color: var(--navy, #1F497D);
+  color: #1f497d;
   margin-bottom: 10px;
 }
 
@@ -380,9 +391,13 @@
 }
 
 .al-contact-fields {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.al-contact-fields > div {
+  min-width: 0; // lets each column's text wrap instead of pushing the sibling column
 }
 
 .al-contact-field-value {

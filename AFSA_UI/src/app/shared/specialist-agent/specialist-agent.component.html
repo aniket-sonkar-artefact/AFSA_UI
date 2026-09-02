@@ -1,0 +1,109 @@
+<button
+  type="button"
+  class="specialist-agent-trigger"
+  [class.is-hidden]="!showFab()"
+  [style.--specialist-accent]="accent"
+  (click)="openPanel()"
+  [attr.aria-label]="'Open ' + agentName"
+  [attr.aria-hidden]="!showFab()"
+  [attr.tabindex]="showFab() ? 0 : -1"
+  [title]="agentName"
+>
+  <span class="specialist-agent-trigger-icon">
+    <app-icon name="sparkles" [size]="16" [strokeWidth]="1.9"></app-icon>
+  </span>
+  @if (attentionText && showFab()) {
+    <span class="specialist-agent-float-badge" aria-hidden="true">!</span>
+  }
+</button>
+
+<section
+  class="specialist-agent-panel"
+  [class.open]="open()"
+  [style.--specialist-accent]="accent"
+  role="dialog"
+  [attr.aria-label]="agentName"
+  [attr.aria-hidden]="!open()"
+>
+  <header class="specialist-agent-header">
+    <div class="specialist-agent-avatar">
+      <app-icon name="sparkles" [size]="16" [strokeWidth]="1.9"></app-icon>
+    </div>
+
+    <div class="specialist-agent-header-copy">
+      <div class="specialist-agent-eyebrow">Specialist Agent</div>
+      <div class="specialist-agent-name">{{ agentName }}</div>
+      <div class="specialist-agent-status">
+        <span class="specialist-agent-live-dot"></span>
+        <span class="specialist-agent-status-text">{{ statusLabel }} &middot; {{ compactRole() }}</span>
+      </div>
+    </div>
+
+    <button type="button" class="specialist-agent-close" (click)="closePanel()" aria-label="Close specialist agent">
+      <app-icon name="x" [size]="15" [strokeWidth]="2"></app-icon>
+    </button>
+  </header>
+
+  <div class="specialist-agent-context">
+    <span class="specialist-agent-context-pill">Current context &middot; {{ contextLabel }}</span>
+  </div>
+
+  <div class="specialist-agent-scroll">
+    <div class="specialist-agent-briefing-wrap">
+      <div class="specialist-agent-briefing-label">
+        <app-icon name="sparkles" [size]="10" [strokeWidth]="2"></app-icon>
+        Briefing
+      </div>
+      <div class="specialist-agent-bubble">{{ briefing }}</div>
+    </div>
+
+    @if (attentionText) {
+      <div class="specialist-agent-attention">
+        <div class="specialist-agent-attention-label">
+          <span class="specialist-agent-live-dot"></span>
+          {{ attentionLabel ?? 'Human input required' }}
+        </div>
+        <div class="specialist-agent-attention-copy">{{ attentionText }}</div>
+      </div>
+    }
+
+    @if (suggestions.length > 0 && messages().length === 0) {
+      <div class="specialist-agent-suggestions">
+        @for (suggestion of suggestions; track suggestion) {
+          <button type="button" class="specialist-agent-suggestion" (click)="useSuggestion(suggestion)">{{ suggestion }}</button>
+        }
+      </div>
+    }
+
+    @for (message of messages(); track message.id) {
+      <div class="specialist-agent-message" [class]="message.role">
+        <div class="specialist-agent-bubble">{{ message.text }}</div>
+      </div>
+    }
+
+    @if (thinking()) {
+      <div class="specialist-agent-message agent">
+        <div class="specialist-agent-bubble">
+          <span class="specialist-agent-thinking" aria-label="Agent is responding">
+            <span></span><span></span><span></span>
+          </span>
+        </div>
+      </div>
+    }
+  </div>
+
+  <div class="specialist-agent-input-row">
+    <input
+      class="specialist-agent-input"
+      type="text"
+      [ngModel]="input()"
+      (ngModelChange)="input.set($event)"
+      (keydown)="onInputKeydown($event)"
+      placeholder="Respond to the agent or ask a question…"
+      [attr.aria-label]="'Message ' + agentName"
+    />
+    <button type="button" class="specialist-agent-send" (click)="send()" [disabled]="!input().trim() || thinking()" aria-label="Send message">
+      <app-icon name="arrow-right" [size]="14" [strokeWidth]="2"></app-icon>
+    </button>
+  </div>
+</section>

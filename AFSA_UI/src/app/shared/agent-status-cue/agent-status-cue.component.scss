@@ -1,0 +1,151 @@
+:host {
+  display: block;
+  font-family: 'Maven Pro', sans-serif;
+}
+
+.agent-status-cue {
+  width: 100%;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 15px;
+  border: 1px solid color-mix(in srgb, var(--agent-cue-accent) 22%, var(--border));
+  border-radius: 11px;
+  background: linear-gradient(90deg, color-mix(in srgb, var(--agent-cue-accent) 5%, transparent), transparent 44%), var(--card);
+  color: var(--text-primary);
+  font-family: 'Maven Pro', sans-serif;
+  text-align: left;
+  cursor: pointer;
+  box-shadow: 0 4px 14px rgba(15, 23, 42, 0.045);
+  transition: transform 220ms cubic-bezier(0.22, 1, 0.36, 1), border-color 200ms ease, box-shadow 220ms ease, background 220ms ease;
+
+  &:hover {
+    transform: translateY(-1px);
+    border-color: color-mix(in srgb, var(--agent-cue-accent) 44%, var(--border));
+    box-shadow: 0 8px 22px rgba(15, 23, 42, 0.08);
+  }
+}
+
+.agent-status-cue-icon {
+  width: 28px;
+  height: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 9px;
+  color: var(--agent-cue-accent);
+  background: color-mix(in srgb, var(--agent-cue-accent) 9%, transparent);
+  border: 1px solid color-mix(in srgb, var(--agent-cue-accent) 18%, transparent);
+}
+
+.agent-status-cue-main {
+  min-width: 0;
+}
+
+.agent-status-cue-top {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  min-width: 0;
+}
+
+.agent-status-cue-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 10.5px;
+  font-weight: 820;
+  color: var(--text-primary);
+}
+
+.agent-status-cue-status {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 2px 6px;
+  border-radius: 999px;
+  font-size: 8.5px;
+  font-weight: 800;
+  color: #007faf;
+  background: rgba(0, 163, 224, 0.08);
+
+  &::before {
+    content: '';
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: #00a3e0;
+  }
+}
+
+.agent-status-cue.complete .agent-status-cue-status {
+  color: #007a3d;
+  background: rgba(0, 132, 61, 0.08);
+
+  &::before {
+    background: #84bd00;
+  }
+}
+
+.agent-status-cue.attention .agent-status-cue-status {
+  color: #a35d00;
+  background: rgba(181, 71, 8, 0.08);
+
+  &::before {
+    background: #d68a1f;
+  }
+}
+
+:host-context(html[data-theme='dark']) .agent-status-cue.attention .agent-status-cue-status {
+  color: #f0b35e;
+  background: rgba(240, 179, 94, 0.09);
+}
+
+.agent-status-cue-summary {
+  margin-top: 2px;
+  color: var(--text-muted);
+  font-size: 9.5px;
+  line-height: 1.35;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.agent-status-cue-action {
+  color: var(--agent-cue-accent);
+  font-size: 9px;
+  font-weight: 800;
+  white-space: nowrap;
+  transition: transform 180ms ease;
+}
+
+.agent-status-cue:hover .agent-status-cue-action {
+  transform: translateX(2px);
+}
+
+@media (max-width: 720px) {
+  .agent-status-cue {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+  .agent-status-cue-action {
+    display: none;
+  }
+  .agent-status-cue-top {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 3px;
+  }
+  .agent-status-cue-summary {
+    white-space: normal;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .agent-status-cue,
+  .agent-status-cue-action {
+    transition: none !important;
+  }
+}

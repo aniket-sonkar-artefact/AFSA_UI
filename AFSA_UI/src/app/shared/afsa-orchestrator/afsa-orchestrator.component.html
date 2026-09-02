@@ -1,0 +1,218 @@
+<div class="afsa-orch-badge" [class.open]="open()" (click)="toggleOpen()" title="AFRA Orchestrator">
+  <span class="afsa-orch-icon">
+    <app-icon name="sparkles" [size]="13" [strokeWidth]="2"></app-icon>
+  </span>
+  <span class="afsa-orch-label">AFRA</span>
+  <span class="afsa-orch-live-dot"></span>
+  <span class="afsa-orch-count">{{ runningCount() }} running</span>
+  <span class="afsa-orch-chevron" [class.open]="open()">
+    <app-icon name="chevron-right" [size]="13" [strokeWidth]="2"></app-icon>
+  </span>
+</div>
+
+@if (open()) {
+  <div class="afsa-orch-backdrop" (click)="close()"></div>
+
+  <div class="afsa-orch-panel">
+    <div class="afsa-orch-header">
+      <app-logo-badge [size]="30" [borderRadius]="8"></app-logo-badge>
+      <div class="afsa-orch-header-copy">
+        <div class="afsa-orch-title-row">
+          <span class="afsa-orch-title">AFRA Orchestrator</span>
+          <span class="afsa-orch-live-pill">LIVE</span>
+        </div>
+        <div class="afsa-orch-subtitle">Group Reporting Overview</div>
+      </div>
+      <button type="button" class="afsa-orch-close" (click)="close()" aria-label="Close">
+        <app-icon name="x" [size]="15" [strokeWidth]="2"></app-icon>
+      </button>
+    </div>
+
+    <div class="afsa-orch-autopilot-row">
+      <div>
+        <div class="afsa-orch-autopilot-title">Autonomous orchestration</div>
+        <div class="afsa-orch-autopilot-desc">AFRA can start eligible work without manual delegation.</div>
+      </div>
+      <button
+        type="button"
+        class="afsa-orch-switch"
+        [class.on]="autopilot()"
+        role="switch"
+        [attr.aria-checked]="autopilot()"
+        (click)="toggleAutopilot()"
+      >
+        <span class="afsa-orch-switch-thumb"></span>
+      </button>
+    </div>
+
+    <div class="afsa-orch-tabs">
+      <button type="button" class="afsa-orch-tab" [class.active]="tab() === 'plan'" (click)="selectTab('plan')">Plan</button>
+      <button type="button" class="afsa-orch-tab" [class.active]="tab() === 'activity'" (click)="selectTab('activity')">Activity</button>
+      <button type="button" class="afsa-orch-tab" [class.active]="tab() === 'approvals'" (click)="selectTab('approvals')">
+        Approvals
+        @if (pendingApprovalsCount() > 0) {
+          <span class="afsa-orch-tab-badge">{{ pendingApprovalsCount() }}</span>
+        }
+      </button>
+      <button type="button" class="afsa-orch-tab" [class.active]="tab() === 'messages'" (click)="selectTab('messages')">Messages</button>
+    </div>
+
+    <div class="afsa-orch-body">
+      <!-- PLAN -->
+      @if (tab() === 'plan') {
+        <div class="afsa-orch-card">
+          <div class="afsa-orch-card-top">
+            <div>
+              <div class="afsa-orch-eyebrow">Current Objective</div>
+              <div class="afsa-orch-objective-title">Complete Q1 Group Reporting</div>
+            </div>
+            <div class="afsa-orch-objective-pct">{{ objectivePercent() }}%</div>
+          </div>
+          <div class="afsa-orch-track">
+            <div class="afsa-orch-track-fill" [style.width.%]="objectivePercent()"></div>
+          </div>
+          <div class="afsa-orch-objective-meta">
+            {{ completeCount() }} complete &middot; {{ runningCount() }} running &middot; {{ pendingApprovalsCount() }} decisions waiting
+          </div>
+        </div>
+
+        <div class="afsa-orch-card">
+          <div class="afsa-orch-card-top">
+            <div class="afsa-orch-eyebrow">Adaptive behavior</div>
+            <span class="afsa-orch-pill-soft">1 active</span>
+          </div>
+          <div class="afsa-orch-learned-rule">
+            <span class="afsa-orch-learned-icon">
+              <app-icon name="sparkles" [size]="12" [strokeWidth]="2"></app-icon>
+            </span>
+            <div>
+              <div class="afsa-orch-learned-text">
+                When a previously accepted timing-difference pattern recurs, surface it as recurring before proposing an adjustment.
+              </div>
+              <div class="afsa-orch-learned-scope">Applies to: Future reporting cycles</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="afsa-orch-tasks-header">
+          <div class="afsa-orch-eyebrow">Active solution tasks</div>
+          <button type="button" class="afsa-orch-filter-chip" [class.active]="openSolutionsOnly()" (click)="toggleOpenSolutionsOnly()">
+            Open solutions only
+          </button>
+        </div>
+
+        <div class="afsa-orch-task-list">
+          @for (task of visibleTasks(); track task.id) {
+            <div class="afsa-orch-task">
+              <span class="afsa-orch-task-dot" [class]="task.status"></span>
+              <div class="afsa-orch-task-body">
+                <div class="afsa-orch-task-top">
+                  <span class="afsa-orch-task-title">{{ task.title }}</span>
+                  <span class="afsa-orch-priority-pill" [class]="task.priority.toLowerCase()">{{ task.priority }}</span>
+                </div>
+                <div class="afsa-orch-task-meta">{{ task.solution }} &middot; {{ task.agent }}</div>
+
+                <div class="afsa-orch-task-progress-row">
+                  <div class="afsa-orch-track small">
+                    <div class="afsa-orch-track-fill" [class]="task.status" [style.width.%]="task.status === 'complete' ? 100 : task.progress"></div>
+                  </div>
+                  <span class="afsa-orch-task-status" [class]="task.status">{{ statusLabel(task.status) }}</span>
+                </div>
+
+                @if (task.detail) {
+                  <div class="afsa-orch-task-detail">{{ task.detail }}</div>
+                }
+              </div>
+            </div>
+          }
+        </div>
+      }
+
+      <!-- ACTIVITY -->
+      @if (tab() === 'activity') {
+        <div class="afsa-orch-activity-list">
+          @for (item of activity(); track item.id) {
+            <div class="afsa-orch-activity-item">
+              <span class="afsa-orch-activity-dot" [class]="item.kind"></span>
+              <div class="afsa-orch-activity-body">
+                <div class="afsa-orch-activity-top">
+                  <span class="afsa-orch-activity-title">{{ item.title }}</span>
+                  <span class="afsa-orch-activity-time">{{ item.time }}</span>
+                </div>
+                <div class="afsa-orch-activity-detail">{{ item.detail }}</div>
+              </div>
+            </div>
+          }
+        </div>
+      }
+
+      <!-- APPROVALS -->
+      @if (tab() === 'approvals') {
+        @if (approvals().length === 0) {
+          <div class="afsa-orch-empty">No approvals to review.</div>
+        }
+        <div class="afsa-orch-approval-list">
+          @for (item of approvals(); track item.id) {
+            <div class="afsa-orch-approval-card" [class]="item.status">
+              <div class="afsa-orch-approval-title">{{ item.title }}</div>
+              <div class="afsa-orch-approval-detail">{{ item.detail }}</div>
+              <div class="afsa-orch-approval-meta">Requested by {{ item.requestedBy }}</div>
+
+              @if (item.status === 'pending') {
+                <div class="afsa-orch-approval-actions">
+                  <button type="button" class="afsa-orch-approve-btn" (click)="approveItem(item.id)">
+                    <app-icon name="check" [size]="12" [strokeWidth]="2.2"></app-icon>
+                    Approve
+                  </button>
+                  <button type="button" class="afsa-orch-reject-btn" (click)="rejectItem(item.id)">Reject</button>
+                </div>
+              } @else {
+                <span class="afsa-orch-approval-status-pill" [class]="item.status">
+                  {{ item.status === 'approved' ? 'Approved' : 'Rejected' }}
+                </span>
+              }
+            </div>
+          }
+        </div>
+      }
+
+      <!-- MESSAGES -->
+      @if (tab() === 'messages') {
+        <div class="afsa-orch-chat-log">
+          @for (message of chat(); track message.id) {
+            <div class="afsa-orch-chat-bubble" [class]="message.role">{{ message.text }}</div>
+          }
+        </div>
+      }
+    </div>
+
+    <!-- PERSISTENT CHAT DOCK -->
+    <div class="afsa-orch-dock">
+      @if (latestAssistantMessage(); as msg) {
+        <div class="afsa-orch-dock-message">{{ msg.text }}</div>
+      }
+
+      <div class="afsa-orch-quick-prompts">
+        @for (prompt of quickPrompts; track prompt) {
+          <button type="button" class="afsa-orch-quick-prompt" (click)="useQuickPrompt(prompt)">{{ prompt }}</button>
+        }
+      </div>
+
+      <div class="afsa-orch-input-row">
+        <input
+          type="text"
+          [ngModel]="input()"
+          (ngModelChange)="input.set($event)"
+          (keydown.enter)="sendMessage()"
+          placeholder="Tell AFRA what to do next…"
+          aria-label="Tell AFRA what to do next"
+        />
+        <button type="button" class="afsa-orch-send-btn" (click)="sendMessage()" aria-label="Send">
+          <app-icon name="arrow-right" [size]="14" [strokeWidth]="2.1"></app-icon>
+        </button>
+      </div>
+
+      <div class="afsa-orch-footnote">PoC simulation &middot; actions shown are illustrative</div>
+    </div>
+  </div>
+}

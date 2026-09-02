@@ -6,6 +6,13 @@
     </button>
   }
 
+  <app-agent-status-cue
+    agentName="Affiliate Submission Agent"
+    accent="#1F497D"
+    status="Monitoring affiliates"
+    summary="Affiliate follow-ups monitored automatically"
+  ></app-agent-status-cue>
+
   <!-- HEADER -->
   <section class="sr-header">
     <div class="sr-header-accent"></div>
@@ -492,3 +499,13 @@
     ></app-confirm-dialog>
   }
 </div>
+
+<app-specialist-agent
+  agentName="Affiliate Submission Agent"
+  roleLabel="Affiliate follow-up"
+  contextLabel="Affiliate Submission Overview"
+  accent="#1F497D"
+  [briefing]="agentBriefing"
+  [suggestions]="agentSuggestions"
+  statusLabel="Following up automatically"
+  ></app-specialist-agent>

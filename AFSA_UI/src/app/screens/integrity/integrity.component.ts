@@ -13,6 +13,8 @@ import {
   IntegrityTableSchema,
   XRefRow,
 } from '../../core/models/integrity.model';
+import { AgentStatusCueComponent } from '../../shared/agent-status-cue/agent-status-cue.component';
+import { SpecialistAgentComponent } from '../../shared/specialist-agent/specialist-agent.component';
 
 type Tab = 'xref' | 'footing';
 
@@ -26,7 +28,7 @@ type PendingCompletion =
 @Component({
   selector: 'app-integrity',
   standalone: true,
-  imports: [CommonModule, IconComponent, SkeletonComponent, PaginationComponent, ConfirmDialogComponent],
+  imports: [CommonModule, IconComponent, SkeletonComponent, PaginationComponent, ConfirmDialogComponent, AgentStatusCueComponent, SpecialistAgentComponent],
   templateUrl: './integrity.component.html',
   styleUrl: './integrity.component.scss',
 })
@@ -71,6 +73,29 @@ export class IntegrityComponent implements OnInit {
   /* ---------- Mark Complete confirmation dialog ---------- */
   readonly pendingCompletion = signal<PendingCompletion | null>(null);
   readonly confirmingCompletion = signal(false);
+  
+  readonly totalExceptions = computed(() => this.xrefCounts().flagged + this.footingCounts().flagged);
+  readonly totalChecked = computed(() => this.xrefCounts().checked + this.footingCounts().checked);
+
+  readonly agentSummary = computed(
+    () => `${this.totalExceptions()} exceptions isolated · reviewer approval may be required`,
+  );
+
+  readonly agentBriefing = computed(
+    () =>
+      `I completed ${this.totalChecked()} cross-reference and tie-out validations. Passing checks are already cleared automatically and ${this.totalExceptions()} unresolved exceptions remain. I'll keep tracing evidence, preparing remediation and rerunning affected checks; only changes that alter reported financial content require reviewer approval.`,
+  );
+
+  // attentionLabel/Text are undefined (hides the block) once every exception is resolved.
+  readonly agentAttentionLabel = computed(() => (this.totalExceptions() > 0 ? 'Human input required' : undefined));
+
+  readonly agentAttentionText = computed(() =>
+    this.totalExceptions() > 0
+      ? `${this.totalExceptions()} exceptions remain unresolved. I can continue validation and evidence tracing autonomously, but any remediation that changes reported financial content stays subject to reviewer approval.`
+      : undefined,
+  );
+
+  readonly agentSuggestions = ['Review proposed remediation', 'Keep exceptions open', 'Explain the exceptions'];
 
   readonly pendingCompletionSegments = computed<ConfirmDialogSegment[]>(() => {
     const pending = this.pendingCompletion();

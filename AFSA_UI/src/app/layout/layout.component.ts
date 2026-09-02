@@ -7,6 +7,9 @@ import { IconComponent, IconName } from '../shared/icon/icon';
 import { LogoBadgeComponent } from '../shared/logo-badge/logo-badge';
 import { AuthService } from '../core/services/auth.service';
 import { ResponsiveService } from '../core/services/responsive.service';
+import { FormsModule } from '@angular/forms';
+import { AfsaOrchestratorComponent } from '../shared/afsa-orchestrator/afsa-orchestrator.component';
+import { ARAMCO_LOGO_COLOR_DATA_URI, ARAMCO_LOGO_WHITE_DATA_URI } from '../shared/aramco-logo.constant';
 
 interface NavItem {
   path: string;
@@ -20,6 +23,25 @@ interface NavItem {
    *  reached from it that don't have their own sidebar entry. */
   alsoActiveOn?: string[];
 }
+
+interface SearchEntry {
+  label: string;
+  path: string;
+  keywords: string;
+}
+
+/** Same index as the Figma reference — label + free-text keywords, matched
+ *  against the query, routing to each item's parent tab (e.g. "coa" matches
+ *  Affiliate Submission Review's keywords and opens /submission). */
+const SEARCH_ITEMS: SearchEntry[] = [
+  { label: 'Homepage', path: '/home', keywords: 'home overview dashboard reporting process' },
+  { label: 'Group Variance Analysis', path: '/statements', keywords: 'variance financial statements income statement balance sheet' },
+  { label: 'Affiliate Submission Review', path: '/submission', keywords: 'affiliate completeness irregularities coa mapping' },
+  { label: 'Compliance Monitoring & Benchmarking', path: '/ifrs', keywords: 'ifrs compliance disclosures notes benchmarking' },
+  { label: 'Management Report Generator', path: '/mgmtreport', keywords: 'management report commentary powerpoint' },
+  { label: 'Financial Statement Integrity and Formatting', path: '/integrity', keywords: 'integrity footings cross references formatting' },
+  { label: 'Reports', path: '/reports', keywords: 'reports downloads output' },
+];
 
 const NAV_ITEMS: NavItem[] = [
   {
@@ -117,11 +139,13 @@ const NAV_ITEMS: NavItem[] = [
 @Component({
   selector: 'app-layout',
   standalone: true,
-  imports: [CommonModule, RouterLink, RouterOutlet, IconComponent, LogoBadgeComponent],
+  imports: [CommonModule, FormsModule ,RouterLink, RouterOutlet, IconComponent, LogoBadgeComponent, AfsaOrchestratorComponent],
   templateUrl: './layout.component.html',
   styleUrl: './layout.component.scss',
 })
 export class LayoutComponent {
+  readonly aramcoLogoColorDataUri = ARAMCO_LOGO_COLOR_DATA_URI;
+  readonly aramcoLogoWhiteDataUri = ARAMCO_LOGO_WHITE_DATA_URI;
   private readonly responsive = inject(ResponsiveService);
   private readonly router = inject(Router);
 
@@ -142,6 +166,22 @@ export class LayoutComponent {
   /** The drawer is always full-width/labelled, so labels show whenever expanded or in drawer mode */
   readonly showLabels = computed(() => this.isDrawerMode() || !this.collapsed());
   readonly currentUser;
+
+  readonly searchQuery = signal('');
+  readonly searchFocused = signal(false);
+  readonly notificationsOpen = signal(false);
+  readonly notificationsRead = signal(false);
+  readonly helpOpen = signal(false);
+
+  private readonly normalizedSearch = computed(() => this.searchQuery().trim().toLowerCase());
+
+  readonly searchResults = computed<SearchEntry[]>(() => {
+    const q = this.normalizedSearch();
+    if (!q) return [];
+    return SEARCH_ITEMS.filter((item) => `${item.label} ${item.keywords}`.toLowerCase().includes(q)).slice(0, 5);
+  });
+
+  readonly showSearchDropdown = computed(() => this.searchFocused() && this.normalizedSearch().length > 0);
 
   /** Tracks the current URL reactively so sidebar active-state can react to
    *  navigation without relying solely on an exact-path match -- lets a
@@ -176,6 +216,16 @@ export class LayoutComponent {
       if (!this.isDrawerMode() && this.drawerOpen()) {
         this.drawerOpen.set(false);
       }
+    });
+
+    // Close every topbar dropdown/search state on navigation, matching the
+    // Figma reference's per-screen reset.
+    effect(() => {
+      this.currentUrl();
+      this.searchQuery.set('');
+      this.searchFocused.set(false);
+      this.notificationsOpen.set(false);
+      this.helpOpen.set(false);
     });
   }
 
@@ -235,5 +285,37 @@ export class LayoutComponent {
       this.auth.logout();
       this.router.navigate(['/login']);
     }, 360);
+  }
+
+  onSearchFocus(): void {
+  this.searchFocused.set(true);
+}
+
+/** Delayed so a click on a result (below) has a chance to register before
+ *  the dropdown disappears -- paired with (mousedown)="$event.preventDefault()"
+ *  on each result button in the template, which stops the button from
+ *  stealing focus (and therefore blurring the input) at all. */
+  onSearchBlur(): void {
+    window.setTimeout(() => this.searchFocused.set(false), 120);
+  }
+
+  selectSearchResult(item: SearchEntry): void {
+    this.router.navigate([item.path]);
+    this.searchQuery.set('');
+    this.searchFocused.set(false);
+  }
+
+  toggleNotifications(): void {
+    this.notificationsOpen.update((open) => !open);
+    this.helpOpen.set(false);
+  }
+
+  toggleHelp(): void {
+    this.helpOpen.update((open) => !open);
+    this.notificationsOpen.set(false);
+  }
+
+  markAllNotificationsRead(): void {
+    this.notificationsRead.set(true);
   }
 }

@@ -42,11 +42,11 @@ const ACCOUNTS_BY_ROLE: Record<string, DemoAccount[]> = {
   'finance-analyst': [
     {
       id: 'usr_2001',
-      name: 'FC&RD Analyst',
-      email: 'analyst@aramco.com',
-      tierLabel: 'Analyst',
+      name: 'Lynn Mansour',
+      email: 'FC&RD.Analyst@aramco.com',
+      tierLabel: 'FC&RD Analyst',
       roleId: 'finance-analyst',
-      initials: getInitials('FC&RD Analyst'),
+      initials: 'FC&RD',
     }
   ],
 };

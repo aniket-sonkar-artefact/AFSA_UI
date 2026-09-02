@@ -69,6 +69,78 @@
   flex-shrink: 0;
 }
 
+/* ---------- settings gear (disabled, matching Figma exactly) ---------- */
+.afsa-user-row {
+  align-items: center;
+}
+
+.afsa-sidebar-settings-button {
+  flex-shrink: 0;
+  width: 26px;
+  height: 26px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-left: auto;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  background: var(--card);
+  color: var(--text-muted);
+  opacity: 0.45;
+  cursor: default;
+  pointer-events: none;
+}
+
+/* ---------- footer: Powered by [aramco logo] | Demo Environment ---------- */
+.afsa-aramco-branding {
+  margin-top: 12px;
+  padding-top: 11px;
+  display: flex;
+  flex-direction: row;
+  flex-wrap: nowrap;
+  align-items: flex-end;
+  justify-content: center;
+  width: 100%;
+  gap: 7px;
+  border-top: 1px solid rgba(15, 23, 42, 0.08);
+}
+
+.afsa-aramco-powered-text {
+  flex-shrink: 0;
+  white-space: nowrap;
+  color: rgba(71, 85, 105, 0.65);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.015em;
+}
+
+.afsa-aramco-logo-wrap {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+  margin: 1.2px;
+  height: 21px;
+}
+
+.afsa-logo-light,
+.afsa-logo-dark {
+  display: block;
+  height: 21px;
+  width: auto;
+  object-fit: contain;
+}
+
+.afsa-logo-dark {
+  display: none;
+}
+
+.afsa-demo-environment {
+  color: rgba(71, 85, 105, 0.55);
+  font-size: 8.5px;
+  font-weight: 500;
+}
+
 /* Footer note at the bottom of the sidebar */
 .afsa-powered-by {
   margin-top: 12px;
@@ -82,7 +154,322 @@
   white-space: nowrap;
 }
 
-:host-context([data-theme='dark']) .afsa-powered-by {
-  border-top-color: rgba(255, 255, 255, 0.08);
-  color: rgba(255, 255, 255, 0.34);
+/* ---------- topbar layout ---------- */
+.afsa-topbar-left {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-width: 0;
+  flex: 1;
+}
+
+.afsa-topbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+  position: relative;
+}
+
+/* ---------- search ---------- */
+.afsa-global-search {
+  position: relative;
+  width: min(460px, 42vw);
+  min-width: 220px;
+}
+
+.afsa-global-search-field {
+  height: 34px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 11px;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  background: var(--surface);
+  color: var(--text-muted);
+  transition: border-color 180ms ease, box-shadow 220ms ease;
+
+  &:focus-within {
+    border-color: rgba(0, 163, 224, 0.38);
+    box-shadow: 0 0 0 3px rgba(0, 163, 224, 0.1);
+  }
+}
+
+.afsa-global-search-field input {
+  width: 100%;
+  min-width: 0;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: var(--text-primary);
+  font-family: 'Maven Pro', sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+
+  &::placeholder {
+    color: var(--text-faint);
+  }
+}
+
+/* ---------- shared dropdown shell (search results, notifications, help) ---------- */
+.afsa-topbar-menu-wrap {
+  position: relative;
+}
+
+.afsa-topbar-dropdown,
+.afsa-search-results {
+  position: absolute;
+  top: calc(100% + 9px);
+  right: 0;
+  z-index: 220;
+  width: 292px;
+  padding: 7px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--card);
+  box-shadow: 0 18px 48px rgba(15, 23, 42, 0.14);
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transform: translateY(-7px) scale(0.975);
+  transform-origin: top right;
+  transition: opacity 200ms ease, visibility 200ms ease, transform 300ms cubic-bezier(0.22, 1, 0.36, 1);
+
+  &.open {
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.afsa-search-results {
+  left: 0;
+  right: auto;
+  width: 100%;
+  min-width: 250px;
+  transform-origin: top left;
+}
+
+.afsa-help-dropdown {
+  width: 310px;
+}
+
+.afsa-menu-heading {
+  padding: 7px 9px 8px;
+  color: var(--text-primary);
+  font-size: 10.5px;
+  font-weight: 800;
+}
+
+.afsa-search-result,
+.afsa-menu-action {
+  width: 100%;
+  min-height: 38px;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 8px 9px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text-secondary);
+  font-family: 'Maven Pro', sans-serif;
+  font-size: 10.5px;
+  font-weight: 650;
+  text-align: left;
+  cursor: pointer;
+  transition: background 160ms ease, color 160ms ease, transform 180ms cubic-bezier(0.22, 1, 0.36, 1);
+
+  &:hover:not(:disabled) {
+    background: var(--surface);
+    color: var(--text-primary);
+    transform: translateX(1px);
+  }
+
+  &:disabled {
+    opacity: 0.55;
+    cursor: default;
+  }
+}
+
+.afsa-search-empty {
+  padding: 10px;
+  color: var(--text-faint);
+  font-size: 10px;
+}
+
+/* ---------- notifications ---------- */
+.afsa-notification-dot {
+  position: absolute;
+  top: 7px;
+  right: 7px;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #dc2626;
+  box-shadow: 0 0 0 2px var(--card);
+}
+
+.afsa-notification-item {
+  padding: 9px;
+  border-radius: 8px;
+  color: var(--text-secondary);
+  font-size: 10px;
+  line-height: 1.45;
+
+  & + & {
+    border-top: 1px solid var(--border-light);
+  }
+
+  strong {
+    display: block;
+    margin-bottom: 2px;
+    color: var(--text-primary);
+    font-size: 10px;
+  }
+}
+
+/* ---------- help ---------- */
+.afsa-help-hero {
+  margin: 3px;
+  padding: 12px;
+  border: 1px solid rgba(0, 163, 224, 0.13);
+  border-radius: 10px;
+  background: linear-gradient(135deg, rgba(132, 189, 0, 0.07), rgba(0, 163, 224, 0.07));
+
+  strong {
+    display: block;
+    margin-bottom: 4px;
+    color: var(--text-primary);
+    font-size: 11px;
+  }
+
+  span {
+    display: block;
+    color: var(--text-secondary);
+    font-size: 10px;
+    line-height: 1.45;
+  }
+}
+
+/* ---------- icon button active/open state (used by notifications + help triggers) ---------- */
+.afsa-icon-button.active {
+  color: #0088b8;
+  border-color: rgba(0, 163, 224, 0.28);
+  background: linear-gradient(135deg, rgba(132, 189, 0, 0.1), rgba(0, 163, 224, 0.1));
+}
+
+.afsa-orch-chevron {
+  display: inline-flex;
+  color: var(--text-faint);
+  margin-left: 2px;
+}
+
+/* ---------- AFRA orchestrator badge (mock, static count for now) ---------- */
+.afsa-orch-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  height: 34px;
+  padding: 0 16px; // was 12px — a bit wider
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: linear-gradient(135deg, rgba(132, 189, 0, 0.08), rgba(0, 163, 224, 0.08));
+  color: var(--text-secondary);
+  font-size: 10.5px;
+  font-weight: 700;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: border-color 180ms ease, box-shadow 180ms ease, transform 180ms ease;
+
+  &:hover {
+    border-color: rgba(0, 163, 224, 0.4);
+    box-shadow: 0 0 0 2px rgba(0, 163, 224, 0.1);
+    transform: translateY(-1px);
+  }
+}
+
+.afsa-orch-icon {
+  display: inline-flex;
+  color: #00a3e0;
+}
+
+.afsa-orch-label {
+  color: var(--text-primary);
+  font-weight: 800;
+  letter-spacing: 0.01em;
+}
+
+.afsa-orch-live-dot {
+  position: relative;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #2e7d32;
+  box-shadow: 0 0 0 3px rgba(46, 125, 50, 0.18);
+
+  &::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    background: #2e7d32;
+    animation: afsaOrchLivePing 1.8s cubic-bezier(0, 0, 0.2, 1) infinite;
+  }
+}
+
+@keyframes afsaOrchLivePing {
+  0% {
+    transform: scale(1);
+    opacity: 0.7;
+  }
+  75%,
+  100% {
+    transform: scale(3);
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .afsa-orch-live-dot::after {
+    animation: none;
+  }
+}
+
+/* ---------- responsive: search collapses at narrower widths ---------- */
+@media (max-width: 1100px) {
+  .afsa-global-search {
+    width: 260px;
+    min-width: 190px;
+  }
+  .afsa-orch-count {
+    display: none;
+  }
+}
+
+@media (max-width: 860px) {
+  .afsa-global-search {
+    display: none;
+  }
+}
+
+:host-context([data-theme='dark']) {
+  .afsa-aramco-branding {
+    border-top-color: rgba(255, 255, 255, 0.08);
+  }
+
+  .afsa-aramco-powered-text,
+  .afsa-demo-environment {
+    color: rgba(255, 255, 255, 0.45);
+  }
+
+  .afsa-logo-light {
+    display: none;
+  }
+
+  .afsa-logo-dark {
+    display: block;
+  }
 }

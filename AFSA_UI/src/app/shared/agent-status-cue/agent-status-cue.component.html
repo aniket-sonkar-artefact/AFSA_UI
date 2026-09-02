@@ -1,0 +1,21 @@
+<button
+  #cueRef
+  type="button"
+  class="agent-status-cue"
+  [class]="tone"
+  [style.--agent-cue-accent]="accent"
+  (click)="openAgent()"
+  [attr.aria-label]="'Open ' + agentName + ' briefing'"
+>
+  <span class="agent-status-cue-icon">
+    <app-icon name="sparkles" [size]="14" [strokeWidth]="1.9"></app-icon>
+  </span>
+  <span class="agent-status-cue-main">
+    <span class="agent-status-cue-top">
+      <span class="agent-status-cue-name">{{ agentName }}</span>
+      <span class="agent-status-cue-status">{{ status }}</span>
+    </span>
+    <span class="agent-status-cue-summary">{{ summary }}</span>
+  </span>
+  <span class="agent-status-cue-action">Open briefing &rarr;</span>
+</button>

@@ -12,6 +12,8 @@ import {
 } from '../../core/services/variance.service';
 import { FinancialInsightsApiResponse, ManagementReportState } from '../../core/models/variance.model';
 import { ManagementReportProgressService } from '../../core/services/management-report-progress.service';
+import { AgentStatusCueComponent } from '../../shared/agent-status-cue/agent-status-cue.component';
+import { SpecialistAgentComponent } from '../../shared/specialist-agent/specialist-agent.component';
 
 /** NOTE ON THIS COMPONENT'S ORIGIN
  *  ---------------------------------------------------------------
@@ -42,13 +44,20 @@ function extractErrorMessage(err: unknown, fallback: string): string {
 @Component({
   selector: 'app-management-report',
   standalone: true,
-  imports: [CommonModule, IconComponent],
+  imports: [CommonModule, IconComponent, AgentStatusCueComponent, SpecialistAgentComponent],
   templateUrl: './management-report.component.html',
   styleUrl: './management-report.component.scss',
 })
 export class ManagementReportComponent implements OnInit, OnDestroy {
   readonly generationSteps = GENERATION_STEPS;
   readonly readinessItems = READINESS_ITEMS;
+
+  readonly agentContextLabel = computed(() => `${this.period()} · Finance Management Report`);
+
+  readonly agentBriefing =
+    'All required upstream inputs are ready. The report is queued for autonomous generation when the orchestration reaches this step: I will load the standardized template, generate commentary, populate charts and tables, apply formatting and validate the final PPTX without a manual handoff.';
+
+  readonly agentSuggestions = ['What happens automatically?', 'What inputs are ready?'];
 
   readonly toast = signal<string | null>(null);
 

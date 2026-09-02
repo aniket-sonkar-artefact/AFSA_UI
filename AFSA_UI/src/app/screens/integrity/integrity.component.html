@@ -49,6 +49,14 @@
     </div>
   </section>
 
+   <app-agent-status-cue
+    agentName="Financial Integrity Agent"
+    accent="var(--integrity-accent)"
+    status="Human input may be required"
+    tone="attention"
+    [summary]="agentSummary()"
+  ></app-agent-status-cue>
+
   <!-- ===================================================
        TABS
   ==================================================== -->
@@ -456,3 +464,15 @@
     {{ toastMessage() }}
   </div>
 }
+
+<app-specialist-agent
+  agentName="Financial Integrity Agent"
+  roleLabel="Integrity checks"
+  contextLabel="Cross-References & Tie-Outs"
+  accent="var(--integrity-accent)"
+  statusLabel="Validating autonomously"
+  [briefing]="agentBriefing()"
+  [suggestions]="agentSuggestions"
+  [attentionLabel]="agentAttentionLabel()"
+  [attentionText]="agentAttentionText()"
+></app-specialist-agent>

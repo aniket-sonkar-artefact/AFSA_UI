@@ -16,13 +16,15 @@ import {
   NoteTableData,
 } from '../../core/models/compliance.model';
 import { ComplianceProgressService } from '../../core/services/compliance-progress.service';
+import { AgentStatusCueComponent } from '../../shared/agent-status-cue/agent-status-cue.component';
+import { SpecialistAgentComponent } from '../../shared/specialist-agent/specialist-agent.component';
 
 const PAGE_SIZE = 50;
 
 @Component({
   selector: 'app-compliance',
   standalone: true,
-  imports: [CommonModule, FormsModule, SkeletonComponent, PaginationComponent, IconComponent],
+  imports: [CommonModule, FormsModule, SkeletonComponent, PaginationComponent, IconComponent,  AgentStatusCueComponent, SpecialistAgentComponent,],
   templateUrl: './compliance.component.html',
   styleUrl: './compliance.component.scss',
 })
@@ -35,6 +37,26 @@ export class ComplianceComponent implements OnInit {
   readonly selectedNoteId = signal<string | null>(null);
 
   readonly selectedNote = computed(() => this.notes().find((n) => n.noteId === this.selectedNoteId()) ?? null);
+
+  readonly agentSuggestions = ['What will you review?', 'What happens automatically?'];
+
+  readonly agentSummary = computed(() => {
+    const note = this.selectedNote();
+    return note ? `Queued for autonomous review · ${note.title}` : 'Queued for autonomous review';
+  });
+
+  readonly agentContextLabel = computed(() => {
+    const note = this.selectedNote();
+    const standard = this.schema()?.standard ?? note?.noteCode ?? '';
+    return `Current context · ${note?.title ?? ''}${standard ? ' · ' + standard : ''}`;
+  });
+
+  readonly agentBriefing = computed(() => {
+    const note = this.selectedNote();
+    if (!note) return 'Compliance review is queued within the autonomous workflow.';
+    const standard = this.schema()?.standard ?? note.noteCode;
+    return `The ${note.title} review is queued within the autonomous compliance workflow. When this step is reached, I'll assess ${standard} requirement by requirement, clear compliant items and surface only disclosure gaps that need Finance judgment.`;
+  });
 
   readonly formattedPeriod = computed(() => {
     const m = this.period().match(/^(\d{4})Q(\d)$/);
