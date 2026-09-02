@@ -2,7 +2,7 @@ import { Component, OnInit, computed, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
-import { finalize, forkJoin } from 'rxjs';
+import { finalize, forkJoin, switchMap, map } from 'rxjs';
 import { catchError, of } from 'rxjs';
 import { SkeletonComponent } from '../../shared/skeleton/skeleton.component';
 import { PaginationComponent } from '../../shared/pagination/pagination.component';
@@ -60,10 +60,14 @@ export class ComplianceComponent implements OnInit {
     return schema.tables.find((t) => t.id === tableId) ?? null;
   });
 
-  // ---- compliance check (kept per-note so switching notes doesn't lose a prior run) ----
+  // ---- compliance check (run in bulk for all notes on load) ----
   readonly checkRunning = signal(false);
   readonly checkError = signal<string | null>(null);
+  readonly computingAverage = signal(false);
   private readonly checkResultsByNote = signal<Record<string, ComplianceCheckResult>>({});
+  readonly checkFailedNoteIds = signal<Set<string>>(new Set());
+
+  private apiAverageComplianceScoreFallback = 0;
 
   readonly checkResult = computed(() => {
     const id = this.selectedNoteId();
@@ -72,7 +76,16 @@ export class ComplianceComponent implements OnInit {
 
   readonly notMetResults = computed(() => this.checkResult()?.results.filter((r) => !r.isMet) ?? []);
 
-  // ---- KPI row (derived from existing state — no new API calls) ----
+  readonly selectedNoteCheckFailed = computed(() => {
+    const id = this.selectedNoteId();
+    return id ? this.checkFailedNoteIds().has(id) : false;
+  });
+
+  // ---- KPI row ----
+  // ifrsNotesCheckedCount / compliantNotesCount stay sourced from the API.
+  // averageComplianceScore is recomputed client-side from the bulk check
+  // results (mean confidence across notes that succeeded), falling back to
+  // the API's value if every check fails.
   readonly ifrsNotesCheckedCount = signal(0);
   readonly compliantNotesCount = signal(0);
   readonly averageComplianceScore = signal(0);
@@ -95,7 +108,6 @@ export class ComplianceComponent implements OnInit {
     if (!r) return '#0033A0';
     return r.complianceConfidence >= 85 ? '#00843D' : r.complianceConfidence >= 70 ? '#B45309' : '#DC2626';
   });
-
 
   constructor(
     private readonly complianceService: ComplianceService,
@@ -129,10 +141,13 @@ export class ComplianceComponent implements OnInit {
 
         this.ifrsNotesCheckedCount.set(res.ifrsNotesCheckedCount);
         this.compliantNotesCount.set(res.compliantNotesCount);
-        this.averageComplianceScore.set(res.averageComplianceScore);
+
+        this.apiAverageComplianceScoreFallback = res.averageComplianceScore;
 
         const first = res.notes[0];
         if (first) this.selectNote(first.noteId);
+
+        this.runAllComplianceChecks(res.notes);
       });
   }
 
@@ -192,12 +207,8 @@ export class ComplianceComponent implements OnInit {
               this.pageByTable.set(firstTable.id, 1);
             }
             this.narrativeDraft.set(result.narrative.narrative);
-
-            // Auto-run the compliance check once the narrative is in, but
-            // don't re-run it if this note has already been checked.
-            if (!this.checkResultsByNote()[noteId]) {
-              this.runCheck();
-            }
+            // Compliance checks now run in bulk from loadNotes(), so no
+            // per-note auto-run is triggered here.
           });
       });
   }
@@ -240,6 +251,82 @@ export class ComplianceComponent implements OnInit {
       });
   }
 
+  /**
+   * Runs the compliance check for every note in parallel. Populates
+   * checkResultsByNote for successes and checkFailedNoteIds for failures,
+   * then recomputes averageComplianceScore from the mean confidence of the
+   * notes that succeeded (Option A: partial failures don't block the KPI —
+   * it's just computed from whatever came back). If every note fails, the
+   * KPI keeps the API's original value set in loadNotes().
+   */
+  private runAllComplianceChecks(notes: ComplianceNoteSummary[]) {
+    if (!notes.length) return;
+
+    this.checkRunning.set(true);
+    this.checkError.set(null);
+    this.aiStatus.set(this.aiStatusMessages[0]);
+
+    let statusIndex = 0;
+    this.aiStatusInterval = setInterval(() => {
+      statusIndex++;
+      if (statusIndex < this.aiStatusMessages.length) {
+        this.aiStatus.set(this.aiStatusMessages[statusIndex]);
+      }
+    }, 2800);
+
+    const checks$ = notes.map((n) =>
+      this.complianceService.getNarrative(n.noteId).pipe(
+        switchMap((narrative) => this.complianceService.runComplianceCheck(n.noteId, narrative.narrative)),
+        map((result) => ({ noteId: n.noteId, result, failed: false as const })),
+        catchError((err) => {
+          console.error(`Compliance check failed for note ${n.noteId}`, err);
+          return of({ noteId: n.noteId, result: null as ComplianceCheckResult | null, failed: true as const });
+        }),
+      ),
+    );
+
+    forkJoin(checks$)
+      .pipe(
+        finalize(() => {
+          if (this.aiStatusInterval) {
+            clearInterval(this.aiStatusInterval);
+            this.aiStatusInterval = undefined;
+          }
+          this.checkRunning.set(false);
+        }),
+      )
+      .subscribe((outcomes) => {
+        const succeeded: Record<string, ComplianceCheckResult> = {};
+        const failedIds = new Set<string>();
+
+        for (const outcome of outcomes) {
+          if (outcome.failed || !outcome.result) {
+            failedIds.add(outcome.noteId);
+          } else {
+            succeeded[outcome.noteId] = outcome.result;
+          }
+        }
+
+        this.checkResultsByNote.set(succeeded);
+        this.checkFailedNoteIds.set(failedIds);
+
+        const scores = Object.values(succeeded).map((r) => r.complianceConfidence);
+        if (scores.length) {
+          const avg = scores.reduce((a, b) => a + b, 0) / scores.length;
+          this.averageComplianceScore.set(Math.round(avg));
+        }
+
+        if (failedIds.size > 0 && !scores.length) {
+          this.averageComplianceScore.set(this.apiAverageComplianceScoreFallback);
+          this.checkError.set('Compliance checks failed for all notes.');
+        }
+      });
+  }
+
+  /**
+   * Manual retry for a single note (e.g. wired to a retry action later).
+   * Independent of the bulk flow above.
+   */
   runCheck() {
     const noteId = this.selectedNoteId();
     if (!noteId || this.checkRunning()) return;
@@ -283,6 +370,18 @@ export class ComplianceComponent implements OnInit {
           ...prev,
           [noteId]: result,
         }));
+
+        this.checkFailedNoteIds.update((prev) => {
+          const next = new Set(prev);
+          next.delete(noteId);
+          return next;
+        });
+
+        const scores = Object.values(this.checkResultsByNote()).map((r) => r.complianceConfidence);
+        if (scores.length) {
+          const avg = scores.reduce((a, b) => a + b, 0) / scores.length;
+          this.averageComplianceScore.set(Math.round(avg));
+        }
       });
   }
 
@@ -293,6 +392,10 @@ export class ComplianceComponent implements OnInit {
 
   noteBadgeConfidence(noteId: string): number | null {
     return this.checkResultsByNote()[noteId]?.complianceConfidence ?? null;
+  }
+
+  noteCheckFailed(noteId: string): boolean {
+    return this.checkFailedNoteIds().has(noteId);
   }
 
   goToVariance() {

@@ -24,6 +24,7 @@ import {
   IrregularitiesSummary,
   UploadState,
 } from '../../core/models/submission-review.model';
+import { ConfirmDialogComponent, ConfirmDialogSegment } from '../../shared/confirm-dialog/confirm-dialog.component';
 
 type MainTab = 'completeness' | 'irregularities' | 'coa';
 
@@ -108,7 +109,7 @@ function getApiErrorMessage(err: unknown, fallback: string): string {
 @Component({
   selector: 'app-submission-review',
   standalone: true,
-  imports: [CommonModule, FormsModule, IconComponent, SkeletonComponent, PaginationComponent],
+  imports: [CommonModule, FormsModule, IconComponent, SkeletonComponent, PaginationComponent,  ConfirmDialogComponent],
   templateUrl: './submission-review.component.html',
   styleUrl: './submission-review.component.scss',
 })
@@ -136,6 +137,27 @@ export class SubmissionReviewComponent implements OnInit {
   readonly coaRows = signal<CoaRow[]>([]);
   readonly coaSchema = signal<CoaSchema | null>(null);
   readonly coaSummary = signal<CoaSummary | null>(null);
+
+  readonly pendingCoaConfirmation = signal<{
+  index: number;
+  accountCode: string;
+  description: string;
+  targetLabel: string;
+} | null>(null);
+
+readonly coaConfirmInFlight = signal(false);
+
+readonly pendingCoaConfirmationSegments = computed<ConfirmDialogSegment[]>(() => {
+  const p = this.pendingCoaConfirmation();
+  if (!p) return [];
+  return [
+    { text: 'Confirm mapping account ' },
+    { text: p.accountCode, emphasis: true },
+    { text: ` — ${p.description} to "` },
+    { text: p.targetLabel, emphasis: true },
+    { text: '". This will mark the mapping as resolved.' },
+  ];
+});
 
   // Default to true so the skeleton renders immediately on first paint,
   // instead of briefly showing the "loaded but empty" state (0 counts,
@@ -734,10 +756,13 @@ export class SubmissionReviewComponent implements OnInit {
       : r));
   }
 
-  confirmCoaMapping(index: number): void {
+  confirmCoaMapping(index: number, onSettled?: () => void): void {
     const row = this.coaRows()[index];
     const groupNode = row?.pendingSelection;
-    if (!row || !groupNode) return;
+    if (!row || !groupNode) {
+      onSettled?.();
+      return;
+    }
 
     this.coaRows.update((rows) => rows.map((r, i) => i === index ? { ...r, canConfirm: false } : r));
 
@@ -767,15 +792,17 @@ export class SubmissionReviewComponent implements OnInit {
             ? { ...summary, counts: result.counts! }
             : summary);
         } else {
-          // The API may return null counts when its cached run has expired.
-          // Refresh summary instead of rendering null card values.
           this.submissionReviewService.getCoaSummary(this.coaAffiliate()).subscribe({
             next: (summary) => this.coaSummary.set(summary),
             error: (err) => this.handleError(err, 'Could not refresh CoA mapping summary.'),
           });
         }
+        onSettled?.();
       },
-      error: (err) => this.handleError(err, 'Could not confirm the CoA mapping.'),
+      error: (err) => {
+        this.handleError(err, 'Could not confirm the CoA mapping.');
+        onSettled?.();
+      },
     });
   }
 
@@ -795,6 +822,34 @@ export class SubmissionReviewComponent implements OnInit {
     if (!file) return;
     input.value = '';
     this.startUpload(key, groupName, itemLabel, file);
+  }
+
+  requestConfirmCoaMapping(index: number): void {
+  const row = this.coaRows()[index];
+  if (!row || !row.canConfirm || !row.pendingSelection) return;
+
+  this.pendingCoaConfirmation.set({
+      index,
+      accountCode: row.code,
+      description: row.description,
+      targetLabel: this.mappingLabel(row),
+    });
+  }
+
+cancelCoaConfirmation(): void {
+  if (this.coaConfirmInFlight()) return;
+  this.pendingCoaConfirmation.set(null);
+}
+
+confirmCoaMappingFromDialog(): void {
+  const pending = this.pendingCoaConfirmation();
+  if (!pending || this.coaConfirmInFlight()) return;
+
+  this.coaConfirmInFlight.set(true);
+    this.confirmCoaMapping(pending.index, () => {
+      this.coaConfirmInFlight.set(false);
+      this.pendingCoaConfirmation.set(null);
+    });
   }
 
   private startUpload(key: string, groupName: string, itemLabel: string, file: File): void {

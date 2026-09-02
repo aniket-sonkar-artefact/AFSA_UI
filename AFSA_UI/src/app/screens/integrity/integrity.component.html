@@ -189,7 +189,7 @@
                           type="button"
                           class="integrity-complete-button"
                           [disabled]="markingXrefRow() === row.lineId"
-                          (click)="markXRefComplete(row)"
+                          (click)="requestMarkXRefComplete(row)"
                         >
                           {{ markingXrefRow() === row.lineId ? 'Saving…' : 'Mark Complete' }}
                         </button>
@@ -352,8 +352,7 @@
                           type="button"
                           class="integrity-expand-button"
                           (click)="toggleFootingRow(row.lineId)"
-                          [attr.aria-expanded]="isFootingExpanded(row.lineId)"
-                          [attr.aria-label]="
+                          [attr.aria-expanded]="
                             isFootingExpanded(row.lineId) ? 'Collapse exception details' : 'Expand exception details'
                           "
                           [title]="isFootingExpanded(row.lineId) ? 'Collapse' : 'Expand'"
@@ -371,7 +370,7 @@
                           type="button"
                           class="integrity-complete-button"
                           [disabled]="markingFootingRow() === row.lineId"
-                          (click)="markFootingComplete(row)"
+                          (click)="requestMarkFootingComplete(row)"
                         >
                           {{ markingFootingRow() === row.lineId ? 'Saving…' : 'Mark Complete' }}
                         </button>
@@ -434,6 +433,20 @@
     </div>
   }
 </div>
+
+@if (pendingCompletion()) {
+  <app-confirm-dialog
+    [style.--confirm-accent]="'var(--integrity-accent-strong)'"
+    title="Confirm Check Resolution?"
+    [segments]="pendingCompletionSegments()"
+    warning="This action confirms that the identified exception has been reviewed."
+    confirmLabel="Mark Complete"
+    confirmingLabel="Saving…"
+    [confirming]="confirmingCompletion()"
+    (confirmed)="confirmPendingCompletion()"
+    (cancelled)="cancelPendingCompletion()"
+  ></app-confirm-dialog>
+}
 
 @if (toast()) {
   <div class="integrity-toast">

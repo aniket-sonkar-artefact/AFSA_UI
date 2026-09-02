@@ -432,7 +432,7 @@
                           @if (row.confirmed) {
                             <span class="sr-confirmed">-</span>
                           } @else {
-                            <button type="button" class="sr-confirm-button" [disabled]="!row.canConfirm" (click)="confirmCoaMapping(i)">{{ column.actionLabel ?? 'Confirm Mapping' }}</button>
+                            <button type="button" class="sr-confirm-button" [disabled]="!row.canConfirm" (click)="requestConfirmCoaMapping(i)">{{ column.actionLabel ?? 'Confirm Mapping' }}</button>
                           }
                         </td>
                       }
@@ -453,4 +453,16 @@
     <div class="sr-continue-row"><button type="button" class="sr-continue-button" (click)="goToCompliance()"><span>Continue to Compliance Monitoring</span><span class="sr-continue-arrow"><app-icon name="arrow-right" [size]="14" [strokeWidth]="2"></app-icon></span></button></div>
   </div>
 }
+
+  @if (pendingCoaConfirmation()) {
+    <app-confirm-dialog
+      [style.--confirm-accent]="'var(--submission-accent)'"
+      title="Confirm CoA Mapping?"
+      [segments]="pendingCoaConfirmationSegments()"
+      confirmLabel="Confirm Mapping"
+      [confirming]="coaConfirmInFlight()"
+      (confirmed)="confirmCoaMappingFromDialog()"
+      (cancelled)="cancelCoaConfirmation()"
+    ></app-confirm-dialog>
+  }
 </div>

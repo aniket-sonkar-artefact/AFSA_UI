@@ -4,6 +4,7 @@ import { Router } from '@angular/router';
 import { IconComponent } from '../../shared/icon/icon';
 import { SkeletonComponent } from '../../shared/skeleton/skeleton.component';
 import { PaginationComponent } from '../../shared/pagination/pagination.component';
+import { ConfirmDialogComponent, ConfirmDialogSegment } from '../../shared/confirm-dialog/confirm-dialog.component';
 import { IntegrityService } from '../../core/services/integrity.service';
 import {
   FootingRow,
@@ -18,10 +19,14 @@ type Tab = 'xref' | 'footing';
 const PAGE_SIZE = 10;
 const EMPTY_COUNTS: IntegrityCheckCounts = { checked: 0, passed: 0, flagged: 0, completed: 0 };
 
+type PendingCompletion =
+  | { kind: 'xref'; row: XRefRow }
+  | { kind: 'footing'; row: FootingRow };
+
 @Component({
   selector: 'app-integrity',
   standalone: true,
-  imports: [CommonModule, IconComponent, SkeletonComponent, PaginationComponent],
+  imports: [CommonModule, IconComponent, SkeletonComponent, PaginationComponent, ConfirmDialogComponent],
   templateUrl: './integrity.component.html',
   styleUrl: './integrity.component.scss',
 })
@@ -62,6 +67,33 @@ export class IntegrityComponent implements OnInit {
   readonly markingFootingRow = signal<string | null>(null);
 
   readonly refreshing = signal(false);
+
+  /* ---------- Mark Complete confirmation dialog ---------- */
+  readonly pendingCompletion = signal<PendingCompletion | null>(null);
+  readonly confirmingCompletion = signal(false);
+
+  readonly pendingCompletionSegments = computed<ConfirmDialogSegment[]>(() => {
+    const pending = this.pendingCompletion();
+    if (!pending) return [];
+
+    if (pending.kind === 'xref') {
+      const row = pending.row;
+      return [
+        { text: 'Confirm that the exception for ' },
+        { text: row.statementLocation, emphasis: true },
+        { text: ' referencing ' },
+        { text: row.referencedNote, emphasis: true },
+        { text: ' has been reviewed and can be marked as complete.' },
+      ];
+    }
+
+    const row = pending.row;
+    return [
+      { text: 'Confirm that the exception for ' },
+      { text: `${row.tableSection} — ${row.location}`, emphasis: true },
+      { text: ' has been reviewed and can be marked as complete.' },
+    ];
+  });
 
   /* ---------- Derived: header strip counts ---------- */
   readonly xrefChecked = computed(() => this.summary()?.checks.crossReference.checked ?? this.xrefCounts().checked);
@@ -293,9 +325,42 @@ export class IntegrityComponent implements OnInit {
     return value < 0 ? `(${prefixed})` : prefixed;
   }
 
-  /* ---------- Row actions ---------- */
+  /* ---------- Row actions: Mark Complete (routed through confirmation dialog) ---------- */
 
-  markXRefComplete(row: XRefRow): void {
+  requestMarkXRefComplete(row: XRefRow): void {
+    if (this.markingXrefRow()) return;
+    this.pendingCompletion.set({ kind: 'xref', row });
+  }
+
+  requestMarkFootingComplete(row: FootingRow): void {
+    if (this.markingFootingRow()) return;
+    this.pendingCompletion.set({ kind: 'footing', row });
+  }
+
+  cancelPendingCompletion(): void {
+    if (this.confirmingCompletion()) return;
+    this.pendingCompletion.set(null);
+  }
+
+  confirmPendingCompletion(): void {
+    const pending = this.pendingCompletion();
+    if (!pending || this.confirmingCompletion()) return;
+
+    this.confirmingCompletion.set(true);
+
+    const onSettled = () => {
+      this.confirmingCompletion.set(false);
+      this.pendingCompletion.set(null);
+    };
+
+    if (pending.kind === 'xref') {
+      this.markXRefComplete(pending.row, onSettled);
+    } else {
+      this.markFootingComplete(pending.row, onSettled);
+    }
+  }
+
+  private markXRefComplete(row: XRefRow, onSettled?: () => void): void {
     if (this.markingXrefRow()) return;
     this.markingXrefRow.set(row.lineId);
     this.integrityService.markComplete<XRefRow>('crossReference', row.lineId, true).subscribe({
@@ -309,14 +374,16 @@ export class IntegrityComponent implements OnInit {
           return next;
         });
         this.refreshSummarySilently();
+        onSettled?.();
       },
       error: () => {
         this.markingXrefRow.set(null);
+        onSettled?.();
       },
     });
   }
 
-  markFootingComplete(row: FootingRow): void {
+  private markFootingComplete(row: FootingRow, onSettled?: () => void): void {
     if (this.markingFootingRow()) return;
     this.markingFootingRow.set(row.lineId);
     this.integrityService.markComplete<FootingRow>('footing', row.lineId, true).subscribe({
@@ -330,9 +397,11 @@ export class IntegrityComponent implements OnInit {
           return next;
         });
         this.refreshSummarySilently();
+        onSettled?.();
       },
       error: () => {
         this.markingFootingRow.set(null);
+        onSettled?.();
       },
     });
   }

@@ -429,6 +429,18 @@
   line-height: 1.2;
 }
 
+.compliance-note-result-value {
+  font-size: 9px;
+  font-weight: 700;
+}
+
+.compliance-note-error {
+  margin-top: 8px;
+  color: var(--compliance-danger);
+  font-size: 9px;
+  font-weight: 700;
+}
+
 .compliance-standard-chip {
   display: inline-flex;
   margin-top: 7px;

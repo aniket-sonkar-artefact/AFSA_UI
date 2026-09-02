@@ -56,22 +56,29 @@
         <div class="compliance-kpi-label">Compliant Notes</div>
       </div>
 
-      <div
-        class="compliance-kpi"
-        [style.--kpi-accent]="
-          averageComplianceScore() >= 85 ? 'var(--compliance-success)' : averageComplianceScore() >= 70 ? 'var(--compliance-warning)' : 'var(--compliance-danger)'
-        "
-      >
+      @if (computingAverage()) {
+        <div class="compliance-kpi" [style.--kpi-accent]="'var(--compliance-neutral)'">
+          <app-skeleton width="50px" height="27px" radius="4px"></app-skeleton>
+          <div class="compliance-kpi-label" style="margin-top: 10px;">Average Compliance Score</div>
+        </div>
+      } @else {
         <div
-          class="compliance-kpi-value"
-          [style.color]="
+          class="compliance-kpi"
+          [style.--kpi-accent]="
             averageComplianceScore() >= 85 ? 'var(--compliance-success)' : averageComplianceScore() >= 70 ? 'var(--compliance-warning)' : 'var(--compliance-danger)'
           "
         >
-          {{ averageComplianceScore() }}%
+          <div
+            class="compliance-kpi-value"
+            [style.color]="
+              averageComplianceScore() >= 85 ? 'var(--compliance-success)' : averageComplianceScore() >= 70 ? 'var(--compliance-warning)' : 'var(--compliance-danger)'
+            "
+          >
+            {{ averageComplianceScore() }}%
+          </div>
+          <div class="compliance-kpi-label">Average Compliance Score</div>
         </div>
-        <div class="compliance-kpi-label">Average Compliance Score</div>
-      </div>
+      }
     }
   </section>
 
@@ -117,7 +124,9 @@
             <div class="compliance-note-title">{{ n.title }}</div>
             <div class="compliance-note-standard">{{ n.noteCode }}</div>
 
-            @if (noteBadgeConfidence(n.noteId); as confidence) {
+            @if (noteCheckFailed(n.noteId)) {
+              <div class="compliance-note-error">Compliance check failed</div>
+            } @else if (noteBadgeConfidence(n.noteId); as confidence) {
               <div class="compliance-note-result">
                 <div class="compliance-note-progress">
                   <div
@@ -277,6 +286,10 @@
           <div class="error-banner inline">{{ checkError() }}</div>
         }
 
+        @if (!checkRunning() && selectedNoteCheckFailed()) {
+          <div class="error-banner inline">Compliance check failed for this note.</div>
+        }
+
         @if (!checkRunning() && checkResult(); as r) {
           <div class="compliance-result-stack">
             <div class="compliance-result-card">
@@ -316,7 +329,7 @@
           </div>
         }
 
-        @if (!checkRunning() && !checkResult() && !checkError()) {
+        @if (!checkRunning() && !checkResult() && !checkError() && !selectedNoteCheckFailed()) {
           <p class="compliance-check-hint">Waiting for the compliance check to run automatically&hellip;</p>
         }
       </aside>

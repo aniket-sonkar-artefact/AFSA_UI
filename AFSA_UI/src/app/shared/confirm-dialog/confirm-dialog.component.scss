@@ -1,0 +1,131 @@
+:host {
+  /* Callers set this via [style.--confirm-accent] to match their page's
+     accent color (e.g. var(--submission-accent), var(--compliance-accent)),
+     so the same dialog looks native on any screen it's dropped into. */
+  --confirm-accent: #1F497D;
+  display: contents;
+}
+
+.confirm-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  background: rgba(15, 23, 42, 0.45);
+  animation: confirmFadeIn 160ms ease both;
+}
+
+.confirm-card {
+  width: 100%;
+  max-width: 400px;
+  padding: 22px 24px 20px;
+  border-radius: 14px;
+  background: var(--card);
+  box-shadow: 0 20px 45px rgba(15, 23, 42, 0.22);
+  animation: confirmPopIn 180ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.confirm-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  margin-bottom: 12px;
+  border-radius: 9px;
+  background: #FFFAEB;
+  color: #B54708;
+  font-size: 16px;
+  font-weight: 800;
+}
+
+.confirm-title {
+  margin: 0 0 8px;
+  color: var(--text-primary);
+  font-size: 15px;
+  font-weight: 750;
+  letter-spacing: -0.01em;
+}
+
+.confirm-message {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 11.5px;
+  line-height: 1.6;
+
+  strong {
+    color: var(--text-primary);
+    font-weight: 750;
+  }
+}
+
+.confirm-warning {
+  margin-top: 12px;
+  padding: 9px 11px;
+  border: 1px solid #FEDF89;
+  border-radius: 8px;
+  background: #FFFAEB;
+  color: #B54708;
+  font-size: 10.5px;
+  font-weight: 600;
+  line-height: 1.5;
+}
+
+.confirm-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 18px;
+}
+
+.confirm-cancel,
+.confirm-confirm {
+  min-height: 36px;
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-family: 'Maven Pro', sans-serif;
+  font-size: 10.5px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background-color 160ms ease, box-shadow 160ms ease, transform 160ms ease;
+
+  &:disabled {
+    opacity: 0.6;
+    cursor: default;
+  }
+}
+
+.confirm-cancel {
+  border: 1px solid var(--border);
+  background: var(--card);
+  color: var(--text-secondary);
+
+  &:hover:not(:disabled) {
+    border-color: var(--confirm-accent);
+    color: var(--confirm-accent);
+  }
+}
+
+.confirm-confirm {
+  border: 1px solid var(--confirm-accent);
+  background: var(--confirm-accent);
+  color: #FFFFFF;
+
+  &:hover:not(:disabled) {
+    transform: translateY(-1px);
+    box-shadow: 0 6px 14px color-mix(in srgb, var(--confirm-accent) 35%, transparent);
+  }
+}
+
+@keyframes confirmFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes confirmPopIn {
+  from { opacity: 0; transform: translateY(8px) scale(0.98); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
