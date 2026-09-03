@@ -253,13 +253,13 @@ export class StatementsComponent implements AfterViewInit, OnDestroy {
   private readonly netIncomeRow = computed(() => this.incomeRows().find((r) => r.item.toLowerCase() === 'net income'));
 
   private readonly totalAssetsRow = computed(() =>
-    this.balanceRows().find((r) => r.rowType === 'total' && r.item.toLowerCase().includes('asset')),
+    this.balanceRows().find((r) => r.rowId === 'total_assets'),
   );
   private readonly totalLiabilitiesRow = computed(() =>
-    this.balanceRows().find((r) => r.rowType === 'total' && r.item.toLowerCase().includes('liabilit')),
+    this.balanceRows().find((r) => r.rowId === 'total_liabilities'),
   );
   private readonly totalEquityRow = computed(() =>
-    this.balanceRows().find((r) => r.rowType === 'total' && r.item.toLowerCase().includes('equity')),
+    this.balanceRows().find((r) => r.rowId === 'Equity_total'),
   );
 
   readonly incomeSummaryMetrics = computed<SummaryMetric[]>(() => [
