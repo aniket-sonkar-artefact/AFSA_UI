@@ -10,7 +10,7 @@ import { getInitials } from '../utils/initials';
 const ROLE_PROFILES: TeamProfile[] = [
   {
     id: 'finance-analyst',
-    name: 'Finance Analyst',
+    name: 'FC&RD Analyst',
     desc: 'Prepares consolidation entries, reviews affiliate submissions and supports variance analysis.',
     initials: 'FA',
     color: '#35e0b5',

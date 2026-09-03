@@ -14,7 +14,7 @@ const REPORTS: ReportRow[] = [
   { id: 'irregularities', title: 'Irregularities Report', capability: 'Affiliate Submission Review', meta: 'Group \u00b7 Q1 2026', reportType: 'irregularities_report' },
   { id: 'coa', title: 'CoA Mapping Report', capability: 'Affiliate Submission Review', meta: 'Group \u00b7 Q1 2026', reportType: 'coa_mapping' },
   { id: 'ifrs', title: 'IFRS Requirements Compliance Report', capability: 'Compliance Monitoring & Benchmarking', meta: 'Group \u00b7 Q1 2026', reportType: 'ifrs_compliance' },
-  { id: 'variance', title: 'Variance Analysis Report', capability: 'Management Reports & Variance Analysis', meta: 'Group Consolidated \u00b7 Q1 2026', reportType: 'group_variance_analysis' },
+  { id: 'variance', title: 'Variance Analysis Report', capability: 'Management Reports & Variance Analysis', meta: 'Group Consolidated \u00b7 Q1 2026', reportType: 'financial_statement_variance' },
   { id: 'integrity', title: 'Integrity Report', capability: 'Financial Statement Integrity Check', meta: 'Group \u00b7 Q1 2026', reportType: 'integrity_check' },
 ];
 

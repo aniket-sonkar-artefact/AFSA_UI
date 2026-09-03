@@ -27,7 +27,7 @@ const MOCK_USERS: Record<string, User> = {
     name: 'Lynn Mansour',
     email: 'FC&RD.Analyst@aramco.com',
     role: 'finance-analyst',
-    roleLabel: 'Finance Analyst',
+    roleLabel: 'FC&RD Analyst',
     title: 'FC&RD Analyst',
     initials: 'NC',
   }

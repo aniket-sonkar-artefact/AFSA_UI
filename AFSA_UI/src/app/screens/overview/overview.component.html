@@ -6,7 +6,7 @@
     </div>
   }
 
-  <h2 class="ov-welcome-heading">Welcome Back <span class="ov-welcome-name">{{ welcomeName() }}</span>!</h2>
+  <h2 class="ov-welcome-heading">Welcome Back <span class="ov-welcome-name">{{ welcomeName() }}!</span></h2>
 
   <!-- ===================================================
        FINANCIAL REPORTING PROCESS OVERVIEW
@@ -175,7 +175,7 @@
   <!-- ===================================================
        GROUP FINANCIAL PERFORMANCE OVERVIEW
   ==================================================== -->
-  <section class="ov-perf-header">
+   <section class="ov-perf-header">
     <div class="ov-perf-accent"></div>
     <div>
       <div class="ov-kicker">Group Performance</div>
@@ -188,132 +188,166 @@
         }
       </div>
     </div>
-  </section>
 
-  <section class="ov-metric-grid">
-    @if (loading()) {
-      @for (i of [1,2,3,4]; track i) {
-        <div class="ov-metric-card">
-          <div class="ov-metric-top">
-            <app-skeleton width="36px" height="36px" radius="10px"></app-skeleton>
-            <app-skeleton width="56px" height="18px" radius="999px"></app-skeleton>
-          </div>
-          <app-skeleton width="70%" height="26px" radius="4px"></app-skeleton>
-          <div style="margin-top:6px">
-            <app-skeleton width="50%" height="11px" radius="4px"></app-skeleton>
-          </div>
-        </div>
+    <div class="ov-perf-header-right">
+      @if (performanceCollapsed() && !loading()) {
+        <button type="button" class="ov-perf-collapsed-cta" (click)="goToStatements(); $event.stopPropagation()">
+          <span class="ov-perf-collapsed-cta-icon">
+            <app-icon name="file-text" [size]="14" [strokeWidth]="1.8"></app-icon>
+          </span>
+          <span class="ov-perf-collapsed-cta-text">View Group Financial Statements</span>
+          <span class="ov-perf-collapsed-cta-open">
+            Open
+            <app-icon name="arrow-right" [size]="12" [strokeWidth]="2.1"></app-icon>
+          </span>
+        </button>
       }
-    } @else {
-      @for (metric of performanceMetrics(); track metric.label; let i = $index) {
-        <div class="ov-metric-card" [style.--metric-accent]="metric.accent">
-          <div class="ov-metric-top">
-            <div
-              class="ov-metric-icon"
-              [style.background]="'radial-gradient(circle, ' + metric.accent + '30 0%, ' + metric.accent + '12 65%, transparent 100%)'"
-              [style.color]="metric.accent"
-            >
-              <app-icon [name]="metric.icon" [size]="16" [strokeWidth]="1.8"></app-icon>
-            </div>
-            <span class="ov-metric-yoy" [class.negative]="!metric.yoyPositive">
-              <app-icon [name]="metric.yoyPositive ? 'trending-up' : 'trending-down'" [size]="11" [strokeWidth]="2.2"></app-icon>
-              {{ metric.yoy }}
-            </span>
-          </div>
-          <div class="ov-metric-label">{{ metric.label | uppercase }}</div>
-          <div class="ov-metric-value">{{ metric.value }}</div>
-          <div class="ov-metric-unit">{{ metric.unit }}</div>
 
-          <svg class="ov-sparkline" viewBox="0 0 100 34" preserveAspectRatio="none">
-            <defs>
-              <linearGradient [attr.id]="'ov-spark-fill-' + i" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" [attr.stop-color]="metric.accent" stop-opacity="0.28" />
-                <stop offset="100%" [attr.stop-color]="metric.accent" stop-opacity="0" />
-              </linearGradient>
-            </defs>
-            <polygon [attr.points]="metric.sparklinePoints + ' 100,34 0,34'" [attr.fill]="'url(#ov-spark-fill-' + i + ')'" />
-            <polyline
-              [attr.points]="metric.sparklinePoints"
-              [attr.stroke]="metric.accent"
-              fill="none"
-              stroke-width="2.4"
-              vector-effect="non-scaling-stroke"
-            ></polyline>
-          </svg>
-        </div>
-      }
-    }
-  </section>
-
-  <!-- ===================================================
-       AFFILIATE PERFORMANCE + VIEW GROUP FINANCIAL STATEMENTS
-  ==================================================== -->
-  <section class="ov-affiliate-row">
-    <div class="ov-affiliate-card">
-      <div class="ov-affiliate-header">
-        <span class="ov-affiliate-marker"></span>
-        AFFILIATE PERFORMANCE @if (!loading() && periodLabel()) { &middot; {{ periodLabel() }} }
-      </div>
-
-      @if (loading()) {
-        @for (i of [1,2]; track i) {
-          <div class="ov-affiliate-row-skel">
-            <app-skeleton width="40px" height="40px" radius="10px"></app-skeleton>
-            <div style="flex:1">
-              <app-skeleton width="40%" height="14px" radius="4px"></app-skeleton>
-              <div style="margin-top:8px"><app-skeleton width="100%" height="6px" radius="4px"></app-skeleton></div>
-            </div>
-          </div>
-        }
-      } @else if (affiliatePerformance().length === 0) {
-        <div class="ov-empty-state">No affiliate performance data available.</div>
-      } @else {
-        @for (affiliate of affiliatePerformance(); track affiliate.code) {
-          <div class="ov-affiliate-entry">
-            <div class="ov-affiliate-top">
-              <div class="ov-affiliate-left">
-                <div class="ov-affiliate-avatar">
-                  <img [src]="affiliate.logo" [alt]="affiliate.name" />
-                  @if (affiliate.isTopContributor) {
-                    <span class="ov-affiliate-trophy" title="Top revenue contributor">
-                      <app-icon name="trophy" [size]="10" [strokeWidth]="2.2"></app-icon>
-                    </span>
-                  }
-                </div>
-                <div>
-                  <div class="ov-affiliate-name">{{ affiliate.name }}</div>
-                  <div class="ov-affiliate-sector">{{ affiliate.sector }}</div>
-                </div>
-              </div>
-              <div class="ov-affiliate-figures">
-                <div class="ov-affiliate-revenue">{{ affiliate.revenue }}</div>
-                <div class="ov-affiliate-yoy" [class.negative]="!affiliate.yoyPositive">{{ affiliate.yoy }}</div>
-              </div>
-            </div>
-
-            <div class="ov-affiliate-track">
-              <div
-                class="ov-affiliate-fill"
-                [style.width.%]="affiliate.pctOfGroupRevenue"
-                [style.background]="affiliate.accent"
-              ></div>
-            </div>
-            <div class="ov-affiliate-pct-label">{{ affiliate.pctOfGroupRevenue }}% of group revenue</div>
-          </div>
-        }
-      }
+      <button
+        type="button"
+        class="ov-perf-toggle"
+        (click)="togglePerformanceSection()"
+        [attr.aria-expanded]="!performanceCollapsed()"
+        [attr.aria-label]="performanceCollapsed() ? 'Expand group performance overview' : 'Collapse group performance overview'"
+        [title]="performanceCollapsed() ? 'Expand' : 'Collapse'"
+      >
+        <span
+          class="ov-perf-toggle-chevron"
+          [style.transform]="performanceCollapsed() ? 'rotate(0deg)' : 'rotate(180deg)'"
+        >
+          <app-icon name="chevron-down" [size]="15" [strokeWidth]="2"></app-icon>
+        </span>
+      </button>
     </div>
-
-    <button type="button" class="ov-statements-cta" (click)="goToStatements()">
-      <div class="ov-statements-icon">
-        <app-icon name="file-text" [size]="18" [strokeWidth]="1.7"></app-icon>
-      </div>
-      <div class="ov-statements-title">View Group Financial Statements</div>
-      <div class="ov-statements-sub">Income Statement &middot; Balance Sheet &middot; Cash Flow &middot; Variance Analysis @if (periodLabel()) { &mdash; {{ periodLabel() }} }</div>
-      <span class="ov-statements-open">
-        Open
-        <app-icon name="arrow-right" [size]="13" [strokeWidth]="2.1"></app-icon>
-      </span>
-    </button>
   </section>
-</div>
+
+  <div class="ov-perf-collapse" [class.collapsed]="performanceCollapsed()">
+    <div class="ov-perf-collapse-inner">
+      <section class="ov-metric-grid">
+        @if (loading()) {
+          @for (i of [1,2,3,4]; track i) {
+            <div class="ov-metric-card">
+              <div class="ov-metric-top">
+                <app-skeleton width="36px" height="36px" radius="10px"></app-skeleton>
+                <app-skeleton width="56px" height="18px" radius="999px"></app-skeleton>
+              </div>
+              <app-skeleton width="70%" height="26px" radius="4px"></app-skeleton>
+              <div style="margin-top:6px">
+                <app-skeleton width="50%" height="11px" radius="4px"></app-skeleton>
+              </div>
+            </div>
+          }
+        } @else {
+          @for (metric of performanceMetrics(); track metric.label; let i = $index) {
+            <div class="ov-metric-card" [style.--metric-accent]="metric.accent">
+              <div class="ov-metric-top">
+                <div
+                  class="ov-metric-icon"
+                  [style.background]="'radial-gradient(circle, ' + metric.accent + '30 0%, ' + metric.accent + '12 65%, transparent 100%)'"
+                  [style.color]="metric.accent"
+                >
+                  <app-icon [name]="metric.icon" [size]="16" [strokeWidth]="1.8"></app-icon>
+                </div>
+                <span class="ov-metric-yoy" [class.negative]="!metric.yoyPositive">
+                  <app-icon [name]="metric.yoyPositive ? 'trending-up' : 'trending-down'" [size]="11" [strokeWidth]="2.2"></app-icon>
+                  {{ metric.yoy }}
+                </span>
+              </div>
+              <div class="ov-metric-label">{{ metric.label | uppercase }}</div>
+              <div class="ov-metric-value">{{ metric.value }}</div>
+              <div class="ov-metric-unit">{{ metric.unit }}</div>
+
+              <svg class="ov-sparkline" viewBox="0 0 100 34" preserveAspectRatio="none">
+                <defs>
+                  <linearGradient [attr.id]="'ov-spark-fill-' + i" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" [attr.stop-color]="metric.accent" stop-opacity="0.28" />
+                    <stop offset="100%" [attr.stop-color]="metric.accent" stop-opacity="0" />
+                  </linearGradient>
+                </defs>
+                <polygon [attr.points]="metric.sparklinePoints + ' 100,34 0,34'" [attr.fill]="'url(#ov-spark-fill-' + i + ')'" />
+                <polyline
+                  [attr.points]="metric.sparklinePoints"
+                  [attr.stroke]="metric.accent"
+                  fill="none"
+                  stroke-width="2.4"
+                  vector-effect="non-scaling-stroke"
+                ></polyline>
+              </svg>
+            </div>
+          }
+        }
+      </section>
+
+      <!-- ===================================================
+           AFFILIATE PERFORMANCE + VIEW GROUP FINANCIAL STATEMENTS
+      ==================================================== -->
+      <section class="ov-affiliate-row">
+        <div class="ov-affiliate-card">
+          <div class="ov-affiliate-header">
+            <span class="ov-affiliate-marker"></span>
+            AFFILIATE PERFORMANCE @if (!loading() && periodLabel()) { &middot; {{ periodLabel() }} }
+          </div>
+
+          @if (loading()) {
+            @for (i of [1,2]; track i) {
+              <div class="ov-affiliate-row-skel">
+                <app-skeleton width="40px" height="40px" radius="10px"></app-skeleton>
+                <div style="flex:1">
+                  <app-skeleton width="40%" height="14px" radius="4px"></app-skeleton>
+                  <div style="margin-top:8px"><app-skeleton width="100%" height="6px" radius="4px"></app-skeleton></div>
+                </div>
+              </div>
+            }
+          } @else if (affiliatePerformance().length === 0) {
+            <div class="ov-empty-state">No affiliate performance data available.</div>
+          } @else {
+            @for (affiliate of affiliatePerformance(); track affiliate.code) {
+              <div class="ov-affiliate-entry">
+                <div class="ov-affiliate-top">
+                  <div class="ov-affiliate-left">
+                    <div class="ov-affiliate-avatar">
+                      <img [src]="affiliate.logo" [alt]="affiliate.name" />
+                      @if (affiliate.isTopContributor) {
+                        <span class="ov-affiliate-trophy" title="Top revenue contributor">
+                          <app-icon name="trophy" [size]="10" [strokeWidth]="2.2"></app-icon>
+                        </span>
+                      }
+                    </div>
+                    <div>
+                      <div class="ov-affiliate-name">{{ affiliate.name }}</div>
+                      <div class="ov-affiliate-sector">{{ affiliate.sector }}</div>
+                    </div>
+                  </div>
+                  <div class="ov-affiliate-figures">
+                    <div class="ov-affiliate-revenue">{{ affiliate.revenue }}</div>
+                    <div class="ov-affiliate-yoy" [class.negative]="!affiliate.yoyPositive">{{ affiliate.yoy }}</div>
+                  </div>
+                </div>
+
+                <div class="ov-affiliate-track">
+                  <div
+                    class="ov-affiliate-fill"
+                    [style.width.%]="affiliate.pctOfGroupRevenue"
+                    [style.background]="affiliate.accent"
+                  ></div>
+                </div>
+                <div class="ov-affiliate-pct-label">{{ affiliate.pctOfGroupRevenue }}% of group revenue</div>
+              </div>
+            }
+          }
+        </div>
+
+        <button type="button" class="ov-statements-cta" (click)="goToStatements()">
+          <div class="ov-statements-icon">
+            <app-icon name="file-text" [size]="18" [strokeWidth]="1.7"></app-icon>
+          </div>
+          <div class="ov-statements-title">View Group Financial Statements</div>
+          <div class="ov-statements-sub">Income Statement &middot; Balance Sheet &middot; Cash Flow &middot; Variance Analysis @if (periodLabel()) { &mdash; {{ periodLabel() }} }</div>
+          <span class="ov-statements-open">
+            Open
+            <app-icon name="arrow-right" [size]="13" [strokeWidth]="2.1"></app-icon>
+          </span>
+        </button>
+      </section>
+    </div>
+  </div>

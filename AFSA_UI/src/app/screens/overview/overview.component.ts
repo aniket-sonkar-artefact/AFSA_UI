@@ -65,10 +65,10 @@ interface PendingStep {
 /** No backing API for SLA timers or pending-step detail exists yet -- both
  *  stay static mock, keyed by the same agent_key used everywhere else. */
 const SLA_MOCK: Record<string, { elapsed: string | null; sla: string; overSla: boolean }> = {
-  affiliate_submission_reviewer: { elapsed: '2h 14m', sla: '4h', overSla: false },
-  compliance_monitoring_benchmarking: { elapsed: '1h 48m', sla: '3h', overSla: false },
-  management_report_generator: { elapsed: null, sla: '2h', overSla: false },
-  financial_statement_integrity_formatting: { elapsed: '3h 12m', sla: '3h', overSla: true },
+  affiliate_submission_reviewer: { elapsed: '12m', sla: 'TBD', overSla: false },
+  compliance_monitoring_benchmarking: { elapsed: '3m', sla: 'TBD', overSla: false },
+  management_report_generator: { elapsed: null, sla: 'TBD', overSla: false },
+  financial_statement_integrity_formatting: { elapsed: '18m', sla: 'TBD', overSla: false },
 };
 
 const PENDING_STEPS_MOCK: Record<string, PendingStep[]> = {
@@ -231,8 +231,25 @@ function formatThousands(value: number): string {
 }
 
 function formatCompactSar(value: number): string {
-  const millions = value / 1_000_000;
-  return `SAR ${millions.toFixed(millions >= 100 ? 0 : 1)}M`;
+  value = value * 1000;
+  const abs = Math.abs(value);
+  const sign = value < 0 ? '-' : '';
+  //26150000
+  console.log('Affialiate Reveneue  - ', value);
+
+  if (abs >= 1_000_000_000) {
+    const billions = abs / 1_000_000_000;
+    return `${sign}SAR ${billions.toFixed(billions >= 100 ? 0 : 1)}B`;
+  }
+  if (abs >= 1_000_000) {
+    const millions = abs / 1_000_000;
+    return `${sign}SAR ${millions.toFixed(millions >= 100 ? 0 : 1)}M`;
+  }
+  if (abs >= 1_000) {
+    const thousands = abs / 1_000;
+    return `${sign}SAR ${thousands.toFixed(thousands >= 100 ? 0 : 1)}K`;
+  }
+  return `${sign}SAR ${Math.round(abs)}`;
 }
 
 function formatPeriodLabel(periodKey: string): string {
@@ -310,7 +327,7 @@ export class OverviewComponent implements OnInit {
     const config = kpiDisplayConfig(kpi.id);
     return {
       label: config.label,
-      value: formatThousands(kpi.current_value / 1000),
+      value: formatThousands(kpi.current_value),
       unit: data.unit,
       yoy: formatYoy(kpi.yoy_pct),
       yoyPositive: kpi.yoy_pct >= 0,
@@ -325,7 +342,11 @@ readonly affiliatePerformance = computed<AffiliatePerformanceRow[]>(() => {
     const data = this.homeData();
     if (!data || !data.affiliates.length) return [];
 
-    const totalRevenue = data.affiliates.reduce((sum, a) => sum + a.current_value, 0) || 1;
+    // Use the actual Group Revenue KPI as the denominator, not the sum of
+    // affiliate revenues -- affiliates may not account for 100% of group
+    // revenue, so these two totals aren't necessarily the same.
+    const groupRevenueKpi = data.kpis.find((k) => k.id === 'group_revenue');
+    const groupRevenue = groupRevenueKpi?.current_value || 1;
 
     return [...data.affiliates]
       .sort((a, b) => b.current_value - a.current_value)
@@ -339,12 +360,19 @@ readonly affiliatePerformance = computed<AffiliatePerformanceRow[]>(() => {
           revenue: formatCompactSar(a.current_value),
           yoy: formatYoy(a.yoy_pct),
           yoyPositive: a.yoy_pct >= 0,
-          pctOfGroupRevenue: Math.round((a.current_value / totalRevenue) * 1000) / 10,
+          pctOfGroupRevenue: Math.round((a.current_value / groupRevenue) * 1000) / 10,
           accent: config.accent,
           isTopContributor: index === 0, // sorted desc, so index 0 is always the top revenue contributor
         };
       });
   });
+
+  // Defaults to collapsed per requirement.
+  readonly performanceCollapsed = signal(true);
+
+  togglePerformanceSection(): void {
+    this.performanceCollapsed.update((prev) => !prev);
+  }
 
   readonly expandedCardKey = signal<string | null>(null);
 
