@@ -319,8 +319,10 @@ export class IntegrityComponent implements OnInit {
   }
 
   isFootingFlagged(row: FootingRow): boolean {
-    return row.status === 'Flagged';
-  }
+  if (row.status !== 'Flagged') return false;
+  const tone = this.footingSchema()?.checkResults?.find((v) => v.value === row.result)?.tone;
+  return tone !== 'success';
+}
 
   footingResultClass(row: FootingRow): string {
     return this.toneFor(this.footingSchema(), 'checkResults', row.result);

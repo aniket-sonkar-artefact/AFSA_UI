@@ -355,7 +355,7 @@
                   </td>
                   <td>
                     <div class="integrity-row-actions">
-                      @if (row.issueIdentified) {
+                      @if (row.issueIdentified && row.result !== 'Pass') {
                         <button
                           type="button"
                           class="integrity-expand-button"
@@ -386,7 +386,7 @@
                     </div>
                   </td>
                 </tr>
-                @if (row.issueIdentified) {
+                @if (row.issueIdentified && row.result !== 'Pass') {
                   <tr class="integrity-detail-row">
                     <td colspan="7">
                       <div class="integrity-detail-collapse" [class.expanded]="isFootingExpanded(row.lineId)">
