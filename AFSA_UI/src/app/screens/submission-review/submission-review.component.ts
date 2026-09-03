@@ -287,8 +287,19 @@ export class SubmissionReviewComponent implements OnInit {
     this.headerLoading.set(true);
     of(null).pipe(delay(500)).subscribe(() => {
       this.headerContact.set(mockContactFor(affiliateName));
-      this.headerPendingCount.set(mockPendingCountFor(affiliateName));
       this.headerLoading.set(false);
+    });
+
+    // Pending Items badge uses the real CoA summary's `counts.pending`,
+    // independent of whether the CoA tab has been opened yet -- the header
+    // is visible on every tab, so this needs its own fetch rather than
+    // waiting on loadCoa().
+    this.submissionReviewService.getCoaSummary(this.coaAffiliate()).subscribe({
+      next: (summary) => this.headerPendingCount.set(summary.counts.pending),
+      error: (err) => {
+        console.error(err);
+        // Leave headerPendingCount as-is (null) rather than showing a wrong number.
+      },
     });
   }
 

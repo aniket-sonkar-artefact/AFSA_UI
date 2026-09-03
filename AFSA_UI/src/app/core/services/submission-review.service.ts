@@ -142,7 +142,11 @@ function mapFinding(row: ApiFinding): Finding {
 @Injectable({ providedIn: 'root' })
 export class SubmissionReviewService {
   private readonly financeBase = environment.affiliateSubmissionApiUrl;
-  private readonly coaBase = `${environment.coaMappingApiUrl}/affiliate-review/coa-mapping`;
+  /* CoA mapping endpoints now scope the affiliate code into the URL path
+   * itself: /api/v1/affiliate-review/{affiliateCode}/coa-mapping/...
+   * -- rather than a fixed "sabic" query param, each method below
+   * interpolates the affiliate code it's called with. */
+  private readonly coaBase = `${environment.coaMappingApiUrl}/affiliate-review`;
 
   constructor(private readonly http: HttpClient) {}
 
@@ -174,7 +178,7 @@ export class SubmissionReviewService {
     return this.http
       .post<ApiResponse<{ submissionItem: string; submittedFile: string | null; status: string; statusReason: string | null }>>(
         `${this.financeBase}/affiliate-submission-review/${encodeURIComponent(entityCode)}/completeness-review/${encodeURIComponent(submissionItem)}/file`,
-        formData, 
+        formData,
         { params, observe: 'events', reportProgress: true },
       )
       .pipe(
@@ -202,19 +206,22 @@ export class SubmissionReviewService {
       .pipe(map((response) => response.data));
   }
 
+  /** GET /api/v1/affiliate-review/{affiliateCode}/coa-mapping/summary */
   getCoaSummary(affiliate: string): Observable<CoaSummary> {
-    const params = new HttpParams().set('affiliate', 'sabic');
-    return this.http.get<ApiResponse<CoaSummary>>(`${this.coaBase}/summary`, { params }).pipe(map((response) => response.data));
+    return this.http
+      .get<ApiResponse<CoaSummary>>(`${this.coaBase}/${encodeURIComponent(affiliate)}/coa-mapping/summary`)
+      .pipe(map((response) => response.data));
   }
 
   getCoaSchema(): Observable<CoaSchema> {
-    return this.http.get<ApiResponse<CoaSchema>>(`${this.coaBase}/mappings/schema`).pipe(map((response) => response.data));
+    return this.http.get<ApiResponse<CoaSchema>>(`${this.coaBase}/coa-mapping/mappings/schema`).pipe(map((response) => response.data));
   }
 
+  /** GET /api/v1/affiliate-review/{affiliateCode}/coa-mapping/mappings?page=&pageSize= */
   getCoaRows(affiliate: string, page = 1, pageSize = COA_PAGE_SIZE): Observable<CoaPage> {
-    const params = new HttpParams().set('affiliate', 'sabic').set('page', page).set('pageSize', pageSize);
+    const params = new HttpParams().set('page', page).set('pageSize', pageSize);
     return this.http
-      .get<ApiResponse<ApiCoaPage>>(`${this.coaBase}/mappings`, { params })
+      .get<ApiResponse<ApiCoaPage>>(`${this.coaBase}/${encodeURIComponent(affiliate)}/coa-mapping/mappings`, { params })
       .pipe(map((response) => ({
         ...response.data,
         // Do not sort or reformat these values. The API deliberately returns
@@ -240,10 +247,9 @@ export class SubmissionReviewService {
 
   confirmCoaMapping(affiliate: string, rowId: string, groupNode: string): Observable<ApiConfirmResponse> {
     return this.http
-      .post<ApiResponse<ApiConfirmResponse>>(`${this.coaBase}/confirm-mapping`, {
+      .post<ApiResponse<ApiConfirmResponse>>(`${this.coaBase}/${encodeURIComponent(affiliate)}/coa-mapping/confirm-mapping`, {
         rowId,
-        affiliate,
-        groupNode 
+        groupNode,
       }).pipe(map((response) => response.data));
   }
 
