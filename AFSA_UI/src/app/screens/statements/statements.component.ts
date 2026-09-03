@@ -427,6 +427,11 @@ export class StatementsComponent implements AfterViewInit, OnDestroy {
     const setRows = tab === 'balance' ? this.balanceRows : this.incomeRows;
     const mock = tab === 'balance' ? BALANCE_SHEET_MOCK : INCOME_STATEMENT_MOCK;
 
+    // Clear stale rows immediately so the skeleton actually shows instead of
+    // the previous period's data sitting there until the new response lands.
+    setRows.set([]);
+    this.collapsedRows.set(new Set());
+
     if (!targetPeriod || !comparisonPeriod || targetPeriod === comparisonPeriod) {
       setRows.set(mock);
       this.collapseAllExpandable(mock);
