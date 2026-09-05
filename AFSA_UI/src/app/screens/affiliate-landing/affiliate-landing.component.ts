@@ -162,26 +162,26 @@ export class AffiliateLandingComponent implements OnInit {
 
         const periodLabel = formatPeriodLabel(data.period);
 
-        this.overallMetrics.set([
-          {
-            label: 'Overall Submission Completeness',
-            percent: data.submissionCompleteness.percentage,
-            detail: `${data.submissionCompleteness.numerator} of ${data.submissionCompleteness.denominator} required submission items complete`,
-            accent: '#B5651D',
-          },
-          {
-            label: 'Overall Irregularities',
-            percent: data.irregularities.percentage,
-            detail: `${data.irregularities.numerator} of ${data.irregularities.denominator} irregularities resolved`,
-            accent: '#C0504D',
-          },
-          {
-            label: 'Overall CoA Mapping',
-            percent: data.coaMapping.percentage,
-            detail: `${data.coaMapping.numerator} of ${data.coaMapping.denominator} mappings high-confidence or resolved`,
-            accent: '#00843D',
-          },
-        ]);
+      this.overallMetrics.set([
+        {
+          label: 'Overall Submission Completeness',
+          percent: data.submissionCompleteness.percentage,
+          detail: `${data.submissionCompleteness.numerator} of ${data.submissionCompleteness.denominator} required submission items complete`,
+          accent: '#1F497D',
+        },
+        {
+          label: 'Overall Irregularities',
+          percent: data.irregularities.percentage,
+          detail: `${data.irregularities.numerator} of ${data.irregularities.denominator} irregularities resolved`,
+          accent: '#C0504D',
+        },
+        {
+          label: 'Overall CoA Mapping',
+          percent: data.coaMapping.percentage,
+          detail: `${data.coaMapping.numerator} of ${data.coaMapping.denominator} mappings high-confidence or resolved`,
+          accent: '#00843D',
+        },
+      ]);
 
         this.affiliates.set(
           data.affiliates.map((row) => ({

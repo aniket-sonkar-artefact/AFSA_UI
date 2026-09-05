@@ -53,8 +53,8 @@
         </div>
       }
     } @else {
-      <div class="compliance-kpi" [style.--kpi-accent]="'var(--compliance-accent)'">
-        <div class="compliance-kpi-value" style="color: var(--compliance-accent)">{{ notes().length }}</div>
+      <div class="compliance-kpi" [style.--kpi-accent]="'var(--compliance-info)'">
+        <div class="compliance-kpi-value" style="color: var(--compliance-info)">{{ notes().length }}</div>
         <div class="compliance-kpi-label">IFRS Notes Checked</div>
       </div>
 
@@ -275,6 +275,7 @@
         <div class="compliance-check-heading">
           <app-icon name="shield" [size]="14" [strokeWidth]="1.8"></app-icon>
           Compliance Check
+          <app-icon name="sparkles" [size]="11" [strokeWidth]="1.8" class="sr-ai-icon" title="AI-generated"></app-icon>
         </div>
 
         @if (checkRunning()) {

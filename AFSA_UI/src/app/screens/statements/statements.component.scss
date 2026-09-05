@@ -586,3 +586,34 @@
 .st-row-subtotal .st-line-item {
   font-weight: 750;
 }
+
+.st-th-ai {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+@keyframes srAiGlow {
+  0%, 100% {
+    filter: drop-shadow(0 0 0px var(--st-accent));
+    opacity: 0.75;
+  }
+  50% {
+    filter: drop-shadow(0 0 4px var(--st-accent));
+    opacity: 1;
+  }
+}
+
+.sr-ai-icon {
+  color: var(--st-accent);
+  flex-shrink: 0;
+  position: relative;
+  top: 1.5px;
+  animation: srAiGlow 2s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sr-ai-icon {
+    animation: none;
+  }
+} 

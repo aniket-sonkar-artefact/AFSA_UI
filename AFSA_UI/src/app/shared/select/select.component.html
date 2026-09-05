@@ -1,0 +1,48 @@
+<div 
+    class="app-select" 
+    [class.open]="open()" 
+    [class.disabled]="disabled" 
+    [class.compact]="compact"
+    [class.centered]="centered"
+    [style.--select-accent]="accent"
+    [style.--select-bg]="background"
+    [style.--select-border]="borderColor"
+>
+  <button
+    #trigger
+    type="button"
+    class="app-select-trigger"
+    [class.open]="open()"
+    [disabled]="disabled"
+    (click)="toggle()"
+    [attr.aria-expanded]="open()"
+    aria-haspopup="listbox"
+  >
+    <span class="app-select-value" [class.placeholder]="!selectedOption()">
+      {{ selectedOption()?.label ?? placeholder }}
+    </span>
+    <app-icon name="chevron-down" [size]="14" [strokeWidth]="2" class="app-select-chevron"></app-icon>
+  </button>
+
+  @if (open()) {
+    <ul class="app-select-panel" role="listbox">
+      @for (option of options; track option.value; let i = $index) {
+        <li
+          role="option"
+          class="app-select-option"
+          [class.selected]="option.value === selectedOption()?.value"
+          [class.focused]="i === focusedIndex()"
+          [class.disabled]="option.disabled"
+          [attr.aria-selected]="option.value === selectedOption()?.value"
+          (mouseenter)="focusedIndex.set(i)"
+          (click)="selectOption(option)"
+        >
+          <span class="app-select-option-label">{{ option.label }}</span>
+          @if (option.value === selectedOption()?.value) {
+            <app-icon name="check" [size]="13" [strokeWidth]="2.2" class="app-select-check"></app-icon>
+          }
+        </li>
+      }
+    </ul>
+  }
+</div>

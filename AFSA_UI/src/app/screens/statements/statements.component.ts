@@ -15,6 +15,7 @@ import {
 import { FinancialInsightsApiResponse, StatementType, VarianceRow } from '../../core/models/variance.model';
 import { AgentStatusCueComponent } from '../../shared/agent-status-cue/agent-status-cue.component';
 import { SpecialistAgentComponent } from '../../shared/specialist-agent/specialist-agent.component';
+import { SelectComponent } from '../../shared/select/select.component';
 
 /* =========================================================
    NOTE ON THIS COMPONENT
@@ -123,10 +124,16 @@ const BALANCE_SHEET_MOCK: VarianceRow[] = [
   mockRow("Total shareholders' equity", 334500, 319900, 14600, '+4.6%', 'green', 'Equity growth driven by retained period earnings.', true),
 ];
 
+const PERIOD_OPTIONS: string[] = [
+  'Q1 2024', 'Q2 2024', 'Q3 2024', 'Q4 2024',
+  'Q1 2025', 'Q2 2025', 'Q3 2025', 'Q4 2025',
+  'Q1 2026',
+];
+
 @Component({
   selector: 'app-statements',
   standalone: true,
-  imports: [CommonModule, FormsModule, IconComponent, SkeletonComponent, AgentStatusCueComponent, SpecialistAgentComponent],
+  imports: [CommonModule, FormsModule, IconComponent, SkeletonComponent, AgentStatusCueComponent, SpecialistAgentComponent, SelectComponent],
   templateUrl: './statements.component.html',
   styleUrl: './statements.component.scss',
 })
@@ -134,6 +141,7 @@ export class StatementsComponent implements AfterViewInit, OnDestroy {
   @ViewChildren('tabBtn') private readonly tabBtnRefs!: QueryList<ElementRef<HTMLButtonElement>>;
   @ViewChildren('granBtn') private readonly granBtnRefs!: QueryList<ElementRef<HTMLButtonElement>>;
 
+  readonly periodOptions = signal<string[]>([]);
   private readonly tabRects = signal<{ left: number; width: number }[]>([]);
   private readonly granRects = signal<{ left: number; width: number }[]>([]);
 
@@ -167,6 +175,10 @@ export class StatementsComponent implements AfterViewInit, OnDestroy {
     const rect = this.granRects()[idx];
     return rect ? { left: `${rect.left}px`, width: `${rect.width}px`, opacity: 1 } : { left: '0px', width: '0px', opacity: 0 };
   });
+
+  private loadPeriodOptions(): void {
+    this.periodOptions.set(PERIOD_OPTIONS);
+  }
 
   private measureIndicators(): void {
     this.tabRects.set(
@@ -339,6 +351,7 @@ export class StatementsComponent implements AfterViewInit, OnDestroy {
   );
 
   constructor(private readonly varianceService: VarianceService, private readonly router: Router) {
+    this.loadPeriodOptions();
     this.fetchStatement('income');
   }
 

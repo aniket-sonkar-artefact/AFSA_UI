@@ -41,7 +41,7 @@
           <div class="sr-header-contact-avatar">
             <app-icon name="user" [size]="16" [strokeWidth]="1.6"></app-icon>
           </div>
-          <div>
+          <div class="sr-header-contact-info">
             <div class="sr-header-contact-name">{{ headerContact()!.name }}</div>
             <div class="sr-header-contact-role">{{ headerContact()!.role }}</div>
             <div class="sr-header-contact-company">{{ headerContact()!.company }}</div>
@@ -210,8 +210,7 @@
           <div class="sr-table-scroll">
             <table class="sr-table sr-table-irregularities">
               <colgroup><col class="ir-code"><col class="ir-account"><col class="ir-value"><col class="ir-prior"><col class="ir-delta"><col class="ir-reasoning"><col class="ir-priority"><col class="ir-status"></colgroup>
-              <thead><tr><th>Account Code</th><th>Account</th><th>MTD</th><th>Prior Year MTD</th><th>MTD Delta</th><th>Reasoning</th><th>Priority</th><th>Status</th></tr></thead>
-              <tbody>
+                <thead><tr><th>Account Code</th><th>Account</th><th>MTD</th><th>Prior Year MTD</th><th>MTD Delta</th><th><span class="sr-th-ai">Reasoning<app-icon name="sparkles" [size]="11" [strokeWidth]="1.8" class="sr-ai-icon" title="AI-generated"></app-icon></span></th><th>Priority</th><th>Status</th></tr></thead>              <tbody>
                 @for (row of [1,2,3,4,5,6,7,8]; track row) {
                   <tr>
                     <td><app-skeleton width="45px" height="10px" radius="4px"></app-skeleton></td>
@@ -296,7 +295,12 @@
                     <th>{{ irregularitiesColumnLabels().value }}</th>
                     <th>{{ irregularitiesColumnLabels().prior }}</th>
                     <th>{{ irregularitiesColumnLabels().delta }}</th>
-                    <th>Reasoning</th>
+                    <th>
+                      <span class="sr-th-ai">
+                        Reasoning
+                        <app-icon name="sparkles" [size]="11" [strokeWidth]="1.8" class="sr-ai-icon" title="AI-generated"></app-icon>
+                      </span>
+                    </th>
                     <th>Priority</th>
                     <th>Status</th>
                   </tr>
@@ -311,7 +315,19 @@
                     <td [class]="deltaTintClass(row)"><span class="sr-number">{{ findingDelta(row) ?? '—' }}</span></td>
                     <td><span class="sr-reasoning-text" [title]="findingReasoning(row) ?? ''">{{ findingReasoning(row) ?? '—' }}</span></td>
                     <td><span class="sr-status-chip" [style.color]="priorityStyle(row.priority).color" [style.background]="priorityStyle(row.priority).background" [style.border]="'1px solid ' + priorityStyle(row.priority).border">{{ row.priority }}</span></td>
-                    <td><select class="sr-status-select" [style.background]="findingStatusStyle(row.status).background" [style.color]="findingStatusStyle(row.status).color" [style.border]="'1px solid ' + findingStatusStyle(row.status).border" [ngModel]="row.status" (ngModelChange)="requestFindingStatusChange(i, $event)"><option value="Open">Open</option><option value="Investigate">Investigate</option><option value="Closed">Closed</option></select></td>
+                    <td>
+                      <app-select
+                        class="sr-status-select-app"
+                        [options]="findingStatusOptions"
+                        [ngModel]="displayedFindingStatus(row, i)"
+                        (ngModelChange)="requestFindingStatusChange(i, $event)"
+                        [accent]="findingStatusStyle(row.status).color"
+                        [background]="findingStatusStyle(row.status).background"
+                        [compact]="true"
+                        [borderColor]="findingStatusStyle(row.status).border"
+                        [centered]="true"
+                      ></app-select>
+                    </td>
                   </tr>
                 }
                 </tbody>
@@ -344,8 +360,7 @@
         <div class="sr-table-scroll">
           <table class="sr-table sr-table-coa">
             <colgroup><col class="coa-account"><col class="coa-description"><col class="coa-month"><col class="coa-mapping"><col class="coa-confidence"><col class="coa-status"><col class="coa-rationale"><col class="coa-action"></colgroup>
-            <thead><tr><th>Affiliate Account</th><th>Description</th><th>Month</th><th>Current Group Mapping</th><th>Mapping Confidence</th><th>Mapping Status</th><th>Rationale</th><th>Action</th></tr></thead>
-            <tbody>
+            <thead><tr><th>Affiliate Account</th><th>Description</th><th>Month</th><th>Current Group Mapping</th><th>Mapping Confidence</th><th>Mapping Status</th><th><span class="sr-th-ai">Rationale<app-icon name="sparkles" [size]="11" [strokeWidth]="1.8" class="sr-ai-icon" title="AI-generated"></app-icon></span></th><th>Action</th></tr></thead>            <tbody>
               @for (row of [1,2,3,4,5,6,7,8]; track row) {
                 <tr>
                   <td><app-skeleton width="55px" height="10px" radius="4px"></app-skeleton></td>
@@ -398,7 +413,12 @@
             <thead>
               <tr>
                 @for (column of displayCoaColumns(); track column.key) {
-                  <th [class.amount-header]="column.type === 'amount'">{{ coaColumnLabel(column) }}</th>
+                  <th [class.amount-header]="column.type === 'amount'">
+                    {{ coaColumnLabel(column) }}
+                    @if (column.key === 'rationale') {
+                      <app-icon name="sparkles" [size]="11" [strokeWidth]="1.8" class="sr-ai-icon" title="AI-generated"></app-icon>
+                    }
+                  </th>
                 }
               </tr>
             </thead>
@@ -421,12 +441,17 @@
                           @if (row.mappingConfidence === 'High Confidence') {
                             <span class="sr-mapping-static">{{ mappingLabel(row) }}</span>
                           } @else {
-                            <select class="sr-mapping-select" [class.unmapped]="row.mappingConfidence === 'Unmapped'" [class.low-conf]="row.mappingConfidence === 'Low Confidence'" [ngModel]="row.pendingSelection ?? ''" (ngModelChange)="onCoaMappingChange(i, $event)">
-                              <option value="">{{ column.placeholder ?? 'Select Group Account' }}</option>
-                              @for (node of groupNodes(); track node.code) {
-                                <option [value]="node.code">{{ node.label }}</option>
-                              }
-                            </select>
+                            <app-select
+                              class="sr-mapping-select-app"
+                              [options]="coaMappingOptions()"
+                              [placeholder]="column.placeholder ?? 'Select Group Account'"
+                              [ngModel]="row.pendingSelection ?? ''"
+                              [compact]="true"
+                              (ngModelChange)="onCoaMappingChange(i, $event)"
+                              [accent]="coaMappingSelectStyle(row.mappingConfidence).color"
+                              [background]="coaMappingSelectStyle(row.mappingConfidence).background"
+                              [borderColor]="coaMappingSelectStyle(row.mappingConfidence).border"
+                            ></app-select>
                           }
                         </td>
                       }

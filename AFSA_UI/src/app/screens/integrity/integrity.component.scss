@@ -761,3 +761,34 @@
     transition: none !important;
   }
 }
+
+.integrity-th-ai {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+@keyframes srAiGlow {
+  0%, 100% {
+    filter: drop-shadow(0 0 0px var(--integrity-accent));
+    opacity: 0.75;
+  }
+  50% {
+    filter: drop-shadow(0 0 4px var(--integrity-accent));
+    opacity: 1;
+  }
+}
+
+.sr-ai-icon {
+  color: var(--integrity-accent);
+  flex-shrink: 0;
+  position: relative;
+  top: 1.5px;
+  animation: srAiGlow 2s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sr-ai-icon {
+    animation: none;
+  }
+}

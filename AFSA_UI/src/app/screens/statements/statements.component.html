@@ -113,32 +113,22 @@
 
     <div class="st-control-group">
       <label class="st-control-label">Actual Period</label>
-      <select class="st-select" [(ngModel)]="period" (ngModelChange)="onFiltersChanged()">
-        <option>Q1 2024</option>
-        <option>Q2 2024</option>
-        <option>Q3 2024</option>
-        <option>Q4 2024</option>
-        <option>Q1 2025</option>
-        <option>Q2 2025</option>
-        <option>Q3 2025</option>
-        <option>Q4 2025</option>
-        <option>Q1 2026</option>
-      </select>
+      <app-select
+        [options]="periodOptions()"
+        [(ngModel)]="period"
+        (ngModelChange)="onFiltersChanged()"
+        accent="var(--st-tab-accent)"
+      ></app-select>
     </div>
 
     <div class="st-control-group">
       <label class="st-control-label">Comparison Period</label>
-      <select class="st-select" [(ngModel)]="comparison" (ngModelChange)="onFiltersChanged()">
-        <option>Q1 2024</option>
-        <option>Q2 2024</option>
-        <option>Q3 2024</option>
-        <option>Q4 2024</option>
-        <option>Q1 2025</option>
-        <option>Q2 2025</option>
-        <option>Q3 2025</option>
-        <option>Q4 2025</option>
-        <option>Q1 2026</option>
-      </select>
+      <app-select
+        [options]="periodOptions()"
+        [(ngModel)]="comparison"
+        (ngModelChange)="onFiltersChanged()"
+        accent="var(--st-tab-accent)"
+      ></app-select>
     </div>
 
     <button type="button" class="st-expand-all" (click)="toggleExpandAll()">
@@ -172,7 +162,12 @@
           <th style="text-align: right">{{ comparison() }}</th>
           <th style="text-align: right">Variance</th>
           <th style="text-align: right">Variance %</th>
-          <th style="text-align: left">AI Analysis</th>
+          <th style="text-align: left">
+            <span class="st-th-ai">
+              AI Analysis
+              <app-icon name="sparkles" [size]="11" [strokeWidth]="1.8" class="sr-ai-icon" title="AI-generated"></app-icon>
+            </span>
+          </th>
         </tr>
       </thead>
       <tbody>

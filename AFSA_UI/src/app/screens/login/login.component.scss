@@ -335,7 +335,7 @@ $accent: #84bd00;
   cursor: pointer;
   will-change: width, background;
   transition:
-    width 780ms $ease,
+    width 820ms $ease,   // was 780ms
     background 500ms ease,
     backdrop-filter 500ms ease,
     border-radius 620ms $ease,
@@ -453,17 +453,21 @@ $accent: #84bd00;
 }
 
 .rail-expanded {
-  width: 100%;
+  position: absolute;   // was: normal flow, width: 100%
+  top: 0;
+  right: 0;              // anchor to the same edge the rail grows from (right: 18px is fixed)
+  width: var(--rail-expanded); // fixed final width — never reflows mid-transition
   height: 100%;
   padding: 62px 54px 28px;
   display: flex;
   flex-direction: column;
   opacity: 0;
-  transform: translateX(42px);
+  transform: translateX(24px);
   pointer-events: none;
+  will-change: opacity, transform;
   transition:
-    opacity 420ms ease 260ms,
-    transform 640ms $ease 40ms;
+    opacity 480ms ease 200ms,
+    transform 620ms $ease 120ms;
 
   @include bp.tablet-landscape {
     padding: 44px 34px 24px;

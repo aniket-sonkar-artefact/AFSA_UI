@@ -394,11 +394,17 @@ readonly affiliatePerformance = computed<AffiliatePerformanceRow[]>(() => {
 
     return STAGE_ORDER.filter((s) => s.key !== null).map((s) => {
       const item = workflowMap.get(s.key!);
-      const status = item ? toStageStatus(item.status) : 'pending';
+      let status = item ? toStageStatus(item.status) : 'pending';
 
       let percent = item?.progress_pct ?? 0;
       if (s.key === 'compliance_monitoring_benchmarking') {
         percent = this.complianceProgress.progressPercent();
+        // Once compliance work has fully progressed, override whatever status
+        // the backend reports — 100% should never keep showing "Requires
+        // Attention" or the blinking-shadow treatment.
+        if (percent >= 100) {
+          status = 'complete';
+        }
       } else if (s.key === 'management_report_generator') {
         percent = this.managementReportProgress.progressPercent();
       }
@@ -419,7 +425,7 @@ readonly affiliatePerformance = computed<AffiliatePerformanceRow[]>(() => {
         overSla: sla.overSla,
       };
     });
-});
+  });
 
   readonly reportingStages = computed<ReportingStage[]>(() => {
     const data = this.homeData();

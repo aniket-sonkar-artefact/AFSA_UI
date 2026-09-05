@@ -6,6 +6,10 @@
   --compliance-accent-soft: rgba(192, 80, 77, 0.075);
   --compliance-accent-border: rgba(192, 80, 77, 0.22);
 
+  --compliance-info: #1F497D;
+  --compliance-info-soft: #EFF8FF;
+  --compliance-info-border: #B2DDFF;
+
   --compliance-success: #067647;
   --compliance-success-soft: #ECFDF3;
   --compliance-success-border: #ABEFC6;
@@ -34,6 +38,10 @@
   --compliance-accent-hover: #EE918E;
   --compliance-accent-soft: rgba(228, 122, 119, 0.1);
   --compliance-accent-border: rgba(228, 122, 119, 0.3);
+
+  --compliance-info: #1F497D;
+  --compliance-info-soft: rgba(140, 184, 237, 0.1);
+  --compliance-info-border: rgba(140, 184, 237, 0.28);
 
   --compliance-success: #63D997;
   --compliance-success-soft: rgba(99, 217, 151, 0.1);
@@ -1010,5 +1018,36 @@
     cursor: default;
     transform: none;
     box-shadow: none;
+  }
+}
+
+.st-th-ai {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+@keyframes srAiGlow {
+  0%, 100% {
+    filter: drop-shadow(0 0 0px var(--st-accent));
+    opacity: 0.75;
+  }
+  50% {
+    filter: drop-shadow(0 0 4px var(--st-accent));
+    opacity: 1;
+  }
+}
+
+.sr-ai-icon {
+  color: var(--st-accent);
+  flex-shrink: 0;
+  position: relative;
+  top: 1px;
+  animation: srAiGlow 2s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sr-ai-icon {
+    animation: none;
   }
 }

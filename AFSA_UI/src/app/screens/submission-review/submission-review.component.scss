@@ -1,6 +1,7 @@
 @use 'breakpoints' as bp;
 
 :host {
+  --submission-icon: #88b8f1;
   --submission-accent: #1F497D;
   --submission-accent-hover: #183B66;
   --submission-accent-soft: rgba(31, 73, 125, 0.075);
@@ -204,12 +205,18 @@
   display: flex;
   align-items: flex-start;
   gap: 10px;
-  padding-right: 16px;
+  padding-right: 18px;
   border-right: 1px solid var(--border-light, var(--border));
 }
 
 .sr-header-contact-skeleton {
   border-right: none;
+}
+
+.sr-header-contact-info {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
 }
 
 .sr-header-contact-lines {
@@ -219,8 +226,8 @@
 }
 
 .sr-header-contact-avatar {
-  width: 34px;
-  height: 34px;
+  width: 32px;
+  height: 32px;
   border-radius: 50%;
   background: var(--surface);
   border: 1px dashed var(--border);
@@ -229,35 +236,36 @@
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
+  margin-top: 1px;
 }
 
 .sr-header-contact-name {
-  font-size: 12px;
+  font-size: 12.5px;
   font-weight: 750;
   color: var(--text-primary);
   white-space: nowrap;
 }
 
 .sr-header-contact-role {
-  font-size: 10px;
-  font-weight: 600;
+  font-size: 10.5px;
+  font-weight: 650;
   color: var(--text-secondary);
-  margin-top: 2px;
   white-space: nowrap;
 }
 
 .sr-header-contact-company {
-  font-size: 10px;
+  font-size: 10.5px;
   color: var(--text-muted);
 }
 
 .sr-header-contact-fields {
   display: flex;
-  gap: 12px;
-  margin-top: 4px;
+  align-items: center;
+  gap: 14px;
+  margin-top: 5px;
 
   span {
-    font-size: 9.5px;
+    font-size: 10px;
     color: var(--text-muted);
     white-space: nowrap;
   }
@@ -268,26 +276,27 @@
   align-items: center;
   gap: 8px;
   padding: 8px 14px;
-  border-radius: 10px;
+  border-radius: 9px;
   background: var(--submission-warning-soft);
   border: 1px solid var(--submission-warning-border);
   flex-shrink: 0;
 }
 
 .sr-pending-count {
-  font-size: 20px;
+  font-size: 18px;
   font-weight: 750;
   color: var(--submission-warning);
   line-height: 1;
 }
 
 .sr-pending-label {
-  font-size: 8px;
+  font-size: 7.5px;
   font-weight: 750;
   letter-spacing: 0.04em;
   text-transform: uppercase;
   color: var(--submission-warning);
   line-height: 1.3;
+  text-align: left;
 }
 
 .sr-meta-block {
@@ -829,18 +838,6 @@
   font-weight: 700;
 }
 
-.sr-status-select {
-  box-sizing: border-box;
-  width: 100%;
-  max-width: 130px;
-  padding: 5px 6px;
-  border-radius: 7px;
-  font-family: 'Maven Pro', sans-serif;
-  font-size: 9.5px;
-  font-weight: 700;
-  cursor: pointer;
-}
-
 /* =====================================================
    UPLOAD
 ====================================================== */
@@ -943,25 +940,16 @@
   font-weight: 650;
 }
 
-.sr-mapping-select {
-  box-sizing: border-box;
-  width: 100%;
+/* ---------- app-select sizing inside submission tables ---------- */
+.sr-status-select-app {
+  display: block;
+  width: auto;
+  max-width: 130px;
+}
+
+.sr-mapping-select-app {
+  display: block;
   max-width: 220px;
-  padding: 6px 9px;
-  border-radius: 7px;
-  background: var(--card);
-  color: var(--text-primary);
-  font-family: 'Maven Pro', sans-serif;
-  font-size: 10px;
-  font-weight: 600;
-
-  &.low-conf {
-    border: 1px solid var(--submission-warning-border);
-  }
-
-  &.unmapped {
-    border: 1px solid var(--submission-danger-border);
-  }
 }
 
 .sr-confirm-button {
@@ -1209,11 +1197,11 @@
 
 /* ---------- irregularities: 9-column widths ---------- */
 .ir-code { width: 6%; }
-.ir-account { width: 15%; }
-.ir-value, .ir-prior { width: 8%; }
-.ir-delta { width: 7%; }
-.ir-reasoning { width: 24%; }
-.ir-priority { width: 6%; }
+.ir-account { width: 11%; }
+.ir-value, .ir-prior { width: 7%; }
+.ir-delta { width: 8%; }
+.ir-reasoning { width: 18%; }
+.ir-priority { width: 8%; }
 .ir-status { width: 8%; }
 
 .sr-table-irregularities {
@@ -1379,7 +1367,7 @@
    COA TABLE — new columns
 ====================================================== */
 
-.coa-account { width: 8%; }
+.coa-account { width: 6%; }
 .coa-description { width: 12%; }
 .coa-month { width: 7%; }
 .coa-qtd { width: 7%; }
@@ -1435,5 +1423,40 @@
     color: var(--submission-accent);
     border-color: var(--submission-accent-border);
     box-shadow: 0 2px 6px rgba(15, 23, 42, 0.06);
+  }
+}
+
+.sr-th-ai {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+@keyframes srAiGlow {
+  0%, 100% {
+    filter: drop-shadow(0 0 0px var(--submission-icon));
+    opacity: 0.75;
+  }
+  50% {
+    filter: drop-shadow(0 0 1px var(--submission-icon));
+    opacity: 1;
+  }
+  75% {
+    filter: drop-shadow(0 0 1px var(--submission-icon));
+    opacity: 1;
+  }
+}
+
+.sr-ai-icon {
+  color: var(--submission-accent);
+  flex-shrink: 0;
+  position: relative;
+  top: 2px;
+  animation: srAiGlow 1s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sr-ai-icon {
+    animation: none;
   }
 }

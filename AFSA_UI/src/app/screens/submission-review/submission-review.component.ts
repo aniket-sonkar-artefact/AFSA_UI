@@ -1,4 +1,4 @@
-import { Component, OnInit, computed, effect, signal } from '@angular/core';
+import { Component, OnInit, computed, effect, ViewChildren, signal, QueryList } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { HttpErrorResponse } from '@angular/common/http';
@@ -10,6 +10,7 @@ import { SkeletonComponent } from '../../shared/skeleton/skeleton.component';
 import { PaginationComponent } from '../../shared/pagination/pagination.component';
 import { ConfirmDialogComponent, ConfirmDialogSegment } from '../../shared/confirm-dialog/confirm-dialog.component';
 import { PeriodToggleComponent, PeriodToggleOption } from '../../shared/period-toggle/period-toggle.component';
+import { SelectComponent, SelectOption } from '../../shared/select/select.component';
 import { AuthService } from '../../core/services/auth.service';
 import { SubmissionReviewService } from '../../core/services/submission-review.service';
 import {
@@ -45,6 +46,14 @@ const PERIOD_TOGGLE_OPTIONS: PeriodToggleOption[] = [
   { value: 'monthly', label: 'Monthly' },
   { value: 'quarterly', label: 'Quarterly' },
   { value: 'yearly', label: 'Yearly' },
+];
+
+/** Options for the Irregularities "Status" app-select. A static, finite
+ *  vocabulary (unlike CoA mapping targets), so no API-driven source needed. */
+const FINDING_STATUS_OPTIONS: SelectOption[] = [
+  { label: 'Open', value: 'Open' },
+  { label: 'Investigate', value: 'Investigate' },
+  { label: 'Closed', value: 'Closed' },
 ];
 
 interface IrregularitiesBlockedState {
@@ -121,6 +130,7 @@ function getApiErrorMessage(err: unknown, fallback: string): string {
     PaginationComponent,
     ConfirmDialogComponent,
     PeriodToggleComponent,
+    SelectComponent,
     AgentStatusCueComponent,
     SpecialistAgentComponent,
   ],
@@ -134,6 +144,7 @@ export class SubmissionReviewComponent implements OnInit {
   readonly displayPeriod = computed(() => this.tab() === 'coa' ? (this.coaSummary()?.session.periodLabel ?? PERIOD_LABEL) : PERIOD_LABEL);
 
   readonly periodToggleOptions = PERIOD_TOGGLE_OPTIONS;
+  readonly findingStatusOptions = FINDING_STATUS_OPTIONS;
 
   readonly tabToggleOptions = computed<PeriodToggleOption[]>(() =>
     this.tabs.map((t) => ({ value: t, label: this.tabLabel[t] })),
@@ -191,9 +202,9 @@ export class SubmissionReviewComponent implements OnInit {
 
   requestFindingStatusChange(index: number, status: FindingStatus): void {
     const row = this.findings()[index];
-    // Since the <select> is bound one-way via [ngModel], not updating the
-    // row here means Angular will reset the dropdown back to the current
-    // status on the next change detection cycle if the person cancels.
+    // Since the select is bound one-way via [ngModel], not updating the
+    // row here means Angular will reset it back to the current status on
+    // the next change detection cycle if the person cancels.
     if (!row || row.status === status) return;
     this.pendingStatusChange.set({ index, row, newStatus: status });
   }
@@ -201,6 +212,17 @@ export class SubmissionReviewComponent implements OnInit {
   cancelFindingStatusChange(): void {
     if (this.statusChangeInFlight()) return;
     this.pendingStatusChange.set(null);
+  }
+
+  /** What the Status select should show for a given row: the pending new
+   *  value while its confirm dialog is open, otherwise the row's real
+   *  status. This makes cancel/confirm fully reactive — the select's
+   *  displayed value is always derived from state the parent owns, so
+   *  there's nothing to manually reset when the dialog is dismissed. */
+  displayedFindingStatus(row: Finding, index: number): FindingStatus {
+    const pending = this.pendingStatusChange();
+    if (pending && pending.index === index) return pending.newStatus;
+    return row.status;
   }
 
   confirmFindingStatusChange(): void {
@@ -230,8 +252,8 @@ export class SubmissionReviewComponent implements OnInit {
 
   // Monthly / Quarterly / Yearly toggle for each table. Purely a display
   // remap over data already fetched -- switching never triggers a refetch.
-  readonly irregularitiesPeriodView = signal<PeriodView>('monthly');
-  readonly coaPeriodView = signal<PeriodView>('monthly');
+  readonly irregularitiesPeriodView = signal<PeriodView>('quarterly');
+  readonly coaPeriodView = signal<PeriodView>('quarterly');
 
   readonly irregularitiesColumnLabels = computed(() => {
     const view = this.irregularitiesPeriodView();
@@ -442,6 +464,14 @@ export class SubmissionReviewComponent implements OnInit {
   readonly coaHasBlockers = computed(() => (this.coaSummary()?.counts?.pending ?? 0) > 0);
 
   readonly groupNodes = computed<CoaGroupNode[]>(() => this.coaSchema()?.groupNodes ?? []);
+
+  /** Options list for the CoA "Current Group Mapping" app-select, derived
+   *  from groupNodes() the same way it already builds groupNodes() itself
+   *  from the schema fetch -- so swapping the schema source for a real
+   *  paginated/searchable endpoint later only touches loadCoaSchema(). */
+  readonly coaMappingOptions = computed<SelectOption[]>(() =>
+    this.groupNodes().map((node) => ({ label: node.label, value: node.code })),
+  );
 
   /** Entity code carried over from the Affiliate Landing page
    *  (/submission → pick an affiliate → /submission/review/:entityCode).
@@ -693,6 +723,15 @@ export class SubmissionReviewComponent implements OnInit {
     if (priority === 'High') return this.toneStyle('danger');
     if (priority === 'Medium') return this.toneStyle('warning');
     return this.toneStyle('info');
+  }
+
+  /** Style for the CoA "Current Group Mapping" app-select itself, keyed off
+   *  mapping confidence: Unmapped stays red/danger, Low Confidence stays
+   *  yellow/warning. High Confidence rows never call this -- they render
+   *  the static `.sr-mapping-static` label in the template instead. */
+  coaMappingSelectStyle(confidence: string) {
+    if (confidence === 'Unmapped') return this.toneStyle('danger');
+    return this.toneStyle('warning');
   }
 
   /* ---------- Irregularities: period-toggle-driven row accessors ---------- */
