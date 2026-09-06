@@ -210,7 +210,7 @@
           <div class="sr-table-scroll">
             <table class="sr-table sr-table-irregularities">
               <colgroup><col class="ir-code"><col class="ir-account"><col class="ir-value"><col class="ir-prior"><col class="ir-delta"><col class="ir-reasoning"><col class="ir-priority"><col class="ir-status"></colgroup>
-                <thead><tr><th>Account Code</th><th>Account</th><th>MTD</th><th>Prior Year MTD</th><th>MTD Delta</th><th><span class="sr-th-ai">Reasoning<app-icon name="sparkles" [size]="11" [strokeWidth]="1.8" class="sr-ai-icon" title="AI-generated"></app-icon></span></th><th>Priority</th><th>Status</th></tr></thead>              <tbody>
+                <thead><tr><th>Account Code</th><th>Account</th><th>MTD</th><th>Prior Year MTD</th><th>MTD Delta</th><th><span class="sr-th-ai"><app-icon name="sparkles" [size]="11" [strokeWidth]="1.8" class="sr-ai-icon" title="AI-generated"></app-icon>AI Reasoning</span></th><th>Priority</th><th>Status</th></tr></thead>              <tbody>
                 @for (row of [1,2,3,4,5,6,7,8]; track row) {
                   <tr>
                     <td><app-skeleton width="45px" height="10px" radius="4px"></app-skeleton></td>
@@ -242,7 +242,7 @@
             <div class="sr-kpi-value" style="color: var(--submission-accent)">{{ irregularitiesTotal() }}</div>
             <div class="sr-kpi-detail">{{ irregularitiesResolvedCount() }} resolved &middot; {{ irregularitiesRequiringReview() }} requiring review</div>
           </div>
-          <div class="sr-kpi sr-kpi-breakdown" [style.--kpi-accent]="'var(--submission-warning)'">
+          <div class="sr-kpi sr-kpi-breakdown" [style.--kpi-accent]="'var(--submission-danger)'">
             <div class="sr-kpi-label sr-kpi-label-top">Irregularities by Priority</div>
             <div class="sr-overview-breakdown">
               @for (b of irregularitiesPriorityBreakdown(); track b.label) {
@@ -256,7 +256,7 @@
             </div>
         </div>
 
-        <div class="sr-kpi sr-kpi-breakdown" [style.--kpi-accent]="'var(--submission-info)'">
+        <div class="sr-kpi sr-kpi-breakdown" [style.--kpi-accent]="'var(--submission-success)'">
             <div class="sr-kpi-label sr-kpi-label-top">Irregularities by Status</div>
             <div class="sr-overview-breakdown">
               @for (b of irregularitiesStatusBreakdown(); track b.label) {
@@ -297,8 +297,8 @@
                     <th>{{ irregularitiesColumnLabels().delta }}</th>
                     <th>
                       <span class="sr-th-ai">
-                        Reasoning
                         <app-icon name="sparkles" [size]="11" [strokeWidth]="1.8" class="sr-ai-icon" title="AI-generated"></app-icon>
+                        AI Reasoning
                       </span>
                     </th>
                     <th>Priority</th>
@@ -360,7 +360,7 @@
         <div class="sr-table-scroll">
           <table class="sr-table sr-table-coa">
             <colgroup><col class="coa-account"><col class="coa-description"><col class="coa-month"><col class="coa-mapping"><col class="coa-confidence"><col class="coa-status"><col class="coa-rationale"><col class="coa-action"></colgroup>
-            <thead><tr><th>Affiliate Account</th><th>Description</th><th>Month</th><th>Current Group Mapping</th><th>Mapping Confidence</th><th>Mapping Status</th><th><span class="sr-th-ai">Rationale<app-icon name="sparkles" [size]="11" [strokeWidth]="1.8" class="sr-ai-icon" title="AI-generated"></app-icon></span></th><th>Action</th></tr></thead>            <tbody>
+            <thead><tr><th>Affiliate Account</th><th>Description</th><th>Month</th><th>Current Group Mapping</th><th>Mapping Confidence</th><th>Mapping Status</th><th><span class="sr-th-ai"><app-icon name="sparkles" [size]="11" [strokeWidth]="1.8" class="sr-ai-icon" title="AI-generated"></app-icon>AI Rationale</span></th><th>Action</th></tr></thead><tbody>
               @for (row of [1,2,3,4,5,6,7,8]; track row) {
                 <tr>
                   <td><app-skeleton width="55px" height="10px" radius="4px"></app-skeleton></td>
@@ -414,10 +414,10 @@
               <tr>
                 @for (column of displayCoaColumns(); track column.key) {
                   <th [class.amount-header]="column.type === 'amount'">
-                    {{ coaColumnLabel(column) }}
                     @if (column.key === 'rationale') {
                       <app-icon name="sparkles" [size]="11" [strokeWidth]="1.8" class="sr-ai-icon" title="AI-generated"></app-icon>
                     }
+                    {{ coaColumnLabel(column) }}
                   </th>
                 }
               </tr>

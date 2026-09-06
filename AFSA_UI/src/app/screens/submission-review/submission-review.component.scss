@@ -7,17 +7,19 @@
   --submission-accent-soft: rgba(31, 73, 125, 0.075);
   --submission-accent-border: rgba(31, 73, 125, 0.2);
 
-  --submission-success: #067647;
-  --submission-success-soft: #ECFDF3;
-  --submission-success-border: #ABEFC6;
+  /* Reference palette green */
+  --submission-success: #00843D;
+  --submission-success-soft: #E6F4EC;
+  --submission-success-border: #B8E0C8;
+
+  /* Reference palette red */
+  --submission-danger: #C0504D;
+  --submission-danger-soft: #FBEEED;
+  --submission-danger-border: #E8B4B2;
 
   --submission-warning: #B54708;
   --submission-warning-soft: #FFFAEB;
   --submission-warning-border: #FEDF89;
-
-  --submission-danger: #B42318;
-  --submission-danger-soft: #FEF3F2;
-  --submission-danger-border: #FECDCA;
 
   --submission-info: #175CD3;
   --submission-info-soft: #EFF8FF;
@@ -129,8 +131,6 @@
   box-shadow: 0 2px 8px rgba(15, 23, 42, 0.03);
 
   @include bp.tablet-down {
-    /* header-controls below has flex-shrink: 0, so without a wrap here the
-       row could overflow its card rather than reflow at narrower widths. */
     flex-wrap: wrap;
     align-items: flex-start;
     gap: 18px;
@@ -216,7 +216,7 @@
 .sr-header-contact-info {
   display: flex;
   flex-direction: column;
-  gap: 1px;
+  gap: 5px;
 }
 
 .sr-header-contact-lines {
@@ -782,8 +782,6 @@
   color: var(--text-muted);
 }
 
-/* CoA amount cells/headers follow the API schema's amount type. The API
-   already formats these values, so alignment is the only client-side concern. */
 .sr-table-coa th.amount-header,
 .sr-table-coa td.amount-cell {
   text-align: right;
@@ -1138,8 +1136,6 @@
   table-layout: auto;
 }
 
-// 14 columns now need real room — always horizontal-scrolls below this,
-// same approach as .sr-table-coa.
 .sr-table-irregularities {
   min-width: 1500px;
 }
@@ -1158,9 +1154,6 @@
   vertical-align: middle;
 }
 
-/* Action column: left-aligned (previously hugged the far right edge via
-   `text-align: right` on the last cell). Buttons now sit closer to the
-   rest of the row content instead of pinned to the table's outer edge. */
 .sr-table-completeness th:last-child,
 .sr-table-completeness td:last-child,
 .sr-table-coa th:last-child,
@@ -1226,8 +1219,6 @@
 .coa-action { width: 20%; }
 .coa-month { width: 10%; }
 
-/* ---------- CoA: Status as a dot + text indicator, visually distinct from
-   the filled Mapping Confidence pill next to it ---------- */
 .sr-status-indicator {
   display: inline-flex;
   align-items: center;
@@ -1265,13 +1256,6 @@
 }
 
 @include bp.tablet-down {
-  /* Only force a minimum table width (and therefore a horizontal
-     scrollbar inside .sr-table-scroll) once the viewport is genuinely
-     too narrow to fit the fixed-layout columns comfortably. Above this
-     breakpoint the table simply shrinks to the container width.
-     (Header/tabs wrap rules now live on their own selectors above, using
-     the same bp.tablet-down breakpoint, instead of a separate ad-hoc
-     1050px cutoff — keeps every reflow on this screen in sync.) */
   .sr-table-scroll .sr-table {
     min-width: 760px;
   }
@@ -1379,7 +1363,7 @@
 .coa-action { width: 12%; }
 
 .sr-table-coa {
-  min-width: 1400px; // wide table now — always horizontal-scrolls on smaller screens
+  min-width: 1400px;
 }
 
 .sr-rationale-text {
@@ -1451,7 +1435,7 @@
   color: var(--submission-accent);
   flex-shrink: 0;
   position: relative;
-  top: 2px;
+  top: 1px;
   animation: srAiGlow 1s ease-in-out infinite;
 }
 

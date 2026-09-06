@@ -67,8 +67,8 @@ interface AffiliateRow {
 function mockContactFor(affiliateName: string): AffiliateContact {
   const slug = affiliateName.toLowerCase().replace(/[^a-z0-9]+/g, '');
   return {
-    name: `${affiliateName} Representative`,
-    role: 'Finance Submission Point of Contact',
+    name: `Affiliate Representative`,
+    role: 'Submission Point of Contact',
     company: affiliateName,
     email: `xxx.xxx@${slug || 'affiliate'}.com`,
     phone: '+966 5X XXX XXXX',

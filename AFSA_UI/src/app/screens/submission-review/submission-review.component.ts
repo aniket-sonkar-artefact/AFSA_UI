@@ -339,6 +339,8 @@ export class SubmissionReviewComponent implements OnInit {
     } as Record<ChecklistStatus, number>;
   });
 
+  /** Completeness tab KPI cards — reference palette only:
+   *  Complete = green, Missing = red, Partial = navy. */
   readonly checklistStatCards = computed(() => {
     const counts = this.checklistCounts();
     const requiredTotal = counts.Complete + counts.Incomplete + counts.Missing;
@@ -361,7 +363,7 @@ export class SubmissionReviewComponent implements OnInit {
       {
         label: 'Affiliate Submission Partial',
         value: counts.Incomplete,
-        color: 'var(--submission-warning)',
+        color: 'var(--submission-accent)',
         detail: 'Submitted but incomplete',
         attention: false,
       },
@@ -382,24 +384,30 @@ export class SubmissionReviewComponent implements OnInit {
   readonly irregularitiesResolvedCount = computed(() => this.irregularitiesSummary()?.closed ?? 0);
   readonly irregularitiesRequiringReview = computed(() => this.irregularitiesTotal() - this.irregularitiesResolvedCount());
 
+  /** Priority breakdown — reference palette only:
+   *  High = red, Medium = navy, Low = green. */
   readonly irregularitiesPriorityBreakdown = computed(() => {
     const s = this.irregularitiesSummary();
     return [
       { label: 'High', value: s?.highSeverity ?? 0, color: 'var(--submission-danger)' },
-      { label: 'Medium', value: s?.midSeverity ?? 0, color: 'var(--submission-warning)' },
-      { label: 'Low', value: s?.lowSeverity ?? 0, color: 'var(--submission-info)' },
+      { label: 'Medium', value: s?.midSeverity ?? 0, color: 'var(--submission-accent)' },
+      { label: 'Low', value: s?.lowSeverity ?? 0, color: 'var(--submission-success)' },
     ];
   })
 
+  /** Status breakdown — reference palette only:
+   *  Open = navy, Investigate = red, Closed = green. */
   readonly irregularitiesStatusBreakdown = computed(() => {
     const s = this.irregularitiesSummary();
     return [
-      { label: 'Open', value: s?.open ?? 0, color: 'var(--submission-warning)' },
-      { label: 'Investigate', value: s?.underInvestigation ?? 0, color: 'var(--submission-info)' },
+      { label: 'Open', value: s?.open ?? 0, color: 'var(--submission-accent)' },
+      { label: 'Investigate', value: s?.underInvestigation ?? 0, color: 'var(--submission-danger)' },
       { label: 'Closed', value: s?.closed ?? 0, color: 'var(--submission-success)' },
     ];
   });
 
+  /** CoA overview — reference palette only:
+   *  High Confidence = green, Low Confidence = navy, Unmapped = red. */
   readonly coaOverviewCard = computed(() => {
     const counts = this.coaSummary()?.counts;
     const total = counts?.accountsReviewed ?? 0;
@@ -411,7 +419,7 @@ export class SubmissionReviewComponent implements OnInit {
       total,
       breakdown: [
         { label: 'High Confidence', value: high, color: 'var(--submission-success)' },
-        { label: 'Low Confidence', value: low, color: 'var(--submission-warning)' },
+        { label: 'Low Confidence', value: low, color: 'var(--submission-accent)' },
         { label: 'Unmapped', value: unmapped, color: 'var(--submission-danger)' },
       ],
     };

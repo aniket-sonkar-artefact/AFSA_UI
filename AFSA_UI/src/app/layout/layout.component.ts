@@ -9,7 +9,7 @@ import { AuthService } from '../core/services/auth.service';
 import { ResponsiveService } from '../core/services/responsive.service';
 import { FormsModule } from '@angular/forms';
 import { AfsaOrchestratorComponent } from '../shared/afsa-orchestrator/afsa-orchestrator.component';
-import { ARAMCO_LOGO_COLOR_DATA_URI, ARAMCO_LOGO_WHITE_DATA_URI } from '../shared/aramco-logo.constant';
+import { ARAMCO_DARK_MODE_LOGO_URI, ARAMCO_LIGHT_MODE_LOGO_URI, ARAMCO_LOGO_COLOR_DATA_URI, ARAMCO_LOGO_WHITE_DATA_URI } from '../shared/aramco-logo.constant';
 
 interface NavItem {
   path: string;
@@ -144,8 +144,8 @@ const NAV_ITEMS: NavItem[] = [
   styleUrl: './layout.component.scss',
 })
 export class LayoutComponent {
-  readonly aramcoLogoColorDataUri = ARAMCO_LOGO_COLOR_DATA_URI;
-  readonly aramcoLogoWhiteDataUri = ARAMCO_LOGO_WHITE_DATA_URI;
+  readonly aramcoLogoColorDataUri = ARAMCO_LIGHT_MODE_LOGO_URI;
+  readonly aramcoLogoWhiteDataUri = ARAMCO_DARK_MODE_LOGO_URI;
   private readonly responsive = inject(ResponsiveService);
   private readonly router = inject(Router);
 
