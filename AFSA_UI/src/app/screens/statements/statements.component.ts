@@ -2,7 +2,7 @@ import { Component, OnDestroy, AfterViewInit, ElementRef, QueryList, ViewChildre
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { HttpErrorResponse } from '@angular/common/http';
-import { Router } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { Subscription } from 'rxjs';
 import { IconComponent } from '../../shared/icon/icon';
 import { SkeletonComponent } from '../../shared/skeleton/skeleton.component';
@@ -47,10 +47,20 @@ import { SelectComponent } from '../../shared/select/select.component';
      same, which the API rejects), each tab falls back to a small
      mock row set matching the approved design's figures, converted
      into the same VarianceRow shape as real data.
+   - Active tab (Income/Balance) is persisted via a ?tab= query param,
+     the same pattern used on Submission Review and Integrity, so a
+     hard reload doesn't always snap back to Income Statement. Unlike
+     those two screens, nothing here is carried through router state
+     (no equivalent of the affiliate display name), so no sessionStorage
+     fallback is needed -- the query param alone survives a reload.
 ========================================================= */
 
 type StatementTab = 'income' | 'balance' | 'cashflow';
 type Granularity = 'Monthly' | 'Quarterly' | 'Yearly';
+
+/** Cash Flow is intentionally excluded -- it's locked/disabled, so a
+ *  ?tab=cashflow in a shared/bookmarked URL should not be restorable. */
+const RESTORABLE_TABS: StatementTab[] = ['income', 'balance'];
 
 interface SummaryMetric {
   label: string;
@@ -350,9 +360,28 @@ export class StatementsComponent implements AfterViewInit, OnDestroy {
     this.activeTab() === 'balance' ? this.balanceSummaryMetrics() : this.incomeSummaryMetrics(),
   );
 
-  constructor(private readonly varianceService: VarianceService, private readonly router: Router) {
+  constructor(
+    private readonly varianceService: VarianceService,
+    private readonly router: Router,
+    private readonly route: ActivatedRoute,
+  ) {
     this.loadPeriodOptions();
+
+    // Restore whichever tab (Income/Balance) was active before a hard
+    // reload/navigation, via the ?tab= query param -- otherwise this
+    // screen always snapped back to Income Statement regardless of where
+    // the person was. Cash Flow is excluded since it's locked/disabled.
+    const queryTab = this.route.snapshot.queryParamMap.get('tab') as StatementTab | null;
+    if (queryTab && RESTORABLE_TABS.includes(queryTab)) {
+      this.activeTab.set(queryTab);
+    }
+
     this.fetchStatement('income');
+    // If the restored tab is Balance, that tab's own data still needs its
+    // initial fetch -- the line above only covers Income Statement.
+    if (this.activeTab() === 'balance') {
+      this.fetchStatement('balance');
+    }
   }
 
   ngOnDestroy(): void {
@@ -367,10 +396,24 @@ export class StatementsComponent implements AfterViewInit, OnDestroy {
   setTab(tab: StatementTab): void {
     if (tab === 'cashflow') return; // locked — no data source yet
     this.activeTab.set(tab);
+    this.syncTabQueryParam(tab);
     this.collapsedRows.set(new Set()); // fresh row set, fresh collapse state
     if (tab === 'balance' && this.balanceLoadedKey !== this.filterKey) {
       this.fetchStatement('balance');
     }
+  }
+
+  /** Keeps the URL's ?tab= param in sync with the active tab so a hard
+   *  reload (or a shared/bookmarked link) lands back on the same tab
+   *  instead of always defaulting to Income Statement. replaceUrl avoids
+   *  filling browser history with one entry per tab click. */
+  private syncTabQueryParam(tab: StatementTab): void {
+    this.router.navigate([], {
+      relativeTo: this.route,
+      queryParams: { tab },
+      queryParamsHandling: 'merge',
+      replaceUrl: true,
+    });
   }
 
   setGranularity(g: Granularity): void {
