@@ -1,6 +1,6 @@
 import { Component, OnInit, computed, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { Router } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { IconComponent } from '../../shared/icon/icon';
 import { SkeletonComponent } from '../../shared/skeleton/skeleton.component';
 import { PaginationComponent } from '../../shared/pagination/pagination.component';
@@ -17,6 +17,8 @@ import { AgentStatusCueComponent } from '../../shared/agent-status-cue/agent-sta
 import { SpecialistAgentComponent } from '../../shared/specialist-agent/specialist-agent.component';
 
 type Tab = 'xref' | 'footing';
+
+const VALID_TABS: Tab[] = ['xref', 'footing'];
 
 const PAGE_SIZE = 10;
 const EMPTY_COUNTS: IntegrityCheckCounts = { checked: 0, passed: 0, flagged: 0, completed: 0 };
@@ -57,6 +59,15 @@ export class IntegrityComponent implements OnInit {
   readonly expandedXrefRows = signal<Set<string>>(new Set());
   readonly markingXrefRow = signal<string | null>(null);
 
+  /** True only while the Cross-Reference table + KPI counts are being
+   *  reloaded after a "Mark Complete" action -- independent from
+   *  xrefLoading(), which also covers plain pagination and the very first
+   *  load. Kept separate so pagination doesn't flash the KPI cards, but a
+   *  Mark Complete reload shows a skeleton on both the table and the
+   *  counts, since the confirmed row's completion can shift more than
+   *  just its own row (e.g. the Flagged/Completed counts). */
+  readonly xrefReloading = signal(false);
+
   /* ---------- Footing tab state ---------- */
   readonly footingRows = signal<FootingRow[]>([]);
   readonly footingCounts = signal<IntegrityCheckCounts>(EMPTY_COUNTS);
@@ -67,6 +78,9 @@ export class IntegrityComponent implements OnInit {
   readonly footingLoaded = signal(false);
   readonly expandedFootingRows = signal<Set<string>>(new Set());
   readonly markingFootingRow = signal<string | null>(null);
+
+  /** Same purpose as xrefReloading(), for the Footing tab. */
+  readonly footingReloading = signal(false);
 
   readonly refreshing = signal(false);
 
@@ -135,9 +149,18 @@ export class IntegrityComponent implements OnInit {
   constructor(
     private readonly integrityService: IntegrityService,
     private readonly router: Router,
+    private readonly route: ActivatedRoute,
   ) {}
 
   ngOnInit(): void {
+    // Restore whichever tab was active before a hard reload/navigation, via
+    // the ?tab= query param -- otherwise this screen always snapped back to
+    // Cross-Reference Check regardless of where the person was.
+    const queryTab = this.route.snapshot.queryParamMap.get('tab') as Tab | null;
+    if (queryTab && VALID_TABS.includes(queryTab)) {
+      this.tab.set(queryTab);
+    }
+
     this.loadSummary();
     this.integrityService.getCrossReferenceSchema().subscribe({
       next: (schema) => this.xrefSchema.set(schema),
@@ -146,6 +169,12 @@ export class IntegrityComponent implements OnInit {
       next: (schema) => this.footingSchema.set(schema),
     });
     this.loadXrefRows(1);
+
+    // If the restored tab is Footing, that tab's own data still needs its
+    // initial fetch -- loadXrefRows() above only covers Cross-Reference.
+    if (this.tab() === 'footing') {
+      this.loadFootingRows(1);
+    }
   }
 
   private loadSummary(refresh = false): void {
@@ -207,9 +236,23 @@ export class IntegrityComponent implements OnInit {
 
   setTab(tab: Tab): void {
     this.tab.set(tab);
+    this.syncTabQueryParam(tab);
     if (tab === 'footing' && !this.footingLoaded()) {
       this.loadFootingRows(1);
     }
+  }
+
+  /** Keeps the URL's ?tab= param in sync with the active tab so a hard
+   *  reload (or a shared/bookmarked link) lands back on the same tab
+   *  instead of always defaulting to Cross-Reference Check. replaceUrl
+   *  avoids filling browser history with one entry per tab click. */
+  private syncTabQueryParam(tab: Tab): void {
+    this.router.navigate([], {
+      relativeTo: this.route,
+      queryParams: { tab },
+      queryParamsHandling: 'merge',
+      replaceUrl: true,
+    });
   }
 
   goToFootingTab(): void {
@@ -391,15 +434,31 @@ export class IntegrityComponent implements OnInit {
     if (this.markingXrefRow()) return;
     this.markingXrefRow.set(row.lineId);
     this.integrityService.markComplete<XRefRow>('crossReference', row.lineId, true).subscribe({
-      next: ({ row: updated, counts }) => {
-        this.xrefRows.update((rows) => rows.map((r) => (r.lineId === updated.lineId ? updated : r)));
-        this.xrefCounts.set(counts);
+      next: () => {
         this.markingXrefRow.set(null);
         this.expandedXrefRows.update((prev) => {
           const next = new Set(prev);
-          next.delete(updated.lineId);
+          next.delete(row.lineId);
           return next;
         });
+
+        // Reload the whole table for the current page + its KPI counts,
+        // rather than only patching the one confirmed row locally --
+        // marking a row complete can shift the Flagged/Completed counts
+        // and, in principle, other rows on the page too.
+        this.xrefReloading.set(true);
+        this.integrityService.getCrossReferenceRows(this.xrefPage(), PAGE_SIZE).subscribe({
+          next: (data) => {
+            this.xrefRows.set(data.items);
+            this.xrefCounts.set(data.counts);
+            this.xrefTotalPages.set(Math.max(1, data.totalPages));
+            this.xrefReloading.set(false);
+          },
+          error: () => {
+            this.xrefReloading.set(false);
+          },
+        });
+
         this.refreshSummarySilently();
         onSettled?.();
       },
@@ -414,15 +473,28 @@ export class IntegrityComponent implements OnInit {
     if (this.markingFootingRow()) return;
     this.markingFootingRow.set(row.lineId);
     this.integrityService.markComplete<FootingRow>('footing', row.lineId, true).subscribe({
-      next: ({ row: updated, counts }) => {
-        this.footingRows.update((rows) => rows.map((r) => (r.lineId === updated.lineId ? updated : r)));
-        this.footingCounts.set(counts);
+      next: () => {
         this.markingFootingRow.set(null);
         this.expandedFootingRows.update((prev) => {
           const next = new Set(prev);
-          next.delete(updated.lineId);
+          next.delete(row.lineId);
           return next;
         });
+
+        // Same full-page reload approach as markXRefComplete() above.
+        this.footingReloading.set(true);
+        this.integrityService.getFootingRows(this.footingPage(), PAGE_SIZE).subscribe({
+          next: (data) => {
+            this.footingRows.set(data.items);
+            this.footingCounts.set(data.counts);
+            this.footingTotalPages.set(Math.max(1, data.totalPages));
+            this.footingReloading.set(false);
+          },
+          error: () => {
+            this.footingReloading.set(false);
+          },
+        });
+
         this.refreshSummarySilently();
         onSettled?.();
       },

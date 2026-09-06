@@ -80,7 +80,7 @@
   @if (tab() === 'xref') {
     <div class="integrity-tab-panel">
       <section class="integrity-kpi-grid">
-        @if (xrefLoading() && !xrefLoaded()) {
+        @if ((xrefLoading() && !xrefLoaded()) || xrefReloading()) {
           @for (i of [1, 2, 3, 4]; track i) {
             <div class="integrity-kpi">
               <app-skeleton width="42px" height="27px" radius="5px"></app-skeleton>
@@ -147,7 +147,7 @@
             </tr>
           </thead>
           <tbody>
-            @if (xrefLoading()) {
+            @if (xrefLoading() || xrefReloading()) {
               @for (row of skeletonRows; track row) {
                 <tr class="integrity-row">
                   <td><app-skeleton width="170px" height="11px" radius="4px"></app-skeleton></td>
@@ -257,7 +257,7 @@
   @if (tab() === 'footing') {
     <div class="integrity-tab-panel">
       <section class="integrity-kpi-grid">
-        @if (footingLoading() && !footingLoaded()) {
+        @if ((footingLoading() && !footingLoaded()) || footingReloading()) {
           @for (i of [1, 2, 3, 4]; track i) {
             <div class="integrity-kpi">
               <app-skeleton width="42px" height="27px" radius="5px"></app-skeleton>
@@ -326,7 +326,7 @@
             </tr>
           </thead>
           <tbody>
-            @if (footingLoading()) {
+            @if (footingLoading() || footingReloading()) {
               @for (row of skeletonRows; track row) {
                 <tr class="integrity-row">
                   <td><app-skeleton width="150px" height="11px" radius="4px"></app-skeleton></td>

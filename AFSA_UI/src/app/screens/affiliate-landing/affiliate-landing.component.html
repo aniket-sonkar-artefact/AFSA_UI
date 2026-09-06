@@ -153,7 +153,7 @@
               <td>
                 <div class="al-cell-metric">
                   <div class="al-cell-top">
-                    <span class="al-cell-percent" [class.al-cell-green]="row.completenessPercent >= 90" [class.al-cell-red]="row.completenessPercent < 90">
+                    <span class="al-cell-percent" [style.color]="progressColor(row.completenessPercent)">
                       {{ row.completenessPercent }}%
                     </span>
                     <span class="al-cell-fraction">{{ row.completenessFraction }}</span>
@@ -162,8 +162,7 @@
                     <div
                       class="al-cell-fill"
                       [style.width.%]="row.completenessPercent"
-                      [class.al-fill-green]="row.completenessPercent >= 90"
-                      [class.al-fill-red]="row.completenessPercent < 90"
+                      [style.background]="progressColor(row.completenessPercent)"
                     ></div>
                   </div>
                 </div>
@@ -172,11 +171,11 @@
               <td>
                 <div class="al-cell-metric">
                   <div class="al-cell-top">
-                    <span class="al-cell-percent al-cell-red">{{ row.irregularitiesPercent }}%</span>
+                    <span class="al-cell-percent" [style.color]="progressColor(row.irregularitiesPercent)">{{ row.irregularitiesPercent }}%</span>
                     <span class="al-cell-fraction">{{ row.irregularitiesFraction }}</span>
                   </div>
                   <div class="al-cell-track">
-                    <div class="al-cell-fill al-fill-red" [style.width.%]="row.irregularitiesPercent"></div>
+                    <div class="al-cell-fill" [style.width.%]="row.irregularitiesPercent" [style.background]="progressColor(row.irregularitiesPercent)"></div>
                   </div>
                 </div>
               </td>
@@ -184,11 +183,11 @@
               <td>
                 <div class="al-cell-metric">
                   <div class="al-cell-top">
-                    <span class="al-cell-percent al-cell-green">{{ row.coaMappingPercent }}%</span>
+                    <span class="al-cell-percent" [style.color]="progressColor(row.coaMappingPercent)">{{ row.coaMappingPercent }}%</span>
                     <span class="al-cell-fraction">{{ row.coaMappingFraction }}</span>
                   </div>
                   <div class="al-cell-track">
-                    <div class="al-cell-fill al-fill-green" [style.width.%]="row.coaMappingPercent"></div>
+                    <div class="al-cell-fill" [style.width.%]="row.coaMappingPercent" [style.background]="progressColor(row.coaMappingPercent)"></div>
                   </div>
                 </div>
               </td>

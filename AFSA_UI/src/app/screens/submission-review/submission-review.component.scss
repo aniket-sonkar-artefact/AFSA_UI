@@ -216,7 +216,7 @@
 .sr-header-contact-info {
   display: flex;
   flex-direction: column;
-  gap: 5px;
+  gap: 4px;
 }
 
 .sr-header-contact-lines {
@@ -262,7 +262,7 @@
   display: flex;
   align-items: center;
   gap: 14px;
-  margin-top: 5px;
+  margin-top: 8px;
 
   span {
     font-size: 10px;
@@ -1435,7 +1435,7 @@
   color: var(--submission-accent);
   flex-shrink: 0;
   position: relative;
-  top: 1px;
+  top: 2px;
   animation: srAiGlow 1s ease-in-out infinite;
 }
 
@@ -1443,4 +1443,36 @@
   .sr-ai-icon {
     animation: none;
   }
+}
+
+/* =====================================================
+   TOAST (locked Monthly/Yearly "coming soon" message)
+   — same pattern as the Statement Component's .st-toast
+====================================================== */
+
+.sr-toast {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--submission-accent);
+  color: #fff;
+  padding: 10px 16px;
+  border-radius: 10px;
+  font-size: 12.5px;
+  font-weight: 600;
+  box-shadow: var(--shadow-md);
+  z-index: 40;
+  animation: srToastIn 0.25s ease both;
+}
+
+.sr-toast-icon {
+  display: inline-flex;
+}
+
+@keyframes srToastIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
 }

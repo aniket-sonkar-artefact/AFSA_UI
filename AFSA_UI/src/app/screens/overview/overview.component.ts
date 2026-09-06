@@ -100,7 +100,7 @@ interface ReportingStage {
 }
 
 interface StatusCard {
-  agentKey: string; // new
+  agentKey: string;
   label: string;
   status: StageStatus;
   statusLabel: string;
@@ -108,18 +108,12 @@ interface StatusCard {
   pendingSteps: number;
   route: string;
   accent: string;
-  elapsed: string | null; // new
-  sla: string; // new
-  overSla: boolean; // new
-}
-
-const ATTENTION_ACCENT = '#C0504D';
-
-/** Attention/alert states always render red regardless of the module's own
- * brand color -- "Requires Attention" is a universal alarm color, not a
- * per-module identity color. */
-function effectiveAccent(status: StageStatus, moduleAccent: string): string {
-  return status === 'attention' ? ATTENTION_ACCENT : moduleAccent;
+  /** Fixed per-module identity icon (same one shown in the sidebar nav for
+   *  this module) -- never swapped based on status. */
+  icon: IconName;
+  elapsed: string | null;
+  sla: string;
+  overSla: boolean;
 }
 
 function toStageStatus(status: string): StageStatus {
@@ -198,19 +192,27 @@ interface StageOrderEntry {
   label: string;
   route: string | null;
   accent: string;
+  /** Same icon name used for this module's entry in the sidebar nav
+   *  (see layout.component.ts NAV_ITEMS) -- kept in sync manually since
+   *  the two lists live in different components. */
+  icon: IconName;
 }
 
 /** Fixed pipeline order. Entries with a null key have no backing agent yet
- *  and always render as locked "coming-soon" stepper nodes. */
+ *  and always render as locked "coming-soon" stepper nodes.
+ *
+ *  Icons mirror layout.component.ts NAV_ITEMS exactly:
+ *  /submission -> file-text, /ifrs -> check-circle,
+ *  /mgmtreport -> bar-chart, /integrity -> shield. */
 const STAGE_ORDER: StageOrderEntry[] = [
-  { key: 'affiliate_submission_reviewer', label: 'Affiliate Submission Reviewer', route: '/submission', accent: '#1F497D' },
-  { key: null, label: 'Preliminary Results Solution', route: null, accent: '#64748B' },
-  { key: null, label: 'Intercompany Elimination & Reconciliation', route: null, accent: '#64748B' },
-  { key: null, label: 'Cash Flow Statement Analysis & Review', route: null, accent: '#64748B' },
-  { key: 'compliance_monitoring_benchmarking', label: 'Compliance Monitoring & Benchmarking', route: '/ifrs', accent: '#C0504D' },
-  { key: 'management_report_generator', label: 'Management Report Generator', route: '/mgmtreport', accent: '#8064A2' },
-  { key: 'financial_statement_integrity_formatting', label: 'Financial Statement Integrity and Formatting', route: '/integrity', accent: '#4BACC6' }, // was missing "_formatting"
-  { key: null, label: 'FS Translation & Terminology Management', route: null, accent: '#64748B' },
+  { key: 'affiliate_submission_reviewer', label: 'Affiliate Submission Reviewer', route: '/submission', accent: '#1F497D', icon: 'file-text' },
+  { key: null, label: 'Preliminary Results Solution', route: null, accent: '#64748B', icon: 'trending-up' },
+  { key: null, label: 'Intercompany Elimination & Reconciliation', route: null, accent: '#64748B', icon: 'layers' },
+  { key: null, label: 'Cash Flow Statement Analysis & Review', route: null, accent: '#64748B', icon: 'dollar' },
+  { key: 'compliance_monitoring_benchmarking', label: 'Compliance Monitoring & Benchmarking', route: '/ifrs', accent: '#C0504D', icon: 'check-circle' },
+  { key: 'management_report_generator', label: 'Management Report Generator', route: '/mgmtreport', accent: '#8064A2', icon: 'bar-chart' },
+  { key: 'financial_statement_integrity_formatting', label: 'Financial Statement Integrity and Formatting', route: '/integrity', accent: '#4BACC6', icon: 'shield' }, // was missing "_formatting"
+  { key: null, label: 'FS Translation & Terminology Management', route: null, accent: '#64748B', icon: 'translate' },
 ];
 
 function findValue(values: HomeApiKpiValue[], period: string): number | null {
@@ -376,15 +378,53 @@ readonly affiliatePerformance = computed<AffiliatePerformanceRow[]>(() => {
 
   readonly expandedCardKey = signal<string | null>(null);
 
-  readonly expandedCard = computed(() => this.statusCards().find((c) => c.agentKey === this.expandedCardKey()) ?? null);
+  /** A card can only be "expanded" (pending-steps panel open) while it
+   *  still has pending steps to show -- once it hits 100%, there is
+   *  nothing to expand, so this always resolves to null for such cards
+   *  even if it was expanded right before the last tick pushed it to 100%. */
+  readonly expandedCard = computed(() => {
+    const card = this.statusCards().find((c) => c.agentKey === this.expandedCardKey());
+    return card && card.percent < 100 ? card : null;
+  });
 
   togglePendingSteps(agentKey: string, event: Event): void {
     event.stopPropagation();
     this.expandedCardKey.update((current) => (current === agentKey ? null : agentKey));
   }
 
+  /** Pending steps are always empty once a card reaches 100% -- regardless
+   *  of what the static mock data says -- since "0 pending steps" is the
+   *  only thing that makes sense once a stage is fully complete. */
   pendingStepsFor(agentKey: string): PendingStep[] {
+    const card = this.statusCards().find((c) => c.agentKey === agentKey);
+    if (card && card.percent >= 100) return [];
     return PENDING_STEPS_MOCK[agentKey] ?? [];
+  }
+
+  /** Single source of truth for a stage's status + percent, shared by both
+   *  statusCards() and reportingStages() so they can never disagree (e.g.
+   *  the top stepper showing "Requires Attention" while the KPI card for
+   *  the same agent shows "Complete"). Compliance's percent comes from a
+   *  dedicated progress service rather than the raw API field, and once
+   *  that reaches 100% the status is forced to 'complete' regardless of
+   *  what the backend's own status field still says. */
+  private resolveStageState(
+    key: string,
+    item: { status: string; progress_pct: number } | undefined,
+  ): { status: StageStatus; percent: number } {
+    let status: StageStatus = item ? toStageStatus(item.status) : 'pending';
+    let percent = item?.progress_pct ?? 0;
+
+    if (key === 'compliance_monitoring_benchmarking') {
+      percent = this.complianceProgress.progressPercent();
+      if (percent >= 100) {
+        status = 'complete';
+      }
+    } else if (key === 'management_report_generator') {
+      percent = this.managementReportProgress.progressPercent();
+    }
+
+    return { status, percent };
   }
 
   readonly statusCards = computed<StatusCard[]>(() => {
@@ -394,21 +434,7 @@ readonly affiliatePerformance = computed<AffiliatePerformanceRow[]>(() => {
 
     return STAGE_ORDER.filter((s) => s.key !== null).map((s) => {
       const item = workflowMap.get(s.key!);
-      let status = item ? toStageStatus(item.status) : 'pending';
-
-      let percent = item?.progress_pct ?? 0;
-      if (s.key === 'compliance_monitoring_benchmarking') {
-        percent = this.complianceProgress.progressPercent();
-        // Once compliance work has fully progressed, override whatever status
-        // the backend reports — 100% should never keep showing "Requires
-        // Attention" or the blinking-shadow treatment.
-        if (percent >= 100) {
-          status = 'complete';
-        }
-      } else if (s.key === 'management_report_generator') {
-        percent = this.managementReportProgress.progressPercent();
-      }
-
+      const { status, percent } = this.resolveStageState(s.key!, item);
       const sla = SLA_MOCK[s.key!] ?? { elapsed: null, sla: '—', overSla: false };
 
       return {
@@ -419,7 +445,13 @@ readonly affiliatePerformance = computed<AffiliatePerformanceRow[]>(() => {
         percent,
         pendingSteps: item?.pending_steps ?? 0,
         route: s.route!,
-        accent: effectiveAccent(status, s.accent),
+        // Always the module's own brand color -- "Requires Attention" is
+        // communicated by the pulsing red border (.ov-status-attention),
+        // not by recoloring the icon/pill/percent/progress-bar.
+        accent: s.accent,
+        // Fixed module identity icon -- same one shown in the sidebar nav
+        // for this module, never swapped based on status.
+        icon: s.icon,
         elapsed: sla.elapsed,
         sla: sla.sla,
         overSla: sla.overSla,
@@ -436,8 +468,10 @@ readonly affiliatePerformance = computed<AffiliatePerformanceRow[]>(() => {
         return { label: s.label, route: null, status: 'coming-soon' as StageStatus, accent: '#64748B' };
       }
       const item = workflowMap.get(s.key);
-      const status = item ? toStageStatus(item.status) : 'coming-soon';
-      return { label: s.label, route: s.route, status, accent: effectiveAccent(status, s.accent) };
+      // Shares the exact same resolver as statusCards(), so the top
+      // stepper and the KPI card for the same agent can never disagree.
+      const { status } = this.resolveStageState(s.key, item);
+      return { label: s.label, route: s.route, status, accent: s.accent };
     });
   });
 

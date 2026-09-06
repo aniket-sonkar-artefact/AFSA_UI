@@ -37,6 +37,8 @@ const TAB_LABEL: Record<MainTab, string> = {
   coa: 'CoA Mapping Review',
 };
 
+const VALID_TABS: MainTab[] = ['completeness', 'irregularities', 'coa'];
+
 const PERIOD_LABEL = 'Q1 2026';
 
 const TRIAL_BALANCE_NOT_READY_FALLBACK =
@@ -164,6 +166,29 @@ export class SubmissionReviewComponent implements OnInit {
 
   readonly tab = signal<MainTab>('completeness');
 
+  /** Small transient "coming soon" / info toast, matching the pattern used
+   *  by the Statement Component (st-toast). Used here for the locked
+   *  Monthly/Yearly period-view options. */
+  readonly toast = signal<string | null>(null);
+
+  /** True only while the Irregularities KPI cards are being refreshed after
+   *  a status change -- independent from irregularitiesLoading(), which
+   *  drives the full-tab skeleton (cards + table) on first load. Keeping
+   *  this separate means only the 3 KPI cards show a skeleton on refresh;
+   *  the findings table underneath stays visible and untouched. */
+  readonly irregularitiesSummaryLoading = signal(false);
+
+  /** True only while the CoA table (current page) is being refetched after
+   *  a mapping confirmation -- independent from coaLoading(), which drives
+   *  the full-tab skeleton on first load. The KPI cards above the table
+   *  refresh separately via coaSummary. */
+  readonly coaTableReloading = signal(false);
+
+  private showToast(message: string): void {
+    this.toast.set(message);
+    window.setTimeout(() => this.toast.set(null), 3000);
+  }
+
   readonly checklist = signal<ChecklistGroup[]>([]);
   readonly findings = signal<Finding[]>([]);
   readonly irregularitiesSummary = signal<IrregularitiesSummary | null>(null);
@@ -241,6 +266,22 @@ export class SubmissionReviewComponent implements OnInit {
           this.findings.update((rows) => rows.map((r, i) => (i === index ? { ...r, status: newStatus } : r)));
           this.statusChangeInFlight.set(false);
           this.pendingStatusChange.set(null);
+
+          // Always reload the KPI summary after a status change so the
+          // "Irregularities by Priority/Status" cards reflect the new
+          // counts immediately, rather than only updating the one row
+          // locally and leaving the summary stale until a full tab reload.
+          this.irregularitiesSummaryLoading.set(true);
+          this.submissionReviewService.getIrregularitiesSummary(this.irregularitiesAffiliate()).subscribe({
+            next: (summary) => {
+              this.irregularitiesSummary.set(summary);
+              this.irregularitiesSummaryLoading.set(false);
+            },
+            error: (err) => {
+              console.error('Could not refresh irregularities summary.', err);
+              this.irregularitiesSummaryLoading.set(false);
+            },
+          });
         },
         error: (err) => {
           this.handleError(err, 'Could not update the finding status.');
@@ -252,6 +293,9 @@ export class SubmissionReviewComponent implements OnInit {
 
   // Monthly / Quarterly / Yearly toggle for each table. Purely a display
   // remap over data already fetched -- switching never triggers a refetch.
+  // Monthly and Yearly are locked (matching the Statement Component's
+  // granularity toggle): selecting either shows a "coming soon" toast and
+  // the view stays on Quarterly rather than actually switching.
   readonly irregularitiesPeriodView = signal<PeriodView>('quarterly');
   readonly coaPeriodView = signal<PeriodView>('quarterly');
 
@@ -291,10 +335,9 @@ export class SubmissionReviewComponent implements OnInit {
     return this.tab() === 'irregularities' ? this.irregularitiesAffiliate() : this.completenessAffiliate();
   });
 
-  // ---- Header point-of-contact + pending-items badge (mock; see note above) ----
+  // ---- Header point-of-contact card (mock; see note above) ----
   readonly headerLoading = signal(true);
   readonly headerContact = signal<AffiliateContactInfo | null>(null);
-  readonly headerPendingCount = signal<number | null>(null);
   private lastHeaderAffiliate: string | null = null;
 
   private readonly headerInfoEffect = effect(() => {
@@ -311,19 +354,49 @@ export class SubmissionReviewComponent implements OnInit {
       this.headerContact.set(mockContactFor(affiliateName));
       this.headerLoading.set(false);
     });
-
-    // Pending Items badge uses the real CoA summary's `counts.pending`,
-    // independent of whether the CoA tab has been opened yet -- the header
-    // is visible on every tab, so this needs its own fetch rather than
-    // waiting on loadCoa().
-    this.submissionReviewService.getCoaSummary(this.coaAffiliate()).subscribe({
-      next: (summary) => this.headerPendingCount.set(summary.counts.pending),
-      error: (err) => {
-        console.error(err);
-        // Leave headerPendingCount as-is (null) rather than showing a wrong number.
-      },
-    });
   }
+
+  /** ---- "Pending Items" badge: one value per tab, not a single shared
+   *  number ----
+   *  Each tab already tracks the data this needs, so the badge just reads
+   *  the appropriate one for whichever tab is active, rather than a
+   *  separate always-CoA fetch:
+   *  - Completeness: items that are Missing or Incomplete.
+   *  - Irregularities: findings not yet Closed.
+   *  - CoA: the summary's own `counts.pending` (Low Confidence + Unmapped).
+   *  Because these all come from signals the tabs already keep fresh
+   *  (including after a status change or mapping confirmation), the badge
+   *  updates automatically whenever those do -- no extra fetch needed. */
+  readonly completenessPendingCount = computed(() => {
+    const counts = this.checklistCounts();
+    return counts.Missing + counts.Incomplete;
+  });
+
+  readonly coaPendingCount = computed(() => this.coaSummary()?.counts?.pending ?? 0);
+
+  readonly headerPendingCount = computed(() => {
+    switch (this.tab()) {
+      case 'completeness':
+        return this.completenessPendingCount();
+      case 'irregularities':
+        return this.irregularitiesRequiringReview();
+      case 'coa':
+        return this.coaPendingCount();
+    }
+  });
+
+  /** Skeleton state for the badge, matching whichever loading/reloading
+   *  flag governs the active tab's own pending-relevant data. */
+  readonly headerPendingLoading = computed(() => {
+    switch (this.tab()) {
+      case 'completeness':
+        return this.completenessLoading();
+      case 'irregularities':
+        return this.irregularitiesLoading() || this.irregularitiesSummaryLoading();
+      case 'coa':
+        return this.coaLoading() || this.coaTableReloading();
+    }
+  });
 
   onTabToggleChange(value: string): void {
     this.selectTab(value as MainTab);
@@ -460,6 +533,10 @@ export class SubmissionReviewComponent implements OnInit {
   }
 
   onCoaPeriodViewChange(view: string): void {
+    if (view !== 'quarterly') {
+      this.showToast(`${this.periodViewLabel(view)} view is coming soon — showing Quarterly data.`);
+      return;
+    }
     this.coaPeriodView.set(view as PeriodView);
   }
 
@@ -507,10 +584,27 @@ export class SubmissionReviewComponent implements OnInit {
     this.irregularitiesAffiliate.set(entityCode);
     this.coaAffiliate.set(entityCode);
 
+    // Restore whichever tab was active before a hard reload/navigation,
+    // via the ?tab= query param -- otherwise this screen always snapped
+    // back to Completeness Review regardless of where the person was.
+    const queryTab = this.route.snapshot.queryParamMap.get('tab') as MainTab | null;
+    if (queryTab && VALID_TABS.includes(queryTab)) {
+      this.tab.set(queryTab);
+    }
+
     // Schema is configuration for the CoA table, so fetch it once when the
     // screen starts rather than coupling it to a particular affiliate.
     this.loadCoaSchema();
     this.loadCompleteness();
+
+    // If the restored tab isn't Completeness, that tab's own data still
+    // needs its initial fetch -- loadCompleteness() above only covers the
+    // Completeness tab.
+    if (this.tab() === 'irregularities') {
+      this.loadIrregularities(this.irregularitiesPage());
+    } else if (this.tab() === 'coa') {
+      this.loadCoa();
+    }
   }
 
   /** This screen is now unreachable without an entityCode (ngOnInit
@@ -533,6 +627,7 @@ export class SubmissionReviewComponent implements OnInit {
   selectTab(tab: MainTab): void {
     this.tab.set(tab);
     this.error.set(null);
+    this.syncTabQueryParam(tab);
 
     if (tab === 'completeness' && this.completenessAffiliate() && !this.completenessLoadedFor.has(this.completenessAffiliate())) {
       this.loadCompleteness();
@@ -543,6 +638,19 @@ export class SubmissionReviewComponent implements OnInit {
     if (tab === 'coa' && this.coaAffiliate() && !this.coaLoadedFor.has(this.coaAffiliate())) {
       this.loadCoa();
     }
+  }
+
+  /** Keeps the URL's ?tab= param in sync with the active tab so a hard
+   *  reload (or a shared/bookmarked link) lands back on the same tab
+   *  instead of always defaulting to Completeness Review. replaceUrl avoids
+   *  filling browser history with one entry per tab click. */
+  private syncTabQueryParam(tab: MainTab): void {
+    this.router.navigate([], {
+      relativeTo: this.route,
+      queryParams: { tab },
+      queryParamsHandling: 'merge',
+      replaceUrl: true,
+    });
   }
 
   goToTab(tab: MainTab): void {
@@ -580,7 +688,15 @@ export class SubmissionReviewComponent implements OnInit {
   }
 
   onIrregularitiesPeriodViewChange(view: string): void {
+    if (view !== 'quarterly') {
+      this.showToast(`${this.periodViewLabel(view)} view is coming soon — showing Quarterly data.`);
+      return;
+    }
     this.irregularitiesPeriodView.set(view as PeriodView);
+  }
+
+  private periodViewLabel(view: string): string {
+    return view.charAt(0).toUpperCase() + view.slice(1);
   }
 
   private loadCompleteness(): void {
@@ -590,8 +706,11 @@ export class SubmissionReviewComponent implements OnInit {
     this.submissionReviewService.getChecklist(affiliate).subscribe({
       next: (checklist) => {
         this.checklist.set(checklist);
+        // Groups render expanded by default -- previously every group
+        // started collapsed (true), forcing an extra click just to see
+        // the first table.
         const collapsed: Record<string, boolean> = {};
-        checklist.forEach((g) => (collapsed[g.group] = true));
+        checklist.forEach((g) => (collapsed[g.group] = false));
         this.collapsedGroups.set(collapsed);
       },
       error: (err) => this.handleError(err, 'Could not load completeness review.'),
@@ -870,36 +989,37 @@ export class SubmissionReviewComponent implements OnInit {
     this.coaRows.update((rows) => rows.map((r, i) => i === index ? { ...r, canConfirm: false } : r));
 
     this.submissionReviewService.confirmCoaMapping(this.coaAffiliate(), row.rowId, groupNode).subscribe({
-      next: (result) => {
-        const returned = result.row;
-        const confirmed = returned.status === 'Confirmed';
-        this.coaRows.update((rows) => rows.map((r) => r.rowId === returned.rowId
-          ? {
-              ...r,
-              currentGroupNode: returned.currentGroupNode,
-              selectedMapping: returned.currentGroupMapping,
-              mappingConfidence: returned.mappingConfidence,
-              status: returned.status,
-              monthValue: returned.monthValue,
-              qtdValue: returned.qtdValue,
-              ytdValue: returned.ytdValue,
-              rationale: returned.rationale,
-              canConfirm: returned.canConfirm,
-              confirmed,
-              pendingSelection: returned.currentGroupNode,
-            }
-          : r));
+      next: () => {
+        // Reload the KPI summary from the endpoint every time, rather than
+        // trusting an inline `counts` on the response -- guarantees the
+        // High/Low Confidence & Unmapped cards are correct every time.
+        this.submissionReviewService.getCoaSummary(this.coaAffiliate()).subscribe({
+          next: (summary) => this.coaSummary.set(summary),
+          error: (err) => this.handleError(err, 'Could not refresh CoA mapping summary.'),
+        });
 
-        if (result.counts) {
-          this.coaSummary.update((summary) => summary
-            ? { ...summary, counts: result.counts! }
-            : summary);
-        } else {
-          this.submissionReviewService.getCoaSummary(this.coaAffiliate()).subscribe({
-            next: (summary) => this.coaSummary.set(summary),
-            error: (err) => this.handleError(err, 'Could not refresh CoA mapping summary.'),
-          });
-        }
+        // Reload the whole table for the current page instead of only
+        // patching the one confirmed row locally -- a confirmation can
+        // shift other rows' confirmable state too, so refetch the page
+        // wholesale. this.coaPage() keeps it on the same page the person
+        // was viewing rather than resetting to page 1.
+        this.coaTableReloading.set(true);
+        this.submissionReviewService.getCoaRows(this.coaAffiliate(), this.coaPage()).subscribe({
+          next: (result) => {
+            this.coaRows.set(result.items.map((row) => ({
+              ...row,
+              pendingSelection: row.currentGroupNode,
+              canConfirm: row.canConfirm,
+            })));
+            this.coaTotalPages.set(result.totalPages);
+            this.coaTableReloading.set(false);
+          },
+          error: (err) => {
+            this.handleError(err, 'Could not refresh CoA mapping rows.');
+            this.coaTableReloading.set(false);
+          },
+        });
+
         onSettled?.();
       },
       error: (err) => {

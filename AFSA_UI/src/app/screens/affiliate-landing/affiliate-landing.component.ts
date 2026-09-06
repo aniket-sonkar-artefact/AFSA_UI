@@ -62,6 +62,36 @@ interface AffiliateRow {
   pending: AffiliatePendingItems;
 }
 
+/** Red → orange → yellow → green ramp, driven purely by percent (0–100).
+ *  Colors are interpolated between adjacent stops rather than snapping at a
+ *  single threshold, so two affiliates a few points apart (e.g. 88% vs 91%)
+ *  show a visibly different shade instead of jumping straight from red to
+ *  green -- the whole point being that the color itself communicates how
+ *  far along the metric is, not just a pass/fail line. */
+const PROGRESS_COLOR_STOPS: { percent: number; rgb: [number, number, number] }[] = [
+  { percent: 0, rgb: [192, 80, 77] },   // red   (matches --red / #C0504D)
+  { percent: 40, rgb: [217, 119, 6] },  // orange
+  { percent: 70, rgb: [217, 183, 16] }, // yellow
+  { percent: 100, rgb: [0, 132, 61] },  // green (matches --green / #00843D)
+];
+
+function progressColorRamp(percent: number): string {
+  const p = Math.max(0, Math.min(100, percent));
+  for (let i = 0; i < PROGRESS_COLOR_STOPS.length - 1; i++) {
+    const a = PROGRESS_COLOR_STOPS[i];
+    const b = PROGRESS_COLOR_STOPS[i + 1];
+    if (p >= a.percent && p <= b.percent) {
+      const t = (p - a.percent) / (b.percent - a.percent || 1);
+      const r = Math.round(a.rgb[0] + (b.rgb[0] - a.rgb[0]) * t);
+      const g = Math.round(a.rgb[1] + (b.rgb[1] - a.rgb[1]) * t);
+      const bl = Math.round(a.rgb[2] + (b.rgb[2] - a.rgb[2]) * t);
+      return `rgb(${r}, ${g}, ${bl})`;
+    }
+  }
+  const last = PROGRESS_COLOR_STOPS[PROGRESS_COLOR_STOPS.length - 1].rgb;
+  return `rgb(${last[0]}, ${last[1]}, ${last[2]})`;
+}
+
 /* ---------- Mock contact / pending items (see file header note) ---------- */
 
 function mockContactFor(affiliateName: string): AffiliateContact {
@@ -143,6 +173,14 @@ export class AffiliateLandingComponent implements OnInit {
     this.loadOverview();
   }
 
+  /** Red→orange→yellow→green color for a given percent, used by the
+   *  affiliates table's per-metric percent labels and progress-bar fills.
+   *  Exposed as a component method (rather than calling the module-level
+   *  function directly) so the template can bind to it. */
+  progressColor(percent: number): string {
+    return progressColorRamp(percent);
+  }
+
   private loadOverview(): void {
     this.loading.set(true);
     this.error.set(null);
@@ -170,7 +208,7 @@ export class AffiliateLandingComponent implements OnInit {
           accent: '#1F497D',
         },
         {
-          label: 'Overall Irregularities',
+          label: 'Overall Irregularities Resolution',
           percent: data.irregularities.percentage,
           detail: `${data.irregularities.numerator} of ${data.irregularities.denominator} irregularities resolved`,
           accent: '#C0504D',

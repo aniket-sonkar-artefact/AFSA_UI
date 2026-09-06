@@ -6,13 +6,6 @@
     </button>
   }
 
-  <app-agent-status-cue
-    agentName="Affiliate Submission Agent"
-    accent="#1F497D"
-    status="Monitoring affiliates"
-    summary="Affiliate follow-ups monitored automatically"
-  ></app-agent-status-cue>
-
   <!-- HEADER -->
   <section class="sr-header">
     <div class="sr-header-accent"></div>
@@ -24,6 +17,7 @@
         Review submission completeness, irregularities and CoA mapping for {{ activeAffiliateName() }} &middot; {{ displayPeriod() }}.
       </div>
     </div>
+    
 
     <div class="sr-header-right">
       @if (headerLoading()) {
@@ -35,7 +29,6 @@
             <app-skeleton width="160px" height="10px" radius="4px"></app-skeleton>
           </div>
         </div>
-        <app-skeleton width="80px" height="46px" radius="10px"></app-skeleton>
       } @else if (headerContact()) {
         <div class="sr-header-contact">
           <div class="sr-header-contact-avatar">
@@ -51,7 +44,11 @@
             </div>
           </div>
         </div>
+      }
 
+      @if (headerPendingLoading()) {
+        <app-skeleton width="80px" height="46px" radius="10px"></app-skeleton>
+      } @else {
         <div class="sr-pending-badge">
           <span class="sr-pending-count">{{ headerPendingCount() }}</span>
           <span class="sr-pending-label">Pending<br />Items</span>
@@ -71,6 +68,7 @@
 
     @if (tab() === 'completeness') {
       <button type="button" class="sr-expand-all-button" (click)="toggleExpandAll()">
+        <app-icon name="expand" [size]="13" [strokeWidth]="2"></app-icon>
         {{ allGroupsExpanded() ? 'Collapse All' : 'Expand All' }}
       </button>
     }
@@ -237,38 +235,47 @@
         </div>
       } @else {
         <div class="sr-kpi-grid sr-kpi-grid-3">
-           <div class="sr-kpi" [style.--kpi-accent]="'var(--submission-accent)'">
-            <div class="sr-kpi-label sr-kpi-label-top">Affiliate Total Irregularities</div>
-            <div class="sr-kpi-value" style="color: var(--submission-accent)">{{ irregularitiesTotal() }}</div>
-            <div class="sr-kpi-detail">{{ irregularitiesResolvedCount() }} resolved &middot; {{ irregularitiesRequiringReview() }} requiring review</div>
-          </div>
-          <div class="sr-kpi sr-kpi-breakdown" [style.--kpi-accent]="'var(--submission-danger)'">
-            <div class="sr-kpi-label sr-kpi-label-top">Irregularities by Priority</div>
-            <div class="sr-overview-breakdown">
-              @for (b of irregularitiesPriorityBreakdown(); track b.label) {
-                <div class="sr-overview-stat">
-                  <div>
-                    <div class="sr-overview-stat-value" [style.color]="b.color">{{ b.value }}</div>
-                    <div class="sr-overview-stat-label">{{ b.label }}</div>
-                  </div>
-                </div>
-              }
+          @if (irregularitiesSummaryLoading()) {
+            @for (i of [1,2,3]; track i) {
+              <div class="sr-kpi sr-kpi-skeleton">
+                <app-skeleton width="42px" height="27px" radius="5px"></app-skeleton>
+                <app-skeleton width="105px" height="9px" radius="4px"></app-skeleton>
+              </div>
+            }
+          } @else {
+            <div class="sr-kpi" [style.--kpi-accent]="'var(--submission-accent)'">
+              <div class="sr-kpi-label sr-kpi-label-top">Affiliate Total Irregularities</div>
+              <div class="sr-kpi-value" style="color: var(--submission-accent)">{{ irregularitiesTotal() }}</div>
+              <div class="sr-kpi-detail">{{ irregularitiesResolvedCount() }} resolved &middot; {{ irregularitiesRequiringReview() }} requiring review</div>
             </div>
-        </div>
+            <div class="sr-kpi sr-kpi-breakdown" [style.--kpi-accent]="'var(--submission-danger)'">
+              <div class="sr-kpi-label sr-kpi-label-top">Irregularities by Priority</div>
+              <div class="sr-overview-breakdown">
+                @for (b of irregularitiesPriorityBreakdown(); track b.label) {
+                  <div class="sr-overview-stat">
+                    <div>
+                      <div class="sr-overview-stat-value" [style.color]="b.color">{{ b.value }}</div>
+                      <div class="sr-overview-stat-label">{{ b.label }}</div>
+                    </div>
+                  </div>
+                }
+              </div>
+            </div>
 
-        <div class="sr-kpi sr-kpi-breakdown" [style.--kpi-accent]="'var(--submission-success)'">
-            <div class="sr-kpi-label sr-kpi-label-top">Irregularities by Status</div>
-            <div class="sr-overview-breakdown">
-              @for (b of irregularitiesStatusBreakdown(); track b.label) {
-                <div class="sr-overview-stat">
-                  <div>
-                    <div class="sr-overview-stat-value" [style.color]="b.color">{{ b.value }}</div>
-                    <div class="sr-overview-stat-label">{{ b.label }}</div>
+            <div class="sr-kpi sr-kpi-breakdown" [style.--kpi-accent]="'var(--submission-success)'">
+              <div class="sr-kpi-label sr-kpi-label-top">Irregularities by Status</div>
+              <div class="sr-overview-breakdown">
+                @for (b of irregularitiesStatusBreakdown(); track b.label) {
+                  <div class="sr-overview-stat">
+                    <div>
+                      <div class="sr-overview-stat-value" [style.color]="b.color">{{ b.value }}</div>
+                      <div class="sr-overview-stat-label">{{ b.label }}</div>
+                    </div>
                   </div>
-                </div>
-              }
+                }
+              </div>
             </div>
-          </div>
+          }
         </div>
 
         @if (findings().length === 0) { <div class="sr-empty-state">No irregularities identified for {{ activeAffiliateName() }}.</div> }
@@ -423,7 +430,16 @@
               </tr>
             </thead>
             <tbody>
-              @for (row of coaRows(); track row.rowId; let i = $index) {
+              @if (coaTableReloading()) {
+                @for (row of [1,2,3,4,5,6,7,8]; track row) {
+                  <tr>
+                    @for (column of displayCoaColumns(); track column.key) {
+                      <td><app-skeleton width="80%" height="14px" radius="4px"></app-skeleton></td>
+                    }
+                  </tr>
+                }
+              } @else {
+                @for (row of coaRows(); track row.rowId; let i = $index) {
                 <tr>
                   @for (column of displayCoaColumns(); track column.key) {
                     @switch (column.key) {
@@ -487,6 +503,7 @@
                     }
                   }
                 </tr>
+                }
               }
             </tbody>
           </table>
@@ -534,3 +551,12 @@
   [suggestions]="agentSuggestions"
   statusLabel="Following up automatically"
   ></app-specialist-agent>
+
+@if (toast()) {
+  <div class="sr-toast">
+    <span class="sr-toast-icon">
+      <app-icon name="check" [size]="14" [strokeWidth]="2.1"></app-icon>
+    </span>
+    {{ toast() }}
+  </div>
+}

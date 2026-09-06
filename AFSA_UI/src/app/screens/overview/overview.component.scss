@@ -607,7 +607,12 @@
   background: var(--card);
   border: 2px solid var(--border);
   color: var(--text-muted);
+  line-height: 0;
   transition: box-shadow 0.18s ease;
+
+  ::ng-deep svg {
+    display: block;
+  }
 }
 
 .ov-stepper-dot-filled {
@@ -727,6 +732,11 @@
   justify-content: space-between;
 }
 
+/* Fixed module-identity icon badge -- always centered regardless of the
+   icon component's internal markup/whitespace. line-height: 0 prevents
+   inline-level baseline spacing from nudging the icon off-center inside
+   the flex box, and forcing any inner svg to display:block removes any
+   default inline-svg descender gap that would otherwise sit unevenly. */
 .ov-status-icon {
   width: 30px;
   height: 30px;
@@ -734,6 +744,11 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  line-height: 0;
+
+  ::ng-deep svg {
+    display: block;
+  }
 }
 
 .ov-status-pill {
@@ -881,6 +896,19 @@
     border-color: var(--card-accent, var(--border));
     background: color-mix(in srgb, var(--card-accent, transparent) 8%, var(--surface));
     color: var(--card-accent, var(--text-primary));
+  }
+}
+
+/* Plain, non-interactive variant shown once a card reaches 100% -- no
+   hover state, no cursor pointer, no chevron (there's nothing to expand). */
+.ov-status-pending-static {
+  cursor: default;
+  color: var(--text-faint, var(--text-muted));
+  line-height: 1;
+
+  &:hover {
+    border-color: var(--border);
+    color: var(--text-faint, var(--text-muted));
   }
 }
 
