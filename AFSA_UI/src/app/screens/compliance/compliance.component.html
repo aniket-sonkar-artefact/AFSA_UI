@@ -273,9 +273,8 @@
     @if (!loadingDetail() && schema()) {
       <aside class="compliance-check-panel compliance-detail-enter">
         <div class="compliance-check-heading">
-          <app-icon name="shield" [size]="14" [strokeWidth]="1.8"></app-icon>
-            AI Compliance Check
           <app-icon name="sparkles" [size]="11" [strokeWidth]="1.8" class="sr-ai-icon" title="AI-generated"></app-icon>
+            AI Compliance Check
         </div>
 
         @if (checkRunning()) {
