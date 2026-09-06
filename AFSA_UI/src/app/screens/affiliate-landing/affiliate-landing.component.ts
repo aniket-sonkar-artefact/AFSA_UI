@@ -262,6 +262,18 @@ export class AffiliateLandingComponent implements OnInit {
     // the review screen's header via router state, so the name the person
     // just clicked is exactly what they see next -- the real affiliate API
     // may return a different (longer/legal) name for the same entity code.
+    //
+    // Router state alone doesn't survive a hard page reload, so also cache
+    // it in sessionStorage keyed by entity code -- Submission Review reads
+    // this as a fallback when state is gone, so a refresh on that screen
+    // still shows "SABIC Submission Review" instead of falling back to the
+    // raw "2010" entity code.
+    try {
+      sessionStorage.setItem(`affiliate-name:${row.entityCode}`, row.name);
+    } catch {
+      // Storage can be unavailable (private browsing, quota, etc.) -- the
+      // name still reaches the next screen via router state either way.
+    }
     this.router.navigate(['/submission/review', row.entityCode], { state: { affiliateName: row.name } });
   }
 

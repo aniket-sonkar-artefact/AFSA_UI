@@ -34,6 +34,7 @@ export type IconName =
   | 'camera'
   | 'layers'
   | 'expand'
+  | 'shrink'
   | 'translate'
   | 'scale'
   | 'trending-down'
@@ -202,6 +203,12 @@ export type IconName =
         </ng-container>
         <ng-container *ngSwitchCase="'expand'">
           <path d="M8 3H4v4M16 3h4v4M8 21H4v-4M16 21h4v-4" />
+        </ng-container>
+        <ng-container *ngSwitchCase="'shrink'">
+          <path d="M4 4l6 6" />
+          <path d="M20 4l-6 6" />
+          <path d="M4 20l6-6" />
+          <path d="M20 20l-6-6" />
         </ng-container>
         <ng-container *ngSwitchCase="'translate'">
           <circle cx="12" cy="12" r="9" />

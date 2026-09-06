@@ -68,7 +68,7 @@
 
     @if (tab() === 'completeness') {
       <button type="button" class="sr-expand-all-button" (click)="toggleExpandAll()">
-        <app-icon name="expand" [size]="13" [strokeWidth]="2"></app-icon>
+        <app-icon [name]="allGroupsExpanded() ? 'shrink' : 'expand'" [size]="13" [strokeWidth]="2"></app-icon>
         {{ allGroupsExpanded() ? 'Collapse All' : 'Expand All' }}
       </button>
     }

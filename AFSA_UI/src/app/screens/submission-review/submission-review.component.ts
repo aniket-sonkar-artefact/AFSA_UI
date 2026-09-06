@@ -321,16 +321,22 @@ export class SubmissionReviewComponent implements OnInit {
 
   readonly reviewerName = computed(() => this.authService.currentUser()?.name ?? 'Aniket Sonkar');
 
-  /** Display name carried over via router state from the Affiliate Landing
-   * page (e.g. "SABIC"), so the header shows exactly the name the person
-   * clicked. There is no affiliate-list endpoint to fall back on anymore --
-   * on a hard refresh (which loses router state), the header falls back to
-   * showing the raw entity code until the person navigates back through
-   * Landing again. */
-  private readonly passedAffiliateName = (history.state as { affiliateName?: string } | undefined)?.affiliateName ?? null;
+  /** Display name shown in the header (e.g. "SABIC"). Resolved in ngOnInit
+   *  once the entity code is known, from two sources in priority order:
+   *  1. Router state carried over from the Affiliate Landing page -- the
+   *     exact name the person just clicked.
+   *  2. sessionStorage, keyed by entity code -- set by Landing at the same
+   *     time as router state, so it survives a hard page reload (which
+   *     wipes router state) as long as the browser tab/session is still
+   *     alive.
+   *  If neither is available (e.g. a fresh tab opened directly to this
+   *  URL), this stays null and the header falls back to the raw entity
+   *  code until the person navigates back through Landing again. */
+  private readonly resolvedAffiliateName = signal<string | null>(null);
 
   readonly activeAffiliateName = computed(() => {
-    if (this.passedAffiliateName) return this.passedAffiliateName;
+    const resolved = this.resolvedAffiliateName();
+    if (resolved) return resolved;
     if (this.tab() === 'coa') return this.coaAffiliate();
     return this.tab() === 'irregularities' ? this.irregularitiesAffiliate() : this.completenessAffiliate();
   });
@@ -342,7 +348,7 @@ export class SubmissionReviewComponent implements OnInit {
 
   private readonly headerInfoEffect = effect(() => {
     const code = this.completenessAffiliate();
-    const name = this.passedAffiliateName ?? code;
+    const name = this.resolvedAffiliateName() ?? code;
     if (!name || name === this.lastHeaderAffiliate) return;
     this.lastHeaderAffiliate = name;
     this.loadHeaderInfo(name);
@@ -583,6 +589,29 @@ export class SubmissionReviewComponent implements OnInit {
     this.completenessAffiliate.set(entityCode);
     this.irregularitiesAffiliate.set(entityCode);
     this.coaAffiliate.set(entityCode);
+
+    // Resolve the display name: router state first (exact name just
+    // clicked on Landing), sessionStorage second (survives a hard reload,
+    // which wipes router state but not sessionStorage within the same
+    // tab/session). Whichever source provided it, re-persist to
+    // sessionStorage so it's available for any further reloads too.
+    const stateName = (history.state as { affiliateName?: string } | undefined)?.affiliateName ?? null;
+    let resolvedName = stateName;
+    if (!resolvedName) {
+      try {
+        resolvedName = sessionStorage.getItem(`affiliate-name:${entityCode}`);
+      } catch {
+        resolvedName = null;
+      }
+    }
+    if (resolvedName) {
+      this.resolvedAffiliateName.set(resolvedName);
+      try {
+        sessionStorage.setItem(`affiliate-name:${entityCode}`, resolvedName);
+      } catch {
+        // Non-fatal -- the name is still shown for this load either way.
+      }
+    }
 
     // Restore whichever tab was active before a hard reload/navigation,
     // via the ?tab= query param -- otherwise this screen always snapped

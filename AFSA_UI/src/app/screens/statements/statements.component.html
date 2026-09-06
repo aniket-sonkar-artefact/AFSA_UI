@@ -132,7 +132,7 @@
     </div>
 
     <button type="button" class="st-expand-all" (click)="toggleExpandAll()">
-      <app-icon name="expand" [size]="13" [strokeWidth]="2"></app-icon>
+      <app-icon [name]="expandAll() ? 'shrink' : 'expand'" [size]="13" [strokeWidth]="2"></app-icon>
       {{ expandAll() ? 'Collapse All' : 'Expand All' }}
     </button>
   </section>
