@@ -701,8 +701,14 @@
   }
 }
 
+/* Pulses using the card's own accent color (--card-accent), not a fixed
+   red -- "Requires Attention" is communicated by the pulsing motion itself,
+   while the color stays true to whichever module the card belongs to
+   (e.g. teal for Financial Statement Integrity, navy for Submission, etc).
+   color-mix keeps a soft rgba-style fallback even if --card-accent is
+   unset for some reason. */
 .ov-status-attention {
-  border-color: rgba(192, 80, 77, 0.35);
+  border-color: color-mix(in srgb, var(--card-accent, #C0504D) 35%, transparent);
   animation: ovAttentionPulse 1.7s ease-in-out infinite;
 
   &:hover {
@@ -713,10 +719,10 @@
 @keyframes ovAttentionPulse {
   0%,
   100% {
-    box-shadow: 0 0 0 0 rgba(192, 80, 77, 0.24);
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--card-accent, #C0504D) 0%, transparent);
   }
   50% {
-    box-shadow: 0 0 22px 6px rgba(192, 80, 77, 0.45);
+    box-shadow: 0 0 22px 6px color-mix(in srgb, var(--card-accent, #C0504D) 45%, transparent);
   }
 }
 
